@@ -60,3 +60,21 @@
 
 ### Verification Status
 - Built & verified Kotlin compilation (`./gradlew compileDebugKotlin`): **SUCCESS**.
+
+---
+
+## Step 3: Data Layer & Shuffle Bag Implementation
+
+### Data Layer Implementation Summary
+- **Room Persistence (`com.example.wallpaperapp.data.local.db`):**
+  - `QuoteEntity` & `ImageEntity`: Room database entities for quotes and wallpaper content URIs.
+  - `QuoteDao` & `ImageDao`: Data Access Objects for CRUD and reactive `Flow` queries.
+  - `WallpaperDatabase`: Room Database configuration (`version = 1`).
+  - `RoomQuoteRepository` & `RoomImageRepository`: Repository implementations mapping between domain models and Room entities.
+- **DataStore Preferences Persistence (`com.example.wallpaperapp.data.repository`):**
+  - `DataStoreSettingsRepository`: Implements `SettingsRepository` using Jetpack DataStore Preferences to persist target screen (`WallpaperTarget`), normalized bounding box coordinates (`NormalizedRect`), periodic schedule configuration (`ScheduleConfig`), and quote/image shuffle history queues.
+- **Smart Shuffle Bag Engine (`com.example.wallpaperapp.data.engine`):**
+  - `ShuffleBagEngine<T>`: Implements non-repeating shuffle bag logic. Ensures no quote or image repeats until the entire pool is exhausted. On pool exhaustion, reshuffles ensuring the first item of the new cycle does not match the last item served in the previous cycle. Handles pool size changes, single item pools, and empty pools gracefully.
+
+### Verification Status
+- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (5/5 unit tests passed).
