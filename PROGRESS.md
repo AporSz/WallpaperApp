@@ -28,3 +28,35 @@
 ### Prerequisites Verification & Next Steps
 - All core SDK and JDK dependencies are present and ready.
 - Step 2 will scaffold the Gradle wrapper (`./gradlew`), Android Gradle Project structure, dependencies, and initial clean architecture domain interfaces.
+
+---
+
+## Step 2: Project Scaffolding & Domain Layer
+
+### Scaffolding Summary
+- **Android Gradle Setup:**
+  - Configured Android Gradle Project with AGP 8.7.3, Kotlin 2.0.21, and KSP 2.0.21-1.0.28.
+  - Initialized Version Catalog `libs.versions.toml` with Jetpack Compose (BOM 2024.11.00), DataStore Preferences (1.1.1), Room (2.6.1), WorkManager (2.10.0), AndroidX Palette (1.0.0), Coil (2.7.0), and Coroutines (1.9.0).
+  - Created root `build.gradle.kts`, `settings.gradle.kts`, `gradle.properties`, and `app/build.gradle.kts`.
+  - Installed Gradle Wrapper (Gradle 8.11.1).
+
+### Key Architectural Decisions & Interfaces Defined
+- **Pure Kotlin Domain Models (`com.example.wallpaperapp.domain.model`):**
+  - `Quote`: Immutable data model representing text + optional author.
+  - `WallpaperImage`: Immutable data model representing persistent image URI.
+  - `NormalizedRect`: Scaled bounding box coordinates (`0.0f` to `1.0f`) with presets (`UPPER_THIRD`, `CENTER`, `LOWER_THIRD`).
+  - `WallpaperTarget`: Enum (`HOME_SCREEN`, `LOCK_SCREEN`, `BOTH`).
+  - `ScheduleConfig`: Holds schedule state and update interval.
+  - `RenderConfig`: Holds target normalized rect and font scaling range.
+- **Pure Kotlin Domain Interfaces (`com.example.wallpaperapp.domain.*`):**
+  - `QuoteRepository`: Interface for quote persistence & observation.
+  - `ImageRepository`: Interface for wallpaper image persistence & observation.
+  - `SettingsRepository`: Interface for preference persistence (target screen, normalized rect, schedule, shuffle queues).
+  - `ShuffleEngine<T>`: Non-repeating shuffle bag abstraction.
+  - `ContrastAnalyzer<I>`: Abstraction for background luminance contrast computation.
+  - `WallpaperRenderer<I, B>`: Abstraction for image + quote compositing.
+  - `WallpaperApplier<B>`: Abstraction for setting wallpaper on target screen.
+  - `WallpaperScheduler`: Abstraction for periodic execution scheduling.
+
+### Verification Status
+- Built & verified Kotlin compilation (`./gradlew compileDebugKotlin`): **SUCCESS**.

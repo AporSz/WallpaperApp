@@ -1,0 +1,7 @@
+package com.example.wallpaperapp.domain.model
+
+data class RenderConfig(
+    val targetRect: NormalizedRect = NormalizedRect.CENTER,
+    val maxFontSizeSp: Float = 36.0f,
+    val minFontSizeSp: Float = 12.0f
+)
