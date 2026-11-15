@@ -78,3 +78,24 @@
 
 ### Verification Status
 - Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (5/5 unit tests passed).
+
+---
+
+## Step 4: Graphics, Contrast & Auto-Fit Rendering Engine
+
+### Graphics & Wallpaper Application Implementation Summary
+- **Luminance & Contrast Analysis (`PaletteContrastAnalyzer`):**
+  - Crops full wallpaper image to the exact `NormalizedRect` bounding box.
+  - Calculates average luminance of cropped area via AndroidX `Palette` dominant swatch or direct pixel sampling.
+  - Returns light text + dark drop shadow for dark background regions (`luminance < 0.5f`) and dark text + light shadow for light regions.
+- **Canvas Composite Wallpaper Renderer (`CanvasWallpaperRenderer`):**
+  - Downsamples source URI safely using `BitmapFactory.Options.inSampleSize` based on exact display metrics to prevent `OutOfMemoryError`.
+  - Performs dynamic binary-step text scaling from `maxFontSizeSp` down to `minFontSizeSp` using AndroidX `StaticLayout`.
+  - Formats quote body (serif, bold) and author (sans-serif, italic) with proportional size spans.
+  - Composites scaled background bitmap and centered contrasting quote text onto `Canvas`.
+- **System Wallpaper Applier (`AndroidWallpaperApplier`):**
+  - Wraps `WallpaperManager.getInstance(context)`.
+  - Maps domain `WallpaperTarget` (`HOME_SCREEN`, `LOCK_SCREEN`, `BOTH`) to corresponding system flags (`WallpaperManager.FLAG_SYSTEM`, `WallpaperManager.FLAG_LOCK`, or both).
+
+### Verification Status
+- Built & verified Kotlin compilation & unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS**.
