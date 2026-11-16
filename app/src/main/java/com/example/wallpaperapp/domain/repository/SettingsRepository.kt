@@ -1,7 +1,9 @@
 package com.example.wallpaperapp.domain.repository
 
+import com.example.wallpaperapp.domain.model.AppThemeMode
 import com.example.wallpaperapp.domain.model.NormalizedRect
 import com.example.wallpaperapp.domain.model.ScheduleConfig
+import com.example.wallpaperapp.domain.model.TextOrientation
 import com.example.wallpaperapp.domain.model.WallpaperTarget
 import kotlinx.coroutines.flow.Flow
 
@@ -20,4 +22,10 @@ interface SettingsRepository {
 
     fun observeImageShuffleQueue(): Flow<List<String>>
     suspend fun setImageShuffleQueue(queue: List<String>)
+
+    fun observeAppThemeMode(): Flow<AppThemeMode>
+    suspend fun setAppThemeMode(themeMode: AppThemeMode)
+
+    fun observeTextOrientation(): Flow<TextOrientation>
+    suspend fun setTextOrientation(orientation: TextOrientation)
 }

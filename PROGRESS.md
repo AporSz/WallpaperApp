@@ -172,3 +172,23 @@
   - Add App Theme Mode selector controls to `DashboardScreen`.
   - Add Text Orientation selector controls (`Horizontal`, `Vertical -90°`, `Vertical +90°`) to `ZoneEditorScreen` and update live bounding box text preview.
   - Re-verify debug APK build and unit tests.
+
+---
+
+## Extension Phase - Step 2: Domain & Data Layer Extensions
+
+### Domain & Data Layer Extensions Summary
+- **Pure Kotlin Domain Enums (`com.example.wallpaperapp.domain.model`):**
+  - Created `AppThemeMode` (`SYSTEM`, `LIGHT`, `DARK`).
+  - Created `TextOrientation` (`HORIZONTAL`, `VERTICAL_UP`, `VERTICAL_DOWN`).
+- **Domain Models & Interfaces Updates:**
+  - Extended `RenderConfig` with default `textOrientation = TextOrientation.HORIZONTAL`.
+  - Updated `SettingsRepository` adding reactive `Flow` observations and setters for `AppThemeMode` and `TextOrientation`.
+- **DataStore Persistence Implementation:**
+  - Updated `DataStoreSettingsRepository` with DataStore keys `key_app_theme_mode` and `key_text_orientation`, handling parsing with safe default fallbacks.
+- **Use Case & Unit Tests:**
+  - Updated `RotateWallpaperUseCase` to observe `textOrientation` from `SettingsRepository` and pass it into `RenderConfig`.
+  - Updated `RotateWallpaperUseCaseTest` fake repository implementation.
+
+### Verification Status
+- Built & verified Kotlin compilation and unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (8/8 unit tests passed).

@@ -36,6 +36,7 @@ class RotateWallpaperUseCase(
 
             val targetScreen = settingsRepository.observeWallpaperTarget().first()
             val rect = settingsRepository.observeNormalizedRect().first()
+            val orientation = settingsRepository.observeTextOrientation().first()
             val quoteQueue = settingsRepository.observeQuoteShuffleQueue().first()
             val imageQueue = settingsRepository.observeImageShuffleQueue().first()
 
@@ -48,7 +49,7 @@ class RotateWallpaperUseCase(
             val (selectedQuote, updatedQuoteQueue) = quoteResult
             val (selectedImage, updatedImageQueue) = imageResult
 
-            val renderConfig = RenderConfig(targetRect = rect)
+            val renderConfig = RenderConfig(targetRect = rect, textOrientation = orientation)
             val renderedBitmap = wallpaperRenderer.renderWallpaper(selectedImage.uri, selectedQuote, renderConfig)
                 ?: return Result.failure(IllegalStateException("Failed to render composite wallpaper"))
 

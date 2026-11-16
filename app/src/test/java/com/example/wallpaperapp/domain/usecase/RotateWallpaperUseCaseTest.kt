@@ -4,10 +4,12 @@ import android.graphics.Bitmap
 import com.example.wallpaperapp.data.engine.ShuffleBagEngine
 import com.example.wallpaperapp.domain.applier.WallpaperApplier
 import com.example.wallpaperapp.domain.engine.WallpaperRenderer
+import com.example.wallpaperapp.domain.model.AppThemeMode
 import com.example.wallpaperapp.domain.model.NormalizedRect
 import com.example.wallpaperapp.domain.model.Quote
 import com.example.wallpaperapp.domain.model.RenderConfig
 import com.example.wallpaperapp.domain.model.ScheduleConfig
+import com.example.wallpaperapp.domain.model.TextOrientation
 import com.example.wallpaperapp.domain.model.WallpaperImage
 import com.example.wallpaperapp.domain.model.WallpaperTarget
 import com.example.wallpaperapp.domain.repository.ImageRepository
@@ -49,12 +51,16 @@ class RotateWallpaperUseCaseTest {
         var schedule = ScheduleConfig()
         var quoteQueue = emptyList<String>()
         var imageQueue = emptyList<String>()
+        var appThemeMode = AppThemeMode.SYSTEM
+        var textOrientation = TextOrientation.HORIZONTAL
 
         private val targetState = MutableStateFlow(target)
         private val rectState = MutableStateFlow(rect)
         private val scheduleState = MutableStateFlow(schedule)
         private val quoteQueueState = MutableStateFlow(quoteQueue)
         private val imageQueueState = MutableStateFlow(imageQueue)
+        private val themeModeState = MutableStateFlow(appThemeMode)
+        private val orientationState = MutableStateFlow(textOrientation)
 
         override fun observeWallpaperTarget(): Flow<WallpaperTarget> = targetState
         override suspend fun setWallpaperTarget(target: WallpaperTarget) {
@@ -84,6 +90,18 @@ class RotateWallpaperUseCaseTest {
         override suspend fun setImageShuffleQueue(queue: List<String>) {
             this.imageQueue = queue
             imageQueueState.value = queue
+        }
+
+        override fun observeAppThemeMode(): Flow<AppThemeMode> = themeModeState
+        override suspend fun setAppThemeMode(themeMode: AppThemeMode) {
+            this.appThemeMode = themeMode
+            themeModeState.value = themeMode
+        }
+
+        override fun observeTextOrientation(): Flow<TextOrientation> = orientationState
+        override suspend fun setTextOrientation(orientation: TextOrientation) {
+            this.textOrientation = orientation
+            orientationState.value = orientation
         }
     }
 

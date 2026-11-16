@@ -7,8 +7,10 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.example.wallpaperapp.domain.model.AppThemeMode
 import com.example.wallpaperapp.domain.model.NormalizedRect
 import com.example.wallpaperapp.domain.model.ScheduleConfig
+import com.example.wallpaperapp.domain.model.TextOrientation
 import com.example.wallpaperapp.domain.model.WallpaperTarget
 import com.example.wallpaperapp.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
@@ -28,6 +30,8 @@ class DataStoreSettingsRepository(
         val SCHEDULE_INTERVAL = longPreferencesKey("key_schedule_interval")
         val QUOTE_SHUFFLE_QUEUE = stringPreferencesKey("key_quote_shuffle_queue")
         val IMAGE_SHUFFLE_QUEUE = stringPreferencesKey("key_image_shuffle_queue")
+        val APP_THEME_MODE = stringPreferencesKey("key_app_theme_mode")
+        val TEXT_ORIENTATION = stringPreferencesKey("key_text_orientation")
     }
 
     override fun observeWallpaperTarget(): Flow<WallpaperTarget> {
@@ -108,6 +112,40 @@ class DataStoreSettingsRepository(
     override suspend fun setImageShuffleQueue(queue: List<String>) {
         dataStore.edit { prefs ->
             prefs[PreferencesKeys.IMAGE_SHUFFLE_QUEUE] = formatQueue(queue)
+        }
+    }
+
+    override fun observeAppThemeMode(): Flow<AppThemeMode> {
+        return dataStore.data.map { prefs ->
+            val name = prefs[PreferencesKeys.APP_THEME_MODE] ?: AppThemeMode.SYSTEM.name
+            try {
+                AppThemeMode.valueOf(name)
+            } catch (e: Exception) {
+                AppThemeMode.SYSTEM
+            }
+        }
+    }
+
+    override suspend fun setAppThemeMode(themeMode: AppThemeMode) {
+        dataStore.edit { prefs ->
+            prefs[PreferencesKeys.APP_THEME_MODE] = themeMode.name
+        }
+    }
+
+    override fun observeTextOrientation(): Flow<TextOrientation> {
+        return dataStore.data.map { prefs ->
+            val name = prefs[PreferencesKeys.TEXT_ORIENTATION] ?: TextOrientation.HORIZONTAL.name
+            try {
+                TextOrientation.valueOf(name)
+            } catch (e: Exception) {
+                TextOrientation.HORIZONTAL
+            }
+        }
+    }
+
+    override suspend fun setTextOrientation(orientation: TextOrientation) {
+        dataStore.edit { prefs ->
+            prefs[PreferencesKeys.TEXT_ORIENTATION] = orientation.name
         }
     }
 
