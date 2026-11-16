@@ -99,3 +99,19 @@
 
 ### Verification Status
 - Built & verified Kotlin compilation & unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS**.
+
+---
+
+## Step 5: Use Cases & Background Worker (`WorkManager`)
+
+### Orchestration & Background Execution Implementation Summary
+- **Wallpaper Rotation Business Logic (`RotateWallpaperUseCase`):**
+  - Orchestrates complete rotation flow: reads user preferences (`WallpaperTarget`, `NormalizedRect`), fetches next quote & image via `ShuffleBagEngine`, composites composite bitmap via `CanvasWallpaperRenderer`, applies to `WallpaperTarget` via `AndroidWallpaperApplier`, and persists updated shuffle state queues back to `SettingsRepository`.
+- **Background Task Execution (`WallpaperWorker` & `WorkManagerScheduler`):**
+  - `WallpaperWorker`: `CoroutineWorker` invoking `RotateWallpaperUseCase` off-thread. Handles success/retry results safely.
+  - `WorkManagerScheduler`: Implements `WallpaperScheduler` using `PeriodicWorkRequestBuilder` enforcing minimum interval constraints (15 minutes) and storage/system constraints.
+- **Application Container (`AppContainer` & `WallpaperApplication`):**
+  - Provides clean dependency injection container for Room Database, DataStore, Repositories, Shuffle Engines, Rendering Engine, Applier, Use Case, and Scheduler.
+
+### Verification Status
+- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (8/8 unit tests passed).
