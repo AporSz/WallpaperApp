@@ -192,3 +192,22 @@
 
 ### Verification Status
 - Built & verified Kotlin compilation and unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (8/8 unit tests passed).
+
+---
+
+## Extension Phase - Step 3: Graphics / Canvas Orientation & Auto-Fit Rendering Engine Update
+
+### Rendering Engine Orientation Update Summary
+- **Orientation Constraints & Layout Swap:**
+  - Updated `CanvasWallpaperRenderer`: when `TextOrientation` is vertical (`VERTICAL_UP` or `VERTICAL_DOWN`), line width constraint is set to `boxHeightPx` and layout max height limit is set to `boxWidthPx`.
+  - StaticLayout auto-fitting binary search dynamically evaluates font size fitting inside the rotated layout boundaries.
+- **Canvas Matrix Transformation & Rendering:**
+  - Computed bounding box center `(centerX, centerY)`.
+  - Applied matrix transformations on `Canvas`:
+    - `HORIZONTAL`: `canvas.translate(leftPx, offsetY)`.
+    - `VERTICAL_UP`: `canvas.translate(centerX, centerY)`, `canvas.rotate(-90f)`, `canvas.translate(-optimalLayout.width / 2f, -optimalLayout.height / 2f)`.
+    - `VERTICAL_DOWN`: `canvas.translate(centerX, centerY)`, `canvas.rotate(90f)`, `canvas.translate(-optimalLayout.width / 2f, -optimalLayout.height / 2f)`.
+  - Contrast analysis continues analyzing the exact unrotated `NormalizedRect` image region behind the bounding box.
+
+### Verification Status
+- Built & verified Kotlin compilation and unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (8/8 unit tests passed).

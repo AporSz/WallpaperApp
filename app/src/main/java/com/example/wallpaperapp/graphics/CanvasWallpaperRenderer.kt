@@ -21,6 +21,7 @@ import com.example.wallpaperapp.domain.engine.ContrastAnalyzer
 import com.example.wallpaperapp.domain.engine.WallpaperRenderer
 import com.example.wallpaperapp.domain.model.Quote
 import com.example.wallpaperapp.domain.model.RenderConfig
+import com.example.wallpaperapp.domain.model.TextOrientation
 
 class CanvasWallpaperRenderer(
     private val context: Context,
@@ -40,7 +41,7 @@ class CanvasWallpaperRenderer(
         val backgroundBitmap = loadScaledBitmap(imageInput, targetWidth, targetHeight)
             ?: createDefaultBackground(targetWidth, targetHeight)
 
-        // 2. Analyze contrast of background in the cropped bounding box
+        // 2. Analyze contrast of background in the unrotated cropped bounding box
         val contrastResult = contrastAnalyzer.analyzeContrast(backgroundBitmap, config.targetRect)
 
         // 3. Prepare mutable composite bitmap & canvas
@@ -56,28 +57,52 @@ class CanvasWallpaperRenderer(
         val boxWidthPx = (rightPx - leftPx).toInt().coerceAtLeast(100)
         val boxHeightPx = (bottomPx - topPx).toInt().coerceAtLeast(100)
 
-        // 5. Binary search for optimal font size that fits inside boxHeightPx
+        // 5. Configure text paint
         val textPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = contrastResult.textColorArgb
             setShadowLayer(8f, 3f, 3f, contrastResult.shadowColorArgb)
             typeface = Typeface.create(Typeface.SERIF, Typeface.NORMAL)
         }
 
+        // 6. Swap layout constraints for vertical text orientations
+        val isVertical = config.textOrientation != TextOrientation.HORIZONTAL
+        val layoutLineWidthPx = if (isVertical) boxHeightPx else boxWidthPx
+        val layoutMaxHeightPx = if (isVertical) boxWidthPx else boxHeightPx
+
         val optimalLayout = findOptimalTextLayout(
             quote = quote,
             textPaint = textPaint,
-            boxWidthPx = boxWidthPx,
-            boxHeightPx = boxHeightPx,
+            layoutLineWidthPx = layoutLineWidthPx,
+            layoutMaxHeightPx = layoutMaxHeightPx,
             minSp = config.minFontSizeSp,
             maxSp = config.maxFontSizeSp,
             scaledDensity = displayMetrics.scaledDensity,
             textColor = contrastResult.textColorArgb
         )
 
-        // 6. Draw text centered vertically inside bounding box
-        val offsetY = topPx + (boxHeightPx - optimalLayout.height) / 2f
+        // 7. Draw text onto Canvas with proper matrix translation & rotation
+        val centerX = leftPx + boxWidthPx / 2f
+        val centerY = topPx + boxHeightPx / 2f
+
         canvas.save()
-        canvas.translate(leftPx, offsetY)
+
+        when (config.textOrientation) {
+            TextOrientation.HORIZONTAL -> {
+                val offsetY = topPx + (boxHeightPx - optimalLayout.height) / 2f
+                canvas.translate(leftPx, offsetY)
+            }
+            TextOrientation.VERTICAL_UP -> {
+                canvas.translate(centerX, centerY)
+                canvas.rotate(-90f)
+                canvas.translate(-optimalLayout.width / 2f, -optimalLayout.height / 2f)
+            }
+            TextOrientation.VERTICAL_DOWN -> {
+                canvas.translate(centerX, centerY)
+                canvas.rotate(90f)
+                canvas.translate(-optimalLayout.width / 2f, -optimalLayout.height / 2f)
+            }
+        }
+
         optimalLayout.draw(canvas)
         canvas.restore()
 
@@ -157,8 +182,8 @@ class CanvasWallpaperRenderer(
     private fun findOptimalTextLayout(
         quote: Quote,
         textPaint: TextPaint,
-        boxWidthPx: Int,
-        boxHeightPx: Int,
+        layoutLineWidthPx: Int,
+        layoutMaxHeightPx: Int,
         minSp: Float,
         maxSp: Float,
         scaledDensity: Float,
@@ -174,9 +199,9 @@ class CanvasWallpaperRenderer(
         // Step/Binary search for font size
         while (high - low >= 0.5f) {
             val midSp = (low + high) / 2f
-            val layout = createStaticLayout(formattedText, textPaint, midSp, quote, boxWidthPx, scaledDensity, textColor)
+            val layout = createStaticLayout(formattedText, textPaint, midSp, quote, layoutLineWidthPx, scaledDensity, textColor)
 
-            if (layout.height <= boxHeightPx) {
+            if (layout.height <= layoutMaxHeightPx) {
                 bestSp = midSp
                 bestLayout = layout
                 low = midSp + 0.5f
@@ -185,7 +210,7 @@ class CanvasWallpaperRenderer(
             }
         }
 
-        return bestLayout ?: createStaticLayout(formattedText, textPaint, minSp, quote, boxWidthPx, scaledDensity, textColor)
+        return bestLayout ?: createStaticLayout(formattedText, textPaint, minSp, quote, layoutLineWidthPx, scaledDensity, textColor)
     }
 
     private fun buildFormattedSpannable(quote: Quote): SpannableStringBuilder {
