@@ -50,30 +50,59 @@ class RotateWallpaperUseCaseTest {
         var quoteQueue = emptyList<String>()
         var imageQueue = emptyList<String>()
 
-        override fun observeWallpaperTarget(): Flow<WallpaperTarget> = MutableStateFlow(target)
-        override suspend fun setWallpaperTarget(target: WallpaperTarget) { this.target = target }
+        private val targetState = MutableStateFlow(target)
+        private val rectState = MutableStateFlow(rect)
+        private val scheduleState = MutableStateFlow(schedule)
+        private val quoteQueueState = MutableStateFlow(quoteQueue)
+        private val imageQueueState = MutableStateFlow(imageQueue)
 
-        override fun observeNormalizedRect(): Flow<NormalizedRect> = MutableStateFlow(rect)
-        override suspend fun setNormalizedRect(rect: NormalizedRect) { this.rect = rect }
+        override fun observeWallpaperTarget(): Flow<WallpaperTarget> = targetState
+        override suspend fun setWallpaperTarget(target: WallpaperTarget) {
+            this.target = target
+            targetState.value = target
+        }
 
-        override fun observeScheduleConfig(): Flow<ScheduleConfig> = MutableStateFlow(schedule)
-        override suspend fun setScheduleConfig(config: ScheduleConfig) { this.schedule = config }
+        override fun observeNormalizedRect(): Flow<NormalizedRect> = rectState
+        override suspend fun setNormalizedRect(rect: NormalizedRect) {
+            this.rect = rect
+            rectState.value = rect
+        }
 
-        override fun observeQuoteShuffleQueue(): Flow<List<String>> = MutableStateFlow(quoteQueue)
-        override suspend fun setQuoteShuffleQueue(queue: List<String>) { this.quoteQueue = queue }
+        override fun observeScheduleConfig(): Flow<ScheduleConfig> = scheduleState
+        override suspend fun setScheduleConfig(config: ScheduleConfig) {
+            this.schedule = config
+            scheduleState.value = config
+        }
 
-        override fun observeImageShuffleQueue(): Flow<List<String>> = MutableStateFlow(imageQueue)
-        override suspend fun setImageShuffleQueue(queue: List<String>) { this.imageQueue = queue }
+        override fun observeQuoteShuffleQueue(): Flow<List<String>> = quoteQueueState
+        override suspend fun setQuoteShuffleQueue(queue: List<String>) {
+            this.quoteQueue = queue
+            quoteQueueState.value = queue
+        }
+
+        override fun observeImageShuffleQueue(): Flow<List<String>> = imageQueueState
+        override suspend fun setImageShuffleQueue(queue: List<String>) {
+            this.imageQueue = queue
+            imageQueueState.value = queue
+        }
     }
 
     private class FakeWallpaperRenderer : WallpaperRenderer<Any, Bitmap> {
-        val mockBitmap: Bitmap = org.mockito.Mockito.mock(Bitmap::class.java)
+        val dummyBitmap: Bitmap = run {
+            val unsafeClass = Class.forName("sun.misc.Unsafe")
+            val field = unsafeClass.getDeclaredField("theUnsafe")
+            field.isAccessible = true
+            val unsafe = field.get(null)
+            val allocateInstance = unsafeClass.getMethod("allocateInstance", Class::class.java)
+            allocateInstance.invoke(unsafe, Bitmap::class.java) as Bitmap
+        }
+
         override suspend fun renderWallpaper(
             imageInput: Any,
             quote: Quote,
             config: RenderConfig
         ): Bitmap {
-            return mockBitmap
+            return dummyBitmap
         }
     }
 
