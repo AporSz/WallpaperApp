@@ -139,3 +139,36 @@
 ### Verification Status
 - Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** (`app/build/outputs/apk/debug/app-debug.apk`).
 - Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (8/8 unit tests passed).
+
+---
+
+## Extension Phase - Step 1: Existing Codebase Inspection & Feature Integration Plan
+
+### Architecture & Codebase Inspection Summary
+- **Inspected Key Interfaces & Implementations:**
+  - `RenderConfig` (`com.example.wallpaperapp.domain.model`): Holds target `NormalizedRect` and font scaling range.
+  - `SettingsRepository` & `DataStoreSettingsRepository`: Handles preference persistence via Jetpack DataStore.
+  - `CanvasWallpaperRenderer`: Performs bitmap scaling, luminance contrast calculation, dynamic font auto-fitting using `StaticLayout`, and Canvas rendering.
+  - `RotateWallpaperUseCase`: Orchestrates wallpaper generation using settings preferences.
+  - `DashboardScreen` / `DashboardViewModel` & `ZoneEditorScreen` / `ZoneEditorViewModel`: Jetpack Compose UI layers.
+  - `MainActivity.kt`: Root activity defining top-level Compose theme.
+
+### User Clarification Confirmed
+- **Vertical Text Orientation:** User confirmed supporting both `VERTICAL_UP` (`-90°`, reading bottom-to-top) and `VERTICAL_DOWN` (`+90°`, reading top-to-bottom).
+
+### Concrete Integration Plan (Steps 2–4)
+- **Step 2 (Domain & Data Layer Extensions):**
+  - Create pure Kotlin enums: `AppThemeMode` (`SYSTEM`, `LIGHT`, `DARK`) and `TextOrientation` (`HORIZONTAL`, `VERTICAL_UP`, `VERTICAL_DOWN`).
+  - Extend `RenderConfig` to include `textOrientation: TextOrientation = TextOrientation.HORIZONTAL`.
+  - Extend `SettingsRepository` with `observeAppThemeMode()`, `setAppThemeMode()`, `observeTextOrientation()`, `setTextOrientation()`.
+  - Update `DataStoreSettingsRepository` to persist `key_app_theme_mode` and `key_text_orientation` with safe fallbacks.
+  - Update `RotateWallpaperUseCase` to pass the saved `textOrientation` into `RenderConfig`.
+- **Step 3 (Graphics & Canvas Text Orientation Update):**
+  - Update `CanvasWallpaperRenderer` auto-fitting algorithm: when text orientation is vertical (`VERTICAL_UP` or `VERTICAL_DOWN`), swap bounding box `width` and `height` constraints when creating `StaticLayout` so lines wrap along the vertical box height.
+  - Perform matrix translation and rotation on Canvas (`canvas.save()`, translate to bounding box center, rotate `-90f` or `90f`, center static layout, `canvas.restore()`).
+  - Verify contrast analyzer continues evaluating the exact unrotated `NormalizedRect` background region.
+- **Step 4 (Jetpack Compose Theme & UI Controls):**
+  - Update `MainActivity.kt` root theme to reactively bind `AppThemeMode` to Material 3 `darkTheme` state (`SYSTEM` -> `isSystemInDarkTheme()`, `LIGHT` -> `false`, `DARK` -> `true`).
+  - Add App Theme Mode selector controls to `DashboardScreen`.
+  - Add Text Orientation selector controls (`Horizontal`, `Vertical -90°`, `Vertical +90°`) to `ZoneEditorScreen` and update live bounding box text preview.
+  - Re-verify debug APK build and unit tests.
