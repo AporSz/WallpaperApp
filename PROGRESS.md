@@ -159,3 +159,22 @@
 ### Design Plan: Interactive Bounding Box Editor (Step 3)
 - Extract clean geometry math helper (`CropBoxGeometry.kt` / `NormalizedRect` extensions) for 8 handles: Top-Left, Top-Right, Bottom-Left, Bottom-Right, Top, Bottom, Left, Right + interior translation, with `[0f, 1f]` boundary clamping and `15% x 10%` minimum dimensions.
 - Upgrade `ZoneEditorScreen.kt` with outer dimmed scrim, 8 visible drag handles, center guidelines, and live text orientation rotation preview.
+
+---
+
+## Phase 3 - Step 2: Fix Background Image Loading, Permissions & Canvas Compositing
+
+### Fix & Resolution Summary
+- **Persistable URI Permissions (`PoolsScreen.kt`):**
+  - Integrated `context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)` when importing images in `PoolsScreen.kt`.
+- **Bitmap Decoding, EXIF & Error Visibility (`CanvasWallpaperRenderer.kt`):**
+  - Updated `decodeUriDownsampled` requesting `inMutable = true` and `inPreferredConfig = Bitmap.Config.ARGB_8888`.
+  - Added EXIF orientation detection via `ExifInterface` to automatically rotate image streams to upright orientation.
+  - Replaced silent dark grey fallback with `Log.e` diagnostics, returning `null` when bitmap decoding fails.
+- **Unreadable URI Recovery & Auto-Pruning (`RotateWallpaperUseCase.kt`):**
+  - Added loop in `RotateWallpaperUseCase` to automatically prune invalid/unreadable URIs from `ImageRepository` and try candidate images in the pool instead of failing to a grey screen.
+
+### Verification Status
+- Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS**.
+- Installed & launched on physical device `39271FDJG001T8`: **SUCCESS**.
+- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (8/8 unit tests passed).

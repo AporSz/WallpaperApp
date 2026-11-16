@@ -43,15 +43,39 @@ class RotateWallpaperUseCase(
             val quoteResult = quoteShuffleEngine.selectNext(quotes, quoteQueue) { it.id }
                 ?: return Result.failure(IllegalStateException("Failed to select next quote"))
 
-            val imageResult = imageShuffleEngine.selectNext(images, imageQueue) { it.id }
-                ?: return Result.failure(IllegalStateException("Failed to select next image"))
-
             val (selectedQuote, updatedQuoteQueue) = quoteResult
-            val (selectedImage, updatedImageQueue) = imageResult
 
-            val renderConfig = RenderConfig(targetRect = rect, textOrientation = orientation)
-            val renderedBitmap = wallpaperRenderer.renderWallpaper(selectedImage.uri, selectedQuote, renderConfig)
-                ?: return Result.failure(IllegalStateException("Failed to render composite wallpaper"))
+            var attempts = 0
+            var renderedBitmap: Bitmap? = null
+            var updatedImageQueue = imageQueue
+
+            val candidateImages = images.toMutableList()
+
+            while (renderedBitmap == null && candidateImages.isNotEmpty() && attempts < images.size) {
+                attempts++
+                val imageResult = imageShuffleEngine.selectNext(candidateImages, updatedImageQueue) { it.id }
+                    ?: break
+
+                val (candidateImage, nextImageQueue) = imageResult
+                updatedImageQueue = nextImageQueue
+
+                val renderConfig = RenderConfig(targetRect = rect, textOrientation = orientation)
+                renderedBitmap = wallpaperRenderer.renderWallpaper(candidateImage.uri, selectedQuote, renderConfig)
+
+                if (renderedBitmap == null) {
+                    // Unreadable or revoked URI! Prune from candidate images list and delete invalid entry from repository
+                    candidateImages.removeAll { it.id == candidateImage.id }
+                    try {
+                        imageRepository.deleteImage(candidateImage.id)
+                    } catch (e: Exception) {
+                        // Ignore
+                    }
+                }
+            }
+
+            if (renderedBitmap == null) {
+                return Result.failure(IllegalStateException("Failed to load or render any valid background image"))
+            }
 
             val applied = wallpaperApplier.applyWallpaper(renderedBitmap, targetScreen)
             if (applied) {

@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Typeface
@@ -17,6 +16,8 @@ import android.text.TextPaint
 import android.text.style.AbsoluteSizeSpan
 import android.text.style.ForegroundColorSpan
 import android.text.style.StyleSpan
+import android.util.Log
+import androidx.exifinterface.media.ExifInterface
 import com.example.wallpaperapp.domain.engine.ContrastAnalyzer
 import com.example.wallpaperapp.domain.engine.WallpaperRenderer
 import com.example.wallpaperapp.domain.model.Quote
@@ -39,7 +40,10 @@ class CanvasWallpaperRenderer(
 
         // 1. Load and downsample background image
         val backgroundBitmap = loadScaledBitmap(imageInput, targetWidth, targetHeight)
-            ?: createDefaultBackground(targetWidth, targetHeight)
+            ?: run {
+                Log.e("CanvasWallpaperRenderer", "Failed to load background bitmap for input: $imageInput")
+                return null
+            }
 
         // 2. Analyze contrast of background in the unrotated cropped bounding box
         val contrastResult = contrastAnalyzer.analyzeContrast(backgroundBitmap, config.targetRect)
@@ -119,27 +123,69 @@ class CanvasWallpaperRenderer(
             }
             srcBitmap?.let { cropCenterFill(it, targetWidth, targetHeight) }
         } catch (e: Exception) {
+            Log.e("CanvasWallpaperRenderer", "Error loading scaled bitmap", e)
             null
         }
     }
 
     private fun decodeUriDownsampled(uri: Uri, targetWidth: Int, targetHeight: Int): Bitmap? {
-        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        context.contentResolver.openInputStream(uri)?.use { stream ->
-            BitmapFactory.decodeStream(stream, null, options)
-        }
+        return try {
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            context.contentResolver.openInputStream(uri)?.use { stream ->
+                BitmapFactory.decodeStream(stream, null, options)
+            }
 
-        if (options.outWidth <= 0 || options.outHeight <= 0) return null
+            if (options.outWidth <= 0 || options.outHeight <= 0) {
+                Log.e("CanvasWallpaperRenderer", "Failed to decode bounds for URI: $uri")
+                return null
+            }
 
-        val sampleSize = calculateInSampleSize(options.outWidth, options.outHeight, targetWidth, targetHeight)
-        val decodeOptions = BitmapFactory.Options().apply {
-            inSampleSize = sampleSize
-            inPreferredConfig = Bitmap.Config.ARGB_8888
-        }
+            val sampleSize = calculateInSampleSize(options.outWidth, options.outHeight, targetWidth, targetHeight)
+            val decodeOptions = BitmapFactory.Options().apply {
+                inSampleSize = sampleSize
+                inPreferredConfig = Bitmap.Config.ARGB_8888
+                inMutable = true
+            }
 
-        return context.contentResolver.openInputStream(uri)?.use { stream ->
-            BitmapFactory.decodeStream(stream, null, decodeOptions)
+            val decodedBitmap = context.contentResolver.openInputStream(uri)?.use { stream ->
+                BitmapFactory.decodeStream(stream, null, decodeOptions)
+            } ?: return null
+
+            val rotationDegrees = getExifRotation(uri)
+            if (rotationDegrees != 0f) {
+                rotateBitmap(decodedBitmap, rotationDegrees)
+            } else {
+                decodedBitmap
+            }
+        } catch (e: Exception) {
+            Log.e("CanvasWallpaperRenderer", "Error decoding URI: $uri", e)
+            null
         }
+    }
+
+    private fun getExifRotation(uri: Uri): Float {
+        return try {
+            context.contentResolver.openInputStream(uri)?.use { stream ->
+                val exif = ExifInterface(stream)
+                when (exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+                    ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                    ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                    ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                    else -> 0f
+                }
+            } ?: 0f
+        } catch (e: Exception) {
+            0f
+        }
+    }
+
+    private fun rotateBitmap(src: Bitmap, degrees: Float): Bitmap {
+        val matrix = Matrix().apply { postRotate(degrees) }
+        val rotated = Bitmap.createBitmap(src, 0, 0, src.width, src.height, matrix, true)
+        if (rotated != src) {
+            src.recycle()
+        }
+        return rotated
     }
 
     private fun calculateInSampleSize(srcW: Int, srcH: Int, reqW: Int, reqH: Int): Int {
@@ -283,12 +329,5 @@ class CanvasWallpaperRenderer(
             .setLineSpacing(0f, 1.15f)
             .setIncludePad(true)
             .build()
-    }
-
-    private fun createDefaultBackground(width: Int, height: Int): Bitmap {
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        canvas.drawColor(Color.DKGRAY)
-        return bitmap
     }
 }

@@ -1,5 +1,6 @@
 package com.example.wallpaperapp.ui.pools
 
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -49,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 
@@ -56,6 +58,7 @@ import coil.compose.AsyncImage
 fun PoolsScreen(
     viewModel: PoolsViewModel
 ) {
+    val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
     var showAddQuoteDialog by remember { mutableStateOf(false) }
 
@@ -66,6 +69,14 @@ fun PoolsScreen(
         contract = ActivityResultContracts.PickMultipleVisualMedia()
     ) { uris ->
         if (uris.isNotEmpty()) {
+            val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
+            uris.forEach { uri ->
+                try {
+                    context.contentResolver.takePersistableUriPermission(uri, flag)
+                } catch (e: Exception) {
+                    // Ignore if permission isn't persistable for this URI
+                }
+            }
             viewModel.addImages(uris)
         }
     }
