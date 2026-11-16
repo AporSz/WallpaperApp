@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.wallpaperapp.domain.model.NormalizedRect
+import com.example.wallpaperapp.domain.model.TextOrientation
 import kotlin.math.roundToInt
 
 @Composable
@@ -42,6 +44,7 @@ fun ZoneEditorScreen(
     viewModel: ZoneEditorViewModel
 ) {
     val rect by viewModel.normalizedRect.collectAsState()
+    val orientation by viewModel.textOrientation.collectAsState()
     val quote by viewModel.sampleQuote.collectAsState()
     val imageUri by viewModel.sampleImageUri.collectAsState()
 
@@ -49,7 +52,7 @@ fun ZoneEditorScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -77,6 +80,28 @@ fun ZoneEditorScreen(
                 selected = rect == NormalizedRect.LOWER_THIRD,
                 onClick = { viewModel.applyPreset(NormalizedRect.LOWER_THIRD) },
                 label = { Text("Lower Third") }
+            )
+        }
+
+        // Text Orientation Selector row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            FilterChip(
+                selected = orientation == TextOrientation.HORIZONTAL,
+                onClick = { viewModel.setTextOrientation(TextOrientation.HORIZONTAL) },
+                label = { Text("Horizontal (0°)") }
+            )
+            FilterChip(
+                selected = orientation == TextOrientation.VERTICAL_UP,
+                onClick = { viewModel.setTextOrientation(TextOrientation.VERTICAL_UP) },
+                label = { Text("Vertical (-90°)") }
+            )
+            FilterChip(
+                selected = orientation == TextOrientation.VERTICAL_DOWN,
+                onClick = { viewModel.setTextOrientation(TextOrientation.VERTICAL_DOWN) },
+                label = { Text("Vertical (+90°)") }
             )
         }
 
@@ -150,8 +175,16 @@ fun ZoneEditorScreen(
                         },
                     contentAlignment = Alignment.Center
                 ) {
+                    val rotationDegrees = when (orientation) {
+                        TextOrientation.HORIZONTAL -> 0f
+                        TextOrientation.VERTICAL_UP -> -90f
+                        TextOrientation.VERTICAL_DOWN -> 90f
+                    }
+
                     Column(
-                        modifier = Modifier.padding(8.dp),
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .graphicsLayer { rotationZ = rotationDegrees },
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {

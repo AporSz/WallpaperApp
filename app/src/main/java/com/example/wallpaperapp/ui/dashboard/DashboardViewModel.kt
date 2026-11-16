@@ -3,6 +3,7 @@ package com.example.wallpaperapp.ui.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.wallpaperapp.domain.model.AppThemeMode
 import com.example.wallpaperapp.domain.model.ScheduleConfig
 import com.example.wallpaperapp.domain.model.WallpaperTarget
 import com.example.wallpaperapp.domain.repository.SettingsRepository
@@ -28,6 +29,9 @@ class DashboardViewModel(
     val scheduleState: StateFlow<ScheduleConfig> = settingsRepository.observeScheduleConfig()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ScheduleConfig())
 
+    val themeModeState: StateFlow<AppThemeMode> = settingsRepository.observeAppThemeMode()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppThemeMode.SYSTEM)
+
     private val _message = MutableSharedFlow<String>()
     val message: SharedFlow<String> = _message.asSharedFlow()
 
@@ -52,6 +56,12 @@ class DashboardViewModel(
             val updated = current.copy(intervalMinutes = intervalMinutes)
             settingsRepository.setScheduleConfig(updated)
             wallpaperScheduler.schedule(updated)
+        }
+    }
+
+    fun setAppThemeMode(themeMode: AppThemeMode) {
+        viewModelScope.launch {
+            settingsRepository.setAppThemeMode(themeMode)
         }
     }
 

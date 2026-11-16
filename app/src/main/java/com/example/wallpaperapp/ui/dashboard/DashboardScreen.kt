@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.wallpaperapp.domain.model.AppThemeMode
 import com.example.wallpaperapp.domain.model.WallpaperTarget
 
 @Composable
@@ -35,6 +36,7 @@ fun DashboardScreen(
 ) {
     val target by viewModel.targetState.collectAsState()
     val schedule by viewModel.scheduleState.collectAsState()
+    val themeMode by viewModel.themeModeState.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.message.collect { msg ->
@@ -89,7 +91,42 @@ fun DashboardScreen(
             }
         }
 
-        // 2. Schedule Controls
+        // 2. App Theme Mode
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "App Theme Mode",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = themeMode == AppThemeMode.SYSTEM,
+                        onClick = { viewModel.setAppThemeMode(AppThemeMode.SYSTEM) },
+                        label = { Text("System Default") }
+                    )
+                    FilterChip(
+                        selected = themeMode == AppThemeMode.LIGHT,
+                        onClick = { viewModel.setAppThemeMode(AppThemeMode.LIGHT) },
+                        label = { Text("Light") }
+                    )
+                    FilterChip(
+                        selected = themeMode == AppThemeMode.DARK,
+                        onClick = { viewModel.setAppThemeMode(AppThemeMode.DARK) },
+                        label = { Text("Dark") }
+                    )
+                }
+            }
+        }
+
+        // 3. Schedule Controls
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -146,7 +183,7 @@ fun DashboardScreen(
             }
         }
 
-        // 3. Manual Shuffle & Apply Now
+        // 4. Manual Shuffle & Apply Now
         Button(
             onClick = { viewModel.rotateNow() },
             modifier = Modifier

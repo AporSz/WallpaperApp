@@ -211,3 +211,21 @@
 
 ### Verification Status
 - Built & verified Kotlin compilation and unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (8/8 unit tests passed).
+
+---
+
+## Extension Phase - Step 4: Jetpack Compose Theme & UI Controls
+
+### Theme & UI Integration Summary
+- **Reactive Root App Theme (`MainActivity.kt`):**
+  - Dynamically binds `AppThemeMode` preference (`SYSTEM`, `LIGHT`, `DARK`) to Material 3 `darkTheme` state (`SYSTEM` -> `isSystemInDarkTheme()`, `LIGHT` -> `false`, `DARK` -> `true`).
+  - Instantly updates the entire application theme without requiring app restarts.
+- **App Theme Selector (`DashboardScreen.kt` & `DashboardViewModel.kt`):**
+  - Added App Theme Mode card with filter chips (`System Default`, `Light`, `Dark`) on the Dashboard screen.
+- **Text Orientation Selector & Live Preview (`ZoneEditorScreen.kt` & `ZoneEditorViewModel.kt`):**
+  - Added Text Orientation filter chips (`Horizontal 0°`, `Vertical -90°`, `Vertical +90°`) on the Zone Editor screen.
+  - Interactive live bounding box preview rotates the text layout in real time using `Modifier.graphicsLayer { rotationZ = ... }`.
+
+### Verification Status
+- Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** (`app/build/outputs/apk/debug/app-debug.apk`).
+- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (8/8 unit tests passed).

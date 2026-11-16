@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.wallpaperapp.domain.model.NormalizedRect
 import com.example.wallpaperapp.domain.model.Quote
+import com.example.wallpaperapp.domain.model.TextOrientation
 import com.example.wallpaperapp.domain.repository.ImageRepository
 import com.example.wallpaperapp.domain.repository.QuoteRepository
 import com.example.wallpaperapp.domain.repository.SettingsRepository
@@ -23,6 +24,9 @@ class ZoneEditorViewModel(
 
     val normalizedRect: StateFlow<NormalizedRect> = settingsRepository.observeNormalizedRect()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), NormalizedRect.CENTER)
+
+    val textOrientation: StateFlow<TextOrientation> = settingsRepository.observeTextOrientation()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TextOrientation.HORIZONTAL)
 
     private val _sampleQuote = MutableStateFlow<Quote?>(null)
     val sampleQuote: StateFlow<Quote?> = _sampleQuote.asStateFlow()
@@ -58,6 +62,12 @@ class ZoneEditorViewModel(
 
     fun applyPreset(rect: NormalizedRect) {
         updateRect(rect)
+    }
+
+    fun setTextOrientation(orientation: TextOrientation) {
+        viewModelScope.launch {
+            settingsRepository.setTextOrientation(orientation)
+        }
     }
 
     class Factory(
