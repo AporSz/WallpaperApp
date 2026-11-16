@@ -142,90 +142,20 @@
 
 ---
 
-## Extension Phase - Step 1: Existing Codebase Inspection & Feature Integration Plan
+## Phase 3 - Step 1: Root Cause Diagnosis & Codebase Inspection
 
-### Architecture & Codebase Inspection Summary
-- **Inspected Key Interfaces & Implementations:**
-  - `RenderConfig` (`com.example.wallpaperapp.domain.model`): Holds target `NormalizedRect` and font scaling range.
-  - `SettingsRepository` & `DataStoreSettingsRepository`: Handles preference persistence via Jetpack DataStore.
-  - `CanvasWallpaperRenderer`: Performs bitmap scaling, luminance contrast calculation, dynamic font auto-fitting using `StaticLayout`, and Canvas rendering.
-  - `RotateWallpaperUseCase`: Orchestrates wallpaper generation using settings preferences.
-  - `DashboardScreen` / `DashboardViewModel` & `ZoneEditorScreen` / `ZoneEditorViewModel`: Jetpack Compose UI layers.
-  - `MainActivity.kt`: Root activity defining top-level Compose theme.
+### Diagnosis Summary: Solid Grey Background Bug
+1. **Missing Persistable URI Read Permissions (`PoolsScreen.kt`):**
+   - When importing images via `PickMultipleVisualMedia()`, `contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)` was not invoked.
+   - When `WallpaperWorker` runs in the background or app process restarts, `context.contentResolver.openInputStream(uri)` throws a `SecurityException`.
+2. **Silent Failure & Solid Dark Grey Fallback (`CanvasWallpaperRenderer.kt`):**
+   - `loadScaledBitmap()` caught all exceptions silently and returned `null`.
+   - When `loadScaledBitmap()` returned `null`, `renderWallpaper()` silently fell back to `createDefaultBackground()`, filling the Canvas with solid dark grey (`Color.DKGRAY`).
+3. **Bitmap Decoding & Stream Reuse:**
+   - Need explicit `inMutable = true` and `inPreferredConfig = Bitmap.Config.ARGB_8888` on decoded bitmaps, plus logging diagnostics (`Log.e`).
+4. **Invalid URI Pruning / Recovery (`RotateWallpaperUseCase.kt`):**
+   - When an unreadable or revoked URI is encountered, the use case should log the error and advance/prune the invalid URI rather than rendering a solid grey screen.
 
-### User Clarification Confirmed
-- **Vertical Text Orientation:** User confirmed supporting both `VERTICAL_UP` (`-90°`, reading bottom-to-top) and `VERTICAL_DOWN` (`+90°`, reading top-to-bottom).
-
-### Concrete Integration Plan (Steps 2–4)
-- **Step 2 (Domain & Data Layer Extensions):**
-  - Create pure Kotlin enums: `AppThemeMode` (`SYSTEM`, `LIGHT`, `DARK`) and `TextOrientation` (`HORIZONTAL`, `VERTICAL_UP`, `VERTICAL_DOWN`).
-  - Extend `RenderConfig` to include `textOrientation: TextOrientation = TextOrientation.HORIZONTAL`.
-  - Extend `SettingsRepository` with `observeAppThemeMode()`, `setAppThemeMode()`, `observeTextOrientation()`, `setTextOrientation()`.
-  - Update `DataStoreSettingsRepository` to persist `key_app_theme_mode` and `key_text_orientation` with safe fallbacks.
-  - Update `RotateWallpaperUseCase` to pass the saved `textOrientation` into `RenderConfig`.
-- **Step 3 (Graphics & Canvas Text Orientation Update):**
-  - Update `CanvasWallpaperRenderer` auto-fitting algorithm: when text orientation is vertical (`VERTICAL_UP` or `VERTICAL_DOWN`), swap bounding box `width` and `height` constraints when creating `StaticLayout` so lines wrap along the vertical box height.
-  - Perform matrix translation and rotation on Canvas (`canvas.save()`, translate to bounding box center, rotate `-90f` or `90f`, center static layout, `canvas.restore()`).
-  - Verify contrast analyzer continues evaluating the exact unrotated `NormalizedRect` background region.
-- **Step 4 (Jetpack Compose Theme & UI Controls):**
-  - Update `MainActivity.kt` root theme to reactively bind `AppThemeMode` to Material 3 `darkTheme` state (`SYSTEM` -> `isSystemInDarkTheme()`, `LIGHT` -> `false`, `DARK` -> `true`).
-  - Add App Theme Mode selector controls to `DashboardScreen`.
-  - Add Text Orientation selector controls (`Horizontal`, `Vertical -90°`, `Vertical +90°`) to `ZoneEditorScreen` and update live bounding box text preview.
-  - Re-verify debug APK build and unit tests.
-
----
-
-## Extension Phase - Step 2: Domain & Data Layer Extensions
-
-### Domain & Data Layer Extensions Summary
-- **Pure Kotlin Domain Enums (`com.example.wallpaperapp.domain.model`):**
-  - Created `AppThemeMode` (`SYSTEM`, `LIGHT`, `DARK`).
-  - Created `TextOrientation` (`HORIZONTAL`, `VERTICAL_UP`, `VERTICAL_DOWN`).
-- **Domain Models & Interfaces Updates:**
-  - Extended `RenderConfig` with default `textOrientation = TextOrientation.HORIZONTAL`.
-  - Updated `SettingsRepository` adding reactive `Flow` observations and setters for `AppThemeMode` and `TextOrientation`.
-- **DataStore Persistence Implementation:**
-  - Updated `DataStoreSettingsRepository` with DataStore keys `key_app_theme_mode` and `key_text_orientation`, handling parsing with safe default fallbacks.
-- **Use Case & Unit Tests:**
-  - Updated `RotateWallpaperUseCase` to observe `textOrientation` from `SettingsRepository` and pass it into `RenderConfig`.
-  - Updated `RotateWallpaperUseCaseTest` fake repository implementation.
-
-### Verification Status
-- Built & verified Kotlin compilation and unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (8/8 unit tests passed).
-
----
-
-## Extension Phase - Step 3: Graphics / Canvas Orientation & Auto-Fit Rendering Engine Update
-
-### Rendering Engine Orientation Update Summary
-- **Orientation Constraints & Layout Swap:**
-  - Updated `CanvasWallpaperRenderer`: when `TextOrientation` is vertical (`VERTICAL_UP` or `VERTICAL_DOWN`), line width constraint is set to `boxHeightPx` and layout max height limit is set to `boxWidthPx`.
-  - StaticLayout auto-fitting binary search dynamically evaluates font size fitting inside the rotated layout boundaries.
-- **Canvas Matrix Transformation & Rendering:**
-  - Computed bounding box center `(centerX, centerY)`.
-  - Applied matrix transformations on `Canvas`:
-    - `HORIZONTAL`: `canvas.translate(leftPx, offsetY)`.
-    - `VERTICAL_UP`: `canvas.translate(centerX, centerY)`, `canvas.rotate(-90f)`, `canvas.translate(-optimalLayout.width / 2f, -optimalLayout.height / 2f)`.
-    - `VERTICAL_DOWN`: `canvas.translate(centerX, centerY)`, `canvas.rotate(90f)`, `canvas.translate(-optimalLayout.width / 2f, -optimalLayout.height / 2f)`.
-  - Contrast analysis continues analyzing the exact unrotated `NormalizedRect` image region behind the bounding box.
-
-### Verification Status
-- Built & verified Kotlin compilation and unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (8/8 unit tests passed).
-
----
-
-## Extension Phase - Step 4: Jetpack Compose Theme & UI Controls
-
-### Theme & UI Integration Summary
-- **Reactive Root App Theme (`MainActivity.kt`):**
-  - Dynamically binds `AppThemeMode` preference (`SYSTEM`, `LIGHT`, `DARK`) to Material 3 `darkTheme` state (`SYSTEM` -> `isSystemInDarkTheme()`, `LIGHT` -> `false`, `DARK` -> `true`).
-  - Instantly updates the entire application theme without requiring app restarts.
-- **App Theme Selector (`DashboardScreen.kt` & `DashboardViewModel.kt`):**
-  - Added App Theme Mode card with filter chips (`System Default`, `Light`, `Dark`) on the Dashboard screen.
-- **Text Orientation Selector & Live Preview (`ZoneEditorScreen.kt` & `ZoneEditorViewModel.kt`):**
-  - Added Text Orientation filter chips (`Horizontal 0°`, `Vertical -90°`, `Vertical +90°`) on the Zone Editor screen.
-  - Interactive live bounding box preview rotates the text layout in real time using `Modifier.graphicsLayer { rotationZ = ... }`.
-
-### Verification Status
-- Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** (`app/build/outputs/apk/debug/app-debug.apk`).
-- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (8/8 unit tests passed).
+### Design Plan: Interactive Bounding Box Editor (Step 3)
+- Extract clean geometry math helper (`CropBoxGeometry.kt` / `NormalizedRect` extensions) for 8 handles: Top-Left, Top-Right, Bottom-Left, Bottom-Right, Top, Bottom, Left, Right + interior translation, with `[0f, 1f]` boundary clamping and `15% x 10%` minimum dimensions.
+- Upgrade `ZoneEditorScreen.kt` with outer dimmed scrim, 8 visible drag handles, center guidelines, and live text orientation rotation preview.
