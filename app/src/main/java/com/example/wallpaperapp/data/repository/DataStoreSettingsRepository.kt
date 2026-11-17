@@ -33,6 +33,10 @@ class DataStoreSettingsRepository(
         val APP_THEME_MODE = stringPreferencesKey("key_app_theme_mode")
         val TEXT_ORIENTATION = stringPreferencesKey("key_text_orientation")
         val QUOTE_FONT_ID = stringPreferencesKey("key_quote_font_id")
+        val IS_BOLD = booleanPreferencesKey("key_is_bold")
+        val IS_ITALIC = booleanPreferencesKey("key_is_italic")
+        val SHUFFLE_FONTS = booleanPreferencesKey("key_shuffle_fonts")
+        val FONT_SHUFFLE_QUEUE = stringPreferencesKey("key_font_shuffle_queue")
     }
 
     override fun observeWallpaperTarget(): Flow<WallpaperTarget> {
@@ -159,6 +163,55 @@ class DataStoreSettingsRepository(
     override suspend fun setQuoteFontId(fontId: String) {
         dataStore.edit { prefs ->
             prefs[PreferencesKeys.QUOTE_FONT_ID] = fontId
+        }
+    }
+
+    override fun observeIsBold(): Flow<Boolean> {
+        return dataStore.data.map { prefs ->
+            prefs[PreferencesKeys.IS_BOLD] ?: false
+        }
+    }
+
+    override suspend fun setIsBold(isBold: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[PreferencesKeys.IS_BOLD] = isBold
+        }
+    }
+
+    override fun observeIsItalic(): Flow<Boolean> {
+        return dataStore.data.map { prefs ->
+            prefs[PreferencesKeys.IS_ITALIC] ?: false
+        }
+    }
+
+    override suspend fun setIsItalic(isItalic: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[PreferencesKeys.IS_ITALIC] = isItalic
+        }
+    }
+
+    override fun observeShuffleFonts(): Flow<Boolean> {
+        return dataStore.data.map { prefs ->
+            prefs[PreferencesKeys.SHUFFLE_FONTS] ?: false
+        }
+    }
+
+    override suspend fun setShuffleFonts(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[PreferencesKeys.SHUFFLE_FONTS] = enabled
+        }
+    }
+
+    override fun observeFontShuffleQueue(): Flow<List<String>> {
+        return dataStore.data.map { prefs ->
+            val raw = prefs[PreferencesKeys.FONT_SHUFFLE_QUEUE] ?: ""
+            parseQueue(raw)
+        }
+    }
+
+    override suspend fun setFontShuffleQueue(queue: List<String>) {
+        dataStore.edit { prefs ->
+            prefs[PreferencesKeys.FONT_SHUFFLE_QUEUE] = formatQueue(queue)
         }
     }
 

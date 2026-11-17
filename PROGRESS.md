@@ -272,3 +272,16 @@
   - Remove preset buttons (`Upper Third`, `Center`, `Lower Third`) from `ZoneEditorScreen.kt`.
   - Add visual guiding lines (vertical/horizontal center, rule-of-thirds) with magnetic snapping (`0.015f` threshold).
   - Replace simplified Compose text in Zone Editor with exact `CanvasWallpaperRenderer` / `StaticLayout` canvas rendering for 1:1 WYSIWYG parity.
+
+---
+
+## Phase 6 - Step 2: Domain, Data & Typography Engine Expansion
+
+### Domain, Data & Renderer Implementation Summary
+- **12 Built-in Font Presets (`QuoteFont.kt`):** Defined 12 distinct built-in font choices (`Sans`, `Serif`, `Mono`, `Script`, `Casual`, `Sans Medium`, `Headline Serif`, `Tech Mono`, `Poster Sans`, `Condensed Display`, `Elegant Light`, `Classic Editorial`) plus custom font file support.
+- **Bold, Italic & Font Shuffle Preference Storage:** Extended `RenderConfig`, `SettingsRepository`, `DataStoreSettingsRepository`, and `AppContainer` with `isBold`, `isItalic`, `shuffleFonts`, and `fontShuffleQueue`.
+- **Shuffle Bag Integration (`RotateWallpaperUseCase.kt`):** Integrated `ShuffleEngine<QuoteFont>` to shuffle fonts without repeating when `shuffleFonts == true`.
+- **Style Matrix Resolution (`CanvasWallpaperRenderer.kt`):** Updated `resolveTypeface()` to dynamically apply `Typeface.BOLD`, `Typeface.ITALIC`, or `Typeface.BOLD_ITALIC` on top of all base fonts before text layout calculation.
+
+### Verification Status
+- Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).

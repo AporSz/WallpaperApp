@@ -31,4 +31,16 @@ interface SettingsRepository {
 
     fun observeQuoteFontId(): Flow<String>
     suspend fun setQuoteFontId(fontId: String)
+
+    fun observeIsBold(): Flow<Boolean>
+    suspend fun setIsBold(isBold: Boolean)
+
+    fun observeIsItalic(): Flow<Boolean>
+    suspend fun setIsItalic(isItalic: Boolean)
+
+    fun observeShuffleFonts(): Flow<Boolean>
+    suspend fun setShuffleFonts(enabled: Boolean)
+
+    fun observeFontShuffleQueue(): Flow<List<String>>
+    suspend fun setFontShuffleQueue(queue: List<String>)
 }

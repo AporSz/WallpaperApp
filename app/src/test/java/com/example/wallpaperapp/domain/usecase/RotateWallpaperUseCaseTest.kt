@@ -112,6 +112,23 @@ class RotateWallpaperUseCaseTest {
             this.quoteFontId = fontId
             fontIdState.value = fontId
         }
+
+        private val boldState = MutableStateFlow(false)
+        private val italicState = MutableStateFlow(false)
+        private val shuffleFontsState = MutableStateFlow(false)
+        private val fontQueueState = MutableStateFlow(emptyList<String>())
+
+        override fun observeIsBold(): Flow<Boolean> = boldState
+        override suspend fun setIsBold(isBold: Boolean) { boldState.value = isBold }
+
+        override fun observeIsItalic(): Flow<Boolean> = italicState
+        override suspend fun setIsItalic(isItalic: Boolean) { italicState.value = isItalic }
+
+        override fun observeShuffleFonts(): Flow<Boolean> = shuffleFontsState
+        override suspend fun setShuffleFonts(enabled: Boolean) { shuffleFontsState.value = enabled }
+
+        override fun observeFontShuffleQueue(): Flow<List<String>> = fontQueueState
+        override suspend fun setFontShuffleQueue(queue: List<String>) { fontQueueState.value = queue }
     }
 
     private class FakeWallpaperRenderer : WallpaperRenderer<Any, Bitmap> {

@@ -9,6 +9,7 @@ import com.example.wallpaperapp.data.repository.DataStoreSettingsRepository
 import com.example.wallpaperapp.data.repository.RoomImageRepository
 import com.example.wallpaperapp.data.repository.RoomQuoteRepository
 import com.example.wallpaperapp.domain.model.Quote
+import com.example.wallpaperapp.domain.model.QuoteFont
 import com.example.wallpaperapp.domain.model.WallpaperImage
 import com.example.wallpaperapp.domain.repository.ImageRepository
 import com.example.wallpaperapp.domain.repository.QuoteRepository
@@ -46,6 +47,7 @@ class AppContainer(private val context: Context) {
 
     val quoteShuffleEngine = ShuffleBagEngine<Quote>()
     val imageShuffleEngine = ShuffleBagEngine<WallpaperImage>()
+    val fontShuffleEngine = ShuffleBagEngine<QuoteFont>()
 
     val contrastAnalyzer by lazy {
         PaletteContrastAnalyzer()
@@ -67,7 +69,8 @@ class AppContainer(private val context: Context) {
             quoteShuffleEngine = quoteShuffleEngine,
             imageShuffleEngine = imageShuffleEngine,
             wallpaperRenderer = wallpaperRenderer,
-            wallpaperApplier = wallpaperApplier
+            wallpaperApplier = wallpaperApplier,
+            fontShuffleEngine = fontShuffleEngine
         )
     }
 

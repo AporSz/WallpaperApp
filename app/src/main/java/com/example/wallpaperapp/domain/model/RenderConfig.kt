@@ -5,5 +5,7 @@ data class RenderConfig(
     val maxFontSizeSp: Float = 36.0f,
     val minFontSizeSp: Float = 12.0f,
     val textOrientation: TextOrientation = TextOrientation.HORIZONTAL,
-    val fontId: String = "builtin_sans"
+    val fontId: String = "builtin_sans",
+    val isBold: Boolean = false,
+    val isItalic: Boolean = false
 )

@@ -63,8 +63,8 @@ class CanvasWallpaperRenderer(
         val boxWidthPx = (rightPx - leftPx).toInt().coerceAtLeast(100)
         val boxHeightPx = (bottomPx - topPx).toInt().coerceAtLeast(100)
 
-        // 5. Configure text paint with active resolved Typeface
-        val resolvedTypeface = resolveTypeface(config.fontId)
+        // 5. Configure text paint with active resolved Typeface, bold, and italic styling
+        val resolvedTypeface = resolveTypeface(config.fontId, config.isBold, config.isItalic)
         val textPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = contrastResult.textColorArgb
             setShadowLayer(8f, 3f, 3f, contrastResult.shadowColorArgb)
@@ -119,13 +119,21 @@ class CanvasWallpaperRenderer(
         return compositeBitmap
     }
 
-    private fun resolveTypeface(fontId: String): Typeface {
+    private fun resolveTypeface(fontId: String, isBold: Boolean, isItalic: Boolean): Typeface {
         return try {
-            when (fontId) {
+            val baseTypeface = when (fontId) {
                 "builtin_sans" -> Typeface.SANS_SERIF
                 "builtin_serif" -> Typeface.SERIF
                 "builtin_mono" -> Typeface.MONOSPACE
                 "builtin_cursive" -> Typeface.create("cursive", Typeface.NORMAL)
+                "builtin_casual" -> Typeface.create("casual", Typeface.NORMAL)
+                "builtin_sans_medium" -> Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                "builtin_serif_bold" -> Typeface.create("serif", Typeface.BOLD)
+                "builtin_mono_medium" -> Typeface.create("monospace", Typeface.BOLD)
+                "builtin_sans_black" -> Typeface.create("sans-serif-black", Typeface.NORMAL)
+                "builtin_sans_condensed" -> Typeface.create("sans-serif-condensed", Typeface.NORMAL)
+                "builtin_sans_light" -> Typeface.create("sans-serif-light", Typeface.NORMAL)
+                "builtin_serif_italic" -> Typeface.create("serif", Typeface.ITALIC)
                 else -> {
                     val filePath = if (fontId.startsWith("custom_")) {
                         fontId.removePrefix("custom_")
@@ -139,6 +147,19 @@ class CanvasWallpaperRenderer(
                         Typeface.SANS_SERIF
                     }
                 }
+            }
+
+            val styleMask = when {
+                isBold && isItalic -> Typeface.BOLD_ITALIC
+                isBold -> Typeface.BOLD
+                isItalic -> Typeface.ITALIC
+                else -> Typeface.NORMAL
+            }
+
+            if (styleMask != Typeface.NORMAL) {
+                Typeface.create(baseTypeface, styleMask)
+            } else {
+                baseTypeface
             }
         } catch (e: Exception) {
             Log.e("CanvasWallpaperRenderer", "Error resolving font: $fontId, fallback to SANS_SERIF", e)
