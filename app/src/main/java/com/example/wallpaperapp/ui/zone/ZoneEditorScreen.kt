@@ -1,5 +1,7 @@
 package com.example.wallpaperapp.ui.zone
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,6 +25,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -43,6 +46,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -51,21 +56,59 @@ import com.example.wallpaperapp.domain.model.NormalizedRect
 import com.example.wallpaperapp.domain.model.Quote
 import com.example.wallpaperapp.domain.model.TextOrientation
 import com.example.wallpaperapp.ui.zone.CropBoxGeometry.resizeOrMove
+import java.io.File
 import kotlin.math.roundToInt
 
 @Composable
 fun ZoneEditorScreen(
     viewModel: ZoneEditorViewModel
 ) {
+    val context = LocalContext.current
+
     val savedRect by viewModel.normalizedRect.collectAsState()
     var localRect by remember(savedRect) { mutableStateOf(savedRect) }
 
     val orientation by viewModel.textOrientation.collectAsState()
+    val activeFontId by viewModel.quoteFontId.collectAsState()
     val sampleQuote by viewModel.sampleQuote.collectAsState()
     val imageUri by viewModel.sampleImageUri.collectAsState()
 
     var isDragging by remember { mutableStateOf(false) }
     var useLongQuotePreview by remember { mutableStateOf(false) }
+
+    val fontPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.importCustomFont(context, uri)
+        }
+    }
+
+    val activeFontFamily = remember(activeFontId) {
+        when (activeFontId) {
+            "builtin_sans" -> FontFamily.SansSerif
+            "builtin_serif" -> FontFamily.Serif
+            "builtin_mono" -> FontFamily.Monospace
+            "builtin_cursive" -> FontFamily.Cursive
+            else -> {
+                val filePath = if (activeFontId.startsWith("custom_")) {
+                    activeFontId.removePrefix("custom_")
+                } else {
+                    activeFontId
+                }
+                try {
+                    val file = File(filePath)
+                    if (file.exists() && file.length() > 0) {
+                        FontFamily(Font(file))
+                    } else {
+                        FontFamily.SansSerif
+                    }
+                } catch (_: Exception) {
+                    FontFamily.SansSerif
+                }
+            }
+        }
+    }
 
     val longQuote = remember {
         Quote(
@@ -77,7 +120,7 @@ fun ZoneEditorScreen(
 
     val activeQuote = if (useLongQuotePreview) longQuote else sampleQuote
 
-    val displayMetrics = LocalContext.current.resources.displayMetrics
+    val displayMetrics = context.resources.displayMetrics
     val screenAspectRatio = displayMetrics.widthPixels.toFloat() / displayMetrics.heightPixels.toFloat().coerceAtLeast(1f)
 
     Column(
@@ -93,7 +136,7 @@ fun ZoneEditorScreen(
             modifier = Modifier.align(Alignment.Start)
         )
 
-        // Presets row
+        // Zone Presets row
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
@@ -122,6 +165,43 @@ fun ZoneEditorScreen(
                 },
                 label = { Text("Lower Third") }
             )
+        }
+
+        // Font Family Selector row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            FilterChip(
+                selected = activeFontId == "builtin_sans",
+                onClick = { viewModel.setQuoteFontId("builtin_sans") },
+                label = { Text("Sans") }
+            )
+            FilterChip(
+                selected = activeFontId == "builtin_serif",
+                onClick = { viewModel.setQuoteFontId("builtin_serif") },
+                label = { Text("Serif") }
+            )
+            FilterChip(
+                selected = activeFontId == "builtin_mono",
+                onClick = { viewModel.setQuoteFontId("builtin_mono") },
+                label = { Text("Mono") }
+            )
+            FilterChip(
+                selected = activeFontId == "builtin_cursive",
+                onClick = { viewModel.setQuoteFontId("builtin_cursive") },
+                label = { Text("Script") }
+            )
+            OutlinedButton(
+                onClick = {
+                    fontPickerLauncher.launch(
+                        arrayOf("font/ttf", "font/otf", "application/x-font-ttf", "application/octet-stream")
+                    )
+                }
+            ) {
+                Text("+ Font")
+            }
         }
 
         // Text Orientation Selector & Long Quote Toggle row
@@ -266,6 +346,7 @@ fun ZoneEditorScreen(
                             text = activeQuote?.text ?: "Sample quote text renders here...",
                             color = Color.White,
                             style = MaterialTheme.typography.bodySmall,
+                            fontFamily = activeFontFamily,
                             overflow = TextOverflow.Ellipsis
                         )
                         val currentQuote = activeQuote
@@ -275,6 +356,7 @@ fun ZoneEditorScreen(
                                 text = "— ${currentQuote.author}",
                                 color = Color.White.copy(alpha = 0.85f),
                                 style = MaterialTheme.typography.labelSmall,
+                                fontFamily = activeFontFamily,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }

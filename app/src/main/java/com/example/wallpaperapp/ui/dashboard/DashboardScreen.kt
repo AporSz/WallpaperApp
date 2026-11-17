@@ -126,7 +126,7 @@ fun DashboardScreen(
             }
         }
 
-        // 3. Schedule Controls
+        // 3. Schedule Controls (Expanded Intervals: 15m, 30m, 1h, 2h, 3h, 4h, 6h, 8h, 12h, 24h)
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -159,10 +159,16 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     val intervals = listOf(
-                        15L to "15 Mins",
+                        15L to "15 Minutes",
+                        30L to "30 Minutes",
                         60L to "1 Hour",
+                        120L to "2 Hours",
+                        180L to "3 Hours",
+                        240L to "4 Hours",
                         360L to "6 Hours",
-                        1440L to "Daily"
+                        480L to "8 Hours",
+                        720L to "12 Hours",
+                        1440L to "Daily (24 Hours)"
                     )
 
                     Column {

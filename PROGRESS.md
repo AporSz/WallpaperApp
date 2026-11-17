@@ -228,3 +228,19 @@
 
 ### Verification Status
 - Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Phase 5 - Step 4: UI & Theme Integration for Custom Fonts & Expanded Intervals
+
+### User Interface Implementation Summary
+- **Expanded Auto-Rotation Schedule Intervals (`DashboardScreen.kt`):**
+  - Updated interval controls to offer 10 exact frequencies: 15 Mins, 30 Mins, 1 Hour, 2 Hours, 3 Hours, 4 Hours, 6 Hours, 8 Hours, 12 Hours, Daily (24 Hours).
+- **Font Picker & Custom Font File Importer (`ZoneEditorScreen.kt` & `ZoneEditorViewModel.kt`):**
+  - Integrated built-in font preset chips (`Sans`, `Serif`, `Mono`, `Script`) and an `+ Font` button launching `OpenDocument()` for `.ttf`/`.otf` files.
+  - Configured `ZoneEditorViewModel` to process custom font imports safely via `FontStorageManager`.
+  - Updated `ZoneEditorScreen` live quote preview to dynamically resolve and render `FontFamily` in real time.
+
+### Verification Status
+- Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** (`app/build/outputs/apk/debug/app-debug.apk`).
+- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).

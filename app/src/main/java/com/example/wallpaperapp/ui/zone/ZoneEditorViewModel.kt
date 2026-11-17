@@ -1,8 +1,11 @@
 package com.example.wallpaperapp.ui.zone
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.wallpaperapp.data.local.FontStorageManager
 import com.example.wallpaperapp.domain.model.NormalizedRect
 import com.example.wallpaperapp.domain.model.Quote
 import com.example.wallpaperapp.domain.model.TextOrientation
@@ -10,9 +13,9 @@ import com.example.wallpaperapp.domain.repository.ImageRepository
 import com.example.wallpaperapp.domain.repository.QuoteRepository
 import com.example.wallpaperapp.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -27,6 +30,9 @@ class ZoneEditorViewModel(
 
     val textOrientation: StateFlow<TextOrientation> = settingsRepository.observeTextOrientation()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TextOrientation.HORIZONTAL)
+
+    val quoteFontId: StateFlow<String> = settingsRepository.observeQuoteFontId()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "builtin_sans")
 
     private val _sampleQuote = MutableStateFlow<Quote?>(null)
     val sampleQuote: StateFlow<Quote?> = _sampleQuote.asStateFlow()
@@ -67,6 +73,23 @@ class ZoneEditorViewModel(
     fun setTextOrientation(orientation: TextOrientation) {
         viewModelScope.launch {
             settingsRepository.setTextOrientation(orientation)
+        }
+    }
+
+    fun setQuoteFontId(fontId: String) {
+        viewModelScope.launch {
+            settingsRepository.setQuoteFontId(fontId)
+        }
+    }
+
+    fun importCustomFont(context: Context, uri: Uri) {
+        viewModelScope.launch {
+            val fontManager = FontStorageManager(context)
+            val customPath = fontManager.saveCustomFont(uri)
+            if (customPath != null) {
+                val fontId = "custom_$customPath"
+                settingsRepository.setQuoteFontId(fontId)
+            }
         }
     }
 
