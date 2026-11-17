@@ -319,3 +319,20 @@
 ### Verification Status
 - Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
 - Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Phase 7 - Step 1: Codebase Inspection & Root Cause Analysis
+
+### Inspection & Root Cause Summary
+1. **Root Cause of Small Preview Text:**
+   - Both [`FontPreviewScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/font/FontPreviewScreen.kt) and [`ZoneEditorScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/ZoneEditorScreen.kt) used Compose `Text(style = MaterialTheme.typography.bodySmall)` which locked preview font size to a fixed small `12sp` / `14sp` instead of running `StaticLayout` binary search auto-fit scaling for `boxWidthPx` and `boxHeightPx`.
+2. **Font Selector Dropdown Architecture:**
+   - [`DashboardScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/dashboard/DashboardScreen.kt) rendered font presets as an expanded horizontal scroll chip row rather than a space-saving Material 3 `ExposedDropdownMenuBox`.
+
+### Resolution & Action Plan (Steps 2 & 3)
+- **Step 2 (Unify Preview & Wallpaper Text Rendering — Bounding-Box Fill):**
+  - Build a shared `QuoteTextCanvasDrawer` helper executing `StaticLayout` binary search font scaling (searching up to `boxHeightPx * 0.85f` ceilings) so quotes expand dynamically to fill the `NormalizedRect` box on both preview screens 1:1 with the final system wallpaper.
+- **Step 3 (Material 3 Dropdown Font Selector & Verification):**
+  - Refactor `DashboardScreen.kt` to use `ExposedDropdownMenuBox` displaying all 12 built-in and custom imported fonts cleanly.
+  - Re-verify debug APK build and unit test suite.
