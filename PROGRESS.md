@@ -180,3 +180,23 @@
 
 ### Verification Status
 - Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed, including `CanvasWallpaperRendererTest`).
+
+---
+
+## Phase 4 - Step 3: Refactor Zone Editor for 60fps Smooth Gestures & Exact Bounds Preview
+
+### Zone Editor Gesture Refactoring Summary
+- **Decoupled Drag State for Zero-Jank 60/120fps Rendering (`ZoneEditorScreen.kt`):**
+  - Ephemeral `localRect` (`mutableStateOf(savedRect)`) handles drag movements smoothly in memory on every frame.
+  - `viewModel.updateRect(currentLocalRect)` is called **only** on `onDragEnd` and `onDragCancel`, eliminating disk I/O latency during active drag gestures.
+- **Eliminated PointerInput Re-Keying Stutter:**
+  - Used `rememberUpdatedState` inside `.pointerInput(Unit)` so drag gesture detectors remain continuously active without being cancelled or restarted mid-gesture.
+- **Aspect-Ratio-Locked Preview Canvas:**
+  - Locked the editor preview container using `Modifier.aspectRatio(screenAspectRatio)` matching the device's physical screen dimensions (`screenWidth / screenHeight`), ensuring 1:1 coordinate parity between preview and final wallpaper.
+- **Live Preview & "Long Text" Toggle:**
+  - Added text bounds clipping (`clipToBounds()`) and ellipsis overflow handling.
+  - Added a "Long Text" FilterChip toggle to test long quote layout behavior interactively.
+
+### Verification Status
+- Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** (`app/build/outputs/apk/debug/app-debug.apk`).
+- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
