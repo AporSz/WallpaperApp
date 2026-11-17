@@ -336,3 +336,18 @@
 - **Step 3 (Material 3 Dropdown Font Selector & Verification):**
   - Refactor `DashboardScreen.kt` to use `ExposedDropdownMenuBox` displaying all 12 built-in and custom imported fonts cleanly.
   - Re-verify debug APK build and unit test suite.
+
+---
+
+## Phase 7 - Step 2: Unify Preview & Wallpaper Text Rendering (Full Bounding-Box Fill)
+
+### Shared Rendering Engine & Bounding Box Fill Implementation Summary
+- **Single Source of Truth Canvas Drawer ([`QuoteTextCanvasDrawer.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/graphics/QuoteTextCanvasDrawer.kt)):**
+  - Created [`QuoteTextCanvasDrawer.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/graphics/QuoteTextCanvasDrawer.kt) encapsulating the exact `StaticLayout` binary search font scaling algorithm.
+  - Refactored [`CanvasWallpaperRenderer.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/graphics/CanvasWallpaperRenderer.kt) to delegate quote rendering directly to `QuoteTextCanvasDrawer.drawQuoteOnCanvas(...)`.
+- **Full Bounding-Box Fill in Previews ([`FontPreviewScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/font/FontPreviewScreen.kt) & [`ZoneEditorScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/ZoneEditorScreen.kt)):**
+  - Replaced fixed small Compose `Text` rendering in [`FontPreviewScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/font/FontPreviewScreen.kt) and [`ZoneEditorScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/ZoneEditorScreen.kt) with native Canvas rendering via `drawIntoCanvas { QuoteTextCanvasDrawer.drawQuoteOnCanvas(...) }`.
+  - Quotes scale up dynamically to fill the entire height and width of the active `NormalizedRect` box 1:1 with the final system wallpaper output.
+
+### Verification Status
+- Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).

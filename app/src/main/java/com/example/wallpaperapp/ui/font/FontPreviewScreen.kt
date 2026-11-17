@@ -10,14 +10,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -40,25 +37,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.wallpaperapp.domain.model.Quote
 import com.example.wallpaperapp.domain.model.QuoteFont
 import com.example.wallpaperapp.domain.model.TextOrientation
+import com.example.wallpaperapp.graphics.QuoteTextCanvasDrawer
 import com.example.wallpaperapp.ui.dashboard.DashboardViewModel
 import com.example.wallpaperapp.ui.zone.ZoneEditorViewModel
-import java.io.File
-import kotlin.math.roundToInt
 
 @Composable
 fun FontPreviewScreen(
@@ -102,40 +93,6 @@ fun FontPreviewScreen(
 
     val displayMetrics = context.resources.displayMetrics
     val screenAspectRatio = displayMetrics.widthPixels.toFloat() / displayMetrics.heightPixels.toFloat().coerceAtLeast(1f)
-
-    val previewFontFamily = remember(previewFontId) {
-        when (previewFontId) {
-            "builtin_sans" -> FontFamily.SansSerif
-            "builtin_serif" -> FontFamily.Serif
-            "builtin_mono" -> FontFamily.Monospace
-            "builtin_cursive" -> FontFamily.Cursive
-            "builtin_casual" -> FontFamily.Cursive
-            "builtin_sans_medium" -> FontFamily.SansSerif
-            "builtin_serif_bold" -> FontFamily.Serif
-            "builtin_mono_medium" -> FontFamily.Monospace
-            "builtin_sans_black" -> FontFamily.SansSerif
-            "builtin_sans_condensed" -> FontFamily.SansSerif
-            "builtin_sans_light" -> FontFamily.SansSerif
-            "builtin_serif_italic" -> FontFamily.Serif
-            else -> {
-                val filePath = if (previewFontId.startsWith("custom_")) {
-                    previewFontId.removePrefix("custom_")
-                } else {
-                    previewFontId
-                }
-                try {
-                    val file = File(filePath)
-                    if (file.exists() && file.length() > 0) {
-                        FontFamily(Font(file))
-                    } else {
-                        FontFamily.SansSerif
-                    }
-                } catch (_: Exception) {
-                    FontFamily.SansSerif
-                }
-            }
-        }
-    }
 
     Column(
         modifier = Modifier
@@ -199,7 +156,7 @@ fun FontPreviewScreen(
             )
         }
 
-        // Wallpaper Aspect Ratio Live Canvas Card
+        // Wallpaper Aspect Ratio Live Canvas Card with 1:1 Bounding Box Auto-Fitting
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -216,12 +173,10 @@ fun FontPreviewScreen(
 
                 val leftPx = rect.left * containerWidthPx
                 val topPx = rect.top * containerHeightPx
-                val widthPx = rect.width * containerWidthPx
-                val heightPx = rect.height * containerHeightPx
+                val rightPx = rect.right * containerWidthPx
+                val bottomPx = rect.bottom * containerHeightPx
 
                 val density = LocalDensity.current
-                val widthDp = with(density) { widthPx.toDp() }
-                val heightDp = with(density) { heightPx.toDp() }
 
                 // Background
                 if (imageUri != null) {
@@ -239,58 +194,41 @@ fun FontPreviewScreen(
                     )
                 }
 
-                // Dimmed Outer Scrim
+                // Dimmed Outer Scrim & 1:1 Bounding Box Canvas Text Render
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val scrimColor = Color.Black.copy(alpha = 0.50f)
                     drawRect(scrimColor, Offset(0f, 0f), Size(containerWidthPx, topPx))
-                    drawRect(scrimColor, Offset(0f, topPx + heightPx), Size(containerWidthPx, containerHeightPx - (topPx + heightPx)))
-                    drawRect(scrimColor, Offset(0f, topPx), Size(leftPx, heightPx))
-                    drawRect(scrimColor, Offset(leftPx + widthPx, topPx), Size(containerWidthPx - (leftPx + widthPx), heightPx))
-                }
+                    drawRect(scrimColor, Offset(0f, bottomPx), Size(containerWidthPx, containerHeightPx - bottomPx))
+                    drawRect(scrimColor, Offset(0f, topPx), Size(leftPx, bottomPx - topPx))
+                    drawRect(scrimColor, Offset(rightPx, topPx), Size(containerWidthPx - rightPx, bottomPx - topPx))
 
-                // Active Text Bounding Box
-                Box(
-                    modifier = Modifier
-                        .offset { IntOffset(leftPx.roundToInt(), topPx.roundToInt()) }
-                        .size(widthDp, heightDp)
-                        .background(Color(0x2200E5FF)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    val rotationDegrees = when (orientation) {
-                        TextOrientation.HORIZONTAL -> 0f
-                        TextOrientation.VERTICAL_UP -> -90f
-                        TextOrientation.VERTICAL_DOWN -> 90f
-                    }
+                    // Border overlay around bounding box
+                    drawRect(
+                        color = Color(0x6600E5FF),
+                        topLeft = Offset(leftPx, topPx),
+                        size = Size(rightPx - leftPx, bottomPx - topPx),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
+                    )
 
-                    Column(
-                        modifier = Modifier
-                            .padding(6.dp)
-                            .graphicsLayer { rotationZ = rotationDegrees },
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = activeQuote?.text ?: "Sample quote text renders here...",
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontFamily = previewFontFamily,
-                            fontWeight = if (previewIsBold) FontWeight.Bold else FontWeight.Normal,
-                            fontStyle = if (previewIsItalic) FontStyle.Italic else FontStyle.Normal,
-                            overflow = TextOverflow.Ellipsis
+                    // 1:1 Bounding-Box-Filling Native Canvas Render
+                    drawIntoCanvas { composeCanvas ->
+                        val nativeCanvas = composeCanvas.nativeCanvas
+                        val activeQuoteObj = activeQuote ?: Quote("preview", "The unexamined life is not worth living.", "Socrates")
+                        QuoteTextCanvasDrawer.drawQuoteOnCanvas(
+                            canvas = nativeCanvas,
+                            quote = activeQuoteObj,
+                            leftPx = leftPx,
+                            topPx = topPx,
+                            rightPx = rightPx,
+                            bottomPx = bottomPx,
+                            orientation = orientation,
+                            fontId = previewFontId,
+                            isBold = previewIsBold,
+                            isItalic = previewIsItalic,
+                            textColorArgb = android.graphics.Color.WHITE,
+                            shadowColorArgb = android.graphics.Color.BLACK,
+                            scaledDensity = density.density
                         )
-                        val currentQuote = activeQuote
-                        if (currentQuote != null && !currentQuote.author.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "— ${currentQuote.author}",
-                                color = Color.White.copy(alpha = 0.85f),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontFamily = previewFontFamily,
-                                fontWeight = if (previewIsBold) FontWeight.Bold else FontWeight.Normal,
-                                fontStyle = if (previewIsItalic) FontStyle.Italic else FontStyle.Normal,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
                     }
                 }
             }

@@ -9,11 +9,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -38,23 +36,19 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.wallpaperapp.domain.model.Quote
 import com.example.wallpaperapp.domain.model.TextOrientation
+import com.example.wallpaperapp.graphics.QuoteTextCanvasDrawer
 import com.example.wallpaperapp.ui.zone.CropBoxGeometry.resizeOrMove
-import java.io.File
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -77,40 +71,6 @@ fun ZoneEditorScreen(
 
     var isDragging by remember { mutableStateOf(false) }
     var useLongQuotePreview by remember { mutableStateOf(false) }
-
-    val activeFontFamily = remember(activeFontId) {
-        when (activeFontId) {
-            "builtin_sans" -> FontFamily.SansSerif
-            "builtin_serif" -> FontFamily.Serif
-            "builtin_mono" -> FontFamily.Monospace
-            "builtin_cursive" -> FontFamily.Cursive
-            "builtin_casual" -> FontFamily.Cursive
-            "builtin_sans_medium" -> FontFamily.SansSerif
-            "builtin_serif_bold" -> FontFamily.Serif
-            "builtin_mono_medium" -> FontFamily.Monospace
-            "builtin_sans_black" -> FontFamily.SansSerif
-            "builtin_sans_condensed" -> FontFamily.SansSerif
-            "builtin_sans_light" -> FontFamily.SansSerif
-            "builtin_serif_italic" -> FontFamily.Serif
-            else -> {
-                val filePath = if (activeFontId.startsWith("custom_")) {
-                    activeFontId.removePrefix("custom_")
-                } else {
-                    activeFontId
-                }
-                try {
-                    val file = File(filePath)
-                    if (file.exists() && file.length() > 0) {
-                        FontFamily(Font(file))
-                    } else {
-                        FontFamily.SansSerif
-                    }
-                } catch (_: Exception) {
-                    FontFamily.SansSerif
-                }
-            }
-        }
-    }
 
     val longQuote = remember {
         Quote(
@@ -217,7 +177,7 @@ fun ZoneEditorScreen(
                 val isNearVerticalCenter = abs(boxCenterX - 0.5f) < 0.015f
                 val isNearHorizontalCenter = abs(boxCenterY - 0.5f) < 0.015f
 
-                // 2. Dimmed Outer Scrim Canvas & Visual Alignment Guiding Lines
+                // 2. Dimmed Outer Scrim Canvas & 1:1 Bounding Box Canvas Text Render
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val scrimColor = Color.Black.copy(alpha = 0.55f)
                     // Outer Scrim
@@ -247,6 +207,27 @@ fun ZoneEditorScreen(
                         drawLine(thirdColor, Offset(0f, containerHeightPx * 0.333f), Offset(containerWidthPx, containerHeightPx * 0.333f), strokeWidth = strokeW)
                         drawLine(thirdColor, Offset(0f, containerHeightPx * 0.666f), Offset(containerWidthPx, containerHeightPx * 0.666f), strokeWidth = strokeW)
                     }
+
+                    // 1:1 Bounding-Box-Filling Native Canvas Render
+                    drawIntoCanvas { composeCanvas ->
+                        val nativeCanvas = composeCanvas.nativeCanvas
+                        val activeQuoteObj = activeQuote ?: Quote("preview", "The journey of a thousand miles begins with a single step.", "Lao Tzu")
+                        QuoteTextCanvasDrawer.drawQuoteOnCanvas(
+                            canvas = nativeCanvas,
+                            quote = activeQuoteObj,
+                            leftPx = leftPx,
+                            topPx = topPx,
+                            rightPx = leftPx + widthPx,
+                            bottomPx = topPx + heightPx,
+                            orientation = orientation,
+                            fontId = activeFontId,
+                            isBold = isBold,
+                            isItalic = isItalic,
+                            textColorArgb = android.graphics.Color.WHITE,
+                            shadowColorArgb = android.graphics.Color.BLACK,
+                            scaledDensity = density.density
+                        )
+                    }
                 }
 
                 // 4. Active Bounding Box Overlay Window + Ephemeral Center Drag with Magnetic Snapping
@@ -254,7 +235,7 @@ fun ZoneEditorScreen(
                     modifier = Modifier
                         .offset { IntOffset(leftPx.roundToInt(), topPx.roundToInt()) }
                         .size(widthDp, heightDp)
-                        .background(Color(0x3300E5FF))
+                        .background(Color(0x2200E5FF))
                         .border(2.dp, Color(0xFF00E5FF), RoundedCornerShape(4.dp))
                         .clipToBounds()
                         .pointerInput(Unit) {
@@ -290,48 +271,8 @@ fun ZoneEditorScreen(
 
                                 localRect = newRect.copy(left = sLeft, top = sTop, right = sLeft + newRect.width, bottom = sTop + newRect.height)
                             }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    val rotationDegrees = when (orientation) {
-                        TextOrientation.HORIZONTAL -> 0f
-                        TextOrientation.VERTICAL_UP -> -90f
-                        TextOrientation.VERTICAL_DOWN -> 90f
-                    }
-
-                    // 1:1 WYSIWYG Live Text Preview Rendering
-                    Column(
-                        modifier = Modifier
-                            .padding(6.dp)
-                            .graphicsLayer { rotationZ = rotationDegrees }
-                            .clipToBounds(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = activeQuote?.text ?: "Sample quote text renders here...",
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontFamily = activeFontFamily,
-                            fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
-                            fontStyle = if (isItalic) FontStyle.Italic else FontStyle.Normal,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        val currentQuote = activeQuote
-                        if (currentQuote != null && !currentQuote.author.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "— ${currentQuote.author}",
-                                color = Color.White.copy(alpha = 0.85f),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontFamily = activeFontFamily,
-                                fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
-                                fontStyle = if (isItalic) FontStyle.Italic else FontStyle.Normal,
-                                overflow = TextOverflow.Ellipsis
-                            )
                         }
-                    }
-                }
+                )
 
                 // 5. 8 Grab Handles (4 Corners + 4 Edges)
                 val handles = listOf(
