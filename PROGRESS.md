@@ -178,3 +178,25 @@
 - Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS**.
 - Installed & launched on physical device `39271FDJG001T8`: **SUCCESS**.
 - Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (8/8 unit tests passed).
+
+---
+
+## Phase 3 - Step 3: Screenshot-Style Interactive Bounding Box Editor
+
+### Interactive Editor Implementation Summary
+- **Pure Geometry Math Engine (`CropBoxGeometry.kt` & `CropBoxGeometryTest.kt`):**
+  - Created `CropBoxGeometry.kt` supporting 8-handle resizing and interior moving:
+    - 4 corner handles (`TOP_LEFT`, `TOP_RIGHT`, `BOTTOM_LEFT`, `BOTTOM_RIGHT`) resizing width and height simultaneously.
+    - 4 edge handles (`TOP`, `BOTTOM`, `LEFT`, `RIGHT`) lengthening or shrinking single dimensions independently.
+    - Interior drag (`CENTER`) translating the bounding box across screen boundaries.
+  - Clamps coordinates strictly within `[0.0f, 1.0f]` and enforces minimum box constraints (`15%` width, `10%` height).
+  - Added unit test suite in `CropBoxGeometryTest.kt` verifying handle drags, boundary clamping, and minimum constraints.
+- **Screenshot-Style Crop UI (`ZoneEditorScreen.kt`):**
+  - Dimmed outer background scrim (`Color.Black.copy(alpha = 0.55f)`).
+  - Rule-of-thirds guide lines rendered dynamically inside the selection window while dragging.
+  - 8 visible, high-contrast touch grab handles (white circles for corners, white pills for edges) with generous `36.dp` touch targets.
+  - Real-time text preview rendering inside the active selection box (respecting current text orientation and contrast).
+
+### Verification Status
+- Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** (`app/build/outputs/apk/debug/app-debug.apk`).
+- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (13/13 unit tests passed).
