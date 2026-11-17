@@ -244,3 +244,31 @@
 ### Verification Status
 - Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** (`app/build/outputs/apk/debug/app-debug.apk`).
 - Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Phase 6 - Step 1: Codebase Inspection & Integration Plan
+
+### Architecture & Inspection Summary
+- **Key Modules Inspected:**
+  - `QuoteFont` & `RenderConfig`: Typography definitions and font configurations.
+  - `SettingsRepository` & `DataStoreSettingsRepository`: Datastore persistence for bold/italic, font shuffle toggle, and font shuffle bag queue.
+  - `CanvasWallpaperRenderer`: Typeface style matrix resolution (`BOLD`, `ITALIC`, `BOLD_ITALIC`).
+  - `RotateWallpaperUseCase`: Font shuffle bag integration using `ShuffleEngine<QuoteFont>`.
+  - `DashboardScreen` / `DashboardViewModel`: Collapsible rotation card & relocated font control panel.
+  - `FontPreviewScreen`: Dedicated full-screen wallpaper typography preview modal.
+  - `ZoneEditorScreen`: Alignment guiding lines with magnetic snapping and 1:1 WYSIWYG text rendering.
+
+### Concrete Integration Plan (Steps 2–4)
+- **Step 2 (Domain, Data & Typography Engine Expansion):**
+  - Expand `QuoteFont.kt` to 12 built-in font presets (`builtin_sans`, `builtin_serif`, `builtin_mono`, `builtin_cursive`, `builtin_casual`, `builtin_sans_medium`, `builtin_serif_bold`, `builtin_mono_medium`, `builtin_sans_black`, `builtin_sans_condensed`, `builtin_sans_light`, `builtin_serif_italic`).
+  - Add `isBold`, `isItalic`, `shuffleFonts`, and `fontShuffleQueue` to `RenderConfig`, `SettingsRepository`, and `DataStoreSettingsRepository`.
+  - Update `RotateWallpaperUseCase` to shuffle fonts via `ShuffleEngine` when `shuffleFonts == true`.
+  - Update `CanvasWallpaperRenderer` to apply `Typeface.BOLD`, `ITALIC`, or `BOLD_ITALIC` to any base font.
+- **Step 3 (Dashboard Redesign & Dedicated Font Preview Screen):**
+  - Refactor `DashboardScreen.kt`: compact collapsible rotation card that auto-collapses on interval selection; font selection panel with Bold, Italic, Shuffle Toggles, and "Preview Fonts" button.
+  - Create `FontPreviewScreen.kt` for live wallpaper typography preview with instant font switching and confirmation button.
+- **Step 4 (Zone Editor Cleanup, Guiding Lines & 1:1 WYSIWYG Rendering):**
+  - Remove preset buttons (`Upper Third`, `Center`, `Lower Third`) from `ZoneEditorScreen.kt`.
+  - Add visual guiding lines (vertical/horizontal center, rule-of-thirds) with magnetic snapping (`0.015f` threshold).
+  - Replace simplified Compose text in Zone Editor with exact `CanvasWallpaperRenderer` / `StaticLayout` canvas rendering for 1:1 WYSIWYG parity.
