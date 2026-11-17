@@ -285,3 +285,20 @@
 
 ### Verification Status
 - Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Phase 6 - Step 3: Dashboard Redesign & Dedicated Font Preview Screen
+
+### Dashboard & Font Preview Screen Implementation Summary
+- **Collapsible Automated Rotation Card (`DashboardScreen.kt`):**
+  - Refactored rotation card into a compact summary row (*"Automated Rotation: Every 2 Hours"*) with toggle switch.
+  - Accordion animation (`AnimatedVisibility`) reveals 10 schedule intervals upon tapping card.
+  - **Auto-collapses** automatically as soon as an interval is selected.
+- **Relocated Font Controls Panel (`DashboardScreen.kt` & `DashboardViewModel.kt`):**
+  - Added Font Selection section to Dashboard with horizontal scrollable chips for all 12 built-in fonts, **Bold** toggle chip, **Italic** toggle chip, **Shuffle Fonts** toggle chip, `+ Import` button, and **"Full Font Preview Screen"** navigation button.
+- **Dedicated Font Preview Screen (`FontPreviewScreen.kt` & `MainActivity.kt`):**
+  - Created full-screen wallpaper typography preview screen with live font switching, **Bold** & **Italic** toggles, short/long quote toggle, and **"Use This Font Style"** confirmation button.
+
+### Verification Status
+- Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).

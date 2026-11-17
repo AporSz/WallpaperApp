@@ -1,8 +1,11 @@
 package com.example.wallpaperapp.ui.dashboard
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.wallpaperapp.data.local.FontStorageManager
 import com.example.wallpaperapp.domain.model.AppThemeMode
 import com.example.wallpaperapp.domain.model.ScheduleConfig
 import com.example.wallpaperapp.domain.model.WallpaperTarget
@@ -11,10 +14,10 @@ import com.example.wallpaperapp.domain.scheduler.WallpaperScheduler
 import com.example.wallpaperapp.domain.usecase.RotateWallpaperUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 
 class DashboardViewModel(
@@ -31,6 +34,18 @@ class DashboardViewModel(
 
     val themeModeState: StateFlow<AppThemeMode> = settingsRepository.observeAppThemeMode()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppThemeMode.SYSTEM)
+
+    val quoteFontId: StateFlow<String> = settingsRepository.observeQuoteFontId()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "builtin_sans")
+
+    val isBoldState: StateFlow<Boolean> = settingsRepository.observeIsBold()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val isItalicState: StateFlow<Boolean> = settingsRepository.observeIsItalic()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val shuffleFontsState: StateFlow<Boolean> = settingsRepository.observeShuffleFonts()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     private val _message = MutableSharedFlow<String>()
     val message: SharedFlow<String> = _message.asSharedFlow()
@@ -62,6 +77,41 @@ class DashboardViewModel(
     fun setAppThemeMode(themeMode: AppThemeMode) {
         viewModelScope.launch {
             settingsRepository.setAppThemeMode(themeMode)
+        }
+    }
+
+    fun setQuoteFontId(fontId: String) {
+        viewModelScope.launch {
+            settingsRepository.setQuoteFontId(fontId)
+        }
+    }
+
+    fun setIsBold(isBold: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setIsBold(isBold)
+        }
+    }
+
+    fun setIsItalic(isItalic: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setIsItalic(isItalic)
+        }
+    }
+
+    fun setShuffleFonts(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setShuffleFonts(enabled)
+        }
+    }
+
+    fun importCustomFont(context: Context, uri: Uri) {
+        viewModelScope.launch {
+            val fontManager = FontStorageManager(context)
+            val customPath = fontManager.saveCustomFont(uri)
+            if (customPath != null) {
+                val fontId = "custom_$customPath"
+                settingsRepository.setQuoteFontId(fontId)
+            }
         }
     }
 

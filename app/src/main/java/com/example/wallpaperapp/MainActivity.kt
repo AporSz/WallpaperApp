@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -32,6 +33,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.wallpaperapp.domain.model.AppThemeMode
 import com.example.wallpaperapp.ui.dashboard.DashboardScreen
 import com.example.wallpaperapp.ui.dashboard.DashboardViewModel
+import com.example.wallpaperapp.ui.font.FontPreviewScreen
 import com.example.wallpaperapp.ui.pools.PoolsScreen
 import com.example.wallpaperapp.ui.pools.PoolsViewModel
 import com.example.wallpaperapp.ui.zone.ZoneEditorScreen
@@ -103,6 +105,7 @@ fun MainAppScreen(
     poolsViewModel: PoolsViewModel
 ) {
     var selectedScreenIndex by remember { mutableIntStateOf(0) }
+    var showFontPreviewScreen by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     val screens = listOf(
@@ -111,33 +114,42 @@ fun MainAppScreen(
         Screen.Pools
     )
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        bottomBar = {
-            NavigationBar {
-                screens.forEachIndexed { index, screen ->
-                    NavigationBarItem(
-                        selected = selectedScreenIndex == index,
-                        onClick = { selectedScreenIndex = index },
-                        icon = { Icon(imageVector = screen.icon, contentDescription = screen.title) },
-                        label = { Text(screen.title) }
-                    )
+    if (showFontPreviewScreen) {
+        FontPreviewScreen(
+            dashboardViewModel = dashboardViewModel,
+            zoneEditorViewModel = zoneEditorViewModel,
+            onConfirmFont = { showFontPreviewScreen = false }
+        )
+    } else {
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            bottomBar = {
+                NavigationBar {
+                    screens.forEachIndexed { index, screen ->
+                        NavigationBarItem(
+                            selected = selectedScreenIndex == index,
+                            onClick = { selectedScreenIndex = index },
+                            icon = { Icon(imageVector = screen.icon, contentDescription = screen.title) },
+                            label = { Text(screen.title) }
+                        )
+                    }
                 }
             }
-        }
-    ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding)) {
-            when (selectedScreenIndex) {
-                0 -> DashboardScreen(
-                    viewModel = dashboardViewModel,
-                    snackbarHostState = snackbarHostState
-                )
-                1 -> ZoneEditorScreen(
-                    viewModel = zoneEditorViewModel
-                )
-                2 -> PoolsScreen(
-                    viewModel = poolsViewModel
-                )
+        ) { innerPadding ->
+            Box(modifier = Modifier.padding(innerPadding)) {
+                when (selectedScreenIndex) {
+                    0 -> DashboardScreen(
+                        viewModel = dashboardViewModel,
+                        snackbarHostState = snackbarHostState,
+                        onNavigateToFontPreview = { showFontPreviewScreen = true }
+                    )
+                    1 -> ZoneEditorScreen(
+                        viewModel = zoneEditorViewModel
+                    )
+                    2 -> PoolsScreen(
+                        viewModel = poolsViewModel
+                    )
+                }
             }
         }
     }
