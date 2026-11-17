@@ -142,61 +142,24 @@
 
 ---
 
-## Phase 3 - Step 1: Root Cause Diagnosis & Codebase Inspection
+## Phase 4 - Step 1: Root Cause Diagnosis & Codebase Inspection
 
-### Diagnosis Summary: Solid Grey Background Bug
-1. **Missing Persistable URI Read Permissions (`PoolsScreen.kt`):**
-   - When importing images via `PickMultipleVisualMedia()`, `contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)` was not invoked.
-   - When `WallpaperWorker` runs in the background or app process restarts, `context.contentResolver.openInputStream(uri)` throws a `SecurityException`.
-2. **Silent Failure & Solid Dark Grey Fallback (`CanvasWallpaperRenderer.kt`):**
-   - `loadScaledBitmap()` caught all exceptions silently and returned `null`.
-   - When `loadScaledBitmap()` returned `null`, `renderWallpaper()` silently fell back to `createDefaultBackground()`, filling the Canvas with solid dark grey (`Color.DKGRAY`).
-3. **Bitmap Decoding & Stream Reuse:**
-   - Need explicit `inMutable = true` and `inPreferredConfig = Bitmap.Config.ARGB_8888` on decoded bitmaps, plus logging diagnostics (`Log.e`).
-4. **Invalid URI Pruning / Recovery (`RotateWallpaperUseCase.kt`):**
-   - When an unreadable or revoked URI is encountered, the use case should log the error and advance/prune the invalid URI rather than rendering a solid grey screen.
+### Diagnosis Summary: Gesture Jank & Text Overflow Bugs
+1. **Bounding Box Drag Jank & Stutter (`ZoneEditorScreen.kt`):**
+   - **DataStore Writes inside `onDrag`:** `viewModel.updateRect()` was called on every single pixel move during gestures, writing to disk DataStore on every drag event.
+   - **PointerInput Key Invalidation:** Passing `rect` into `.pointerInput(containerWidthPx, containerHeightPx, rect)` caused Compose to cancel and restart active drag gestures mid-drag whenever `rect` changed.
+   - **Preview Container Aspect Ratio:** `Card` used `.weight(1f)` without matching the physical device display aspect ratio (`screenWidth / screenHeight`).
+2. **Text Overflow & Off-Screen Clipping for Long Quotes (`CanvasWallpaperRenderer.kt`):**
+   - **Missing Hard Canvas Clip:** Text drawing lacked `canvas.clipRect(leftPx, topPx, rightPx, bottomPx)` boundaries, allowing glyphs to bleed outside `NormalizedRect` or off-screen.
+   - **Missing MaxLines & Truncation Fallback:** When a quote is long and font scaling hits `minFontSizeSp`, `createStaticLayout` did not calculate or enforce `.setMaxLines()` or `.setEllipsize(TextUtils.TruncateAt.END)`.
+   - **Vertical Orientation Bounds & Matrix:** Rotated text required exact pivot translation and hard canvas clipping boundaries.
 
-### Design Plan: Interactive Bounding Box Editor (Step 3)
-- Extract clean geometry math helper (`CropBoxGeometry.kt` / `NormalizedRect` extensions) for 8 handles: Top-Left, Top-Right, Bottom-Left, Bottom-Right, Top, Bottom, Left, Right + interior translation, with `[0f, 1f]` boundary clamping and `15% x 10%` minimum dimensions.
-- Upgrade `ZoneEditorScreen.kt` with outer dimmed scrim, 8 visible drag handles, center guidelines, and live text orientation rotation preview.
-
----
-
-## Phase 3 - Step 2: Fix Background Image Loading, Permissions & Canvas Compositing
-
-### Fix & Resolution Summary
-- **Persistable URI Permissions (`PoolsScreen.kt`):**
-  - Integrated `context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)` when importing images in `PoolsScreen.kt`.
-- **Bitmap Decoding, EXIF & Error Visibility (`CanvasWallpaperRenderer.kt`):**
-  - Updated `decodeUriDownsampled` requesting `inMutable = true` and `inPreferredConfig = Bitmap.Config.ARGB_8888`.
-  - Added EXIF orientation detection via `ExifInterface` to automatically rotate image streams to upright orientation.
-  - Replaced silent dark grey fallback with `Log.e` diagnostics, returning `null` when bitmap decoding fails.
-- **Unreadable URI Recovery & Auto-Pruning (`RotateWallpaperUseCase.kt`):**
-  - Added loop in `RotateWallpaperUseCase` to automatically prune invalid/unreadable URIs from `ImageRepository` and try candidate images in the pool instead of failing to a grey screen.
-
-### Verification Status
-- Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS**.
-- Installed & launched on physical device `39271FDJG001T8`: **SUCCESS**.
-- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (8/8 unit tests passed).
-
----
-
-## Phase 3 - Step 3: Screenshot-Style Interactive Bounding Box Editor
-
-### Interactive Editor Implementation Summary
-- **Pure Geometry Math Engine (`CropBoxGeometry.kt` & `CropBoxGeometryTest.kt`):**
-  - Created `CropBoxGeometry.kt` supporting 8-handle resizing and interior moving:
-    - 4 corner handles (`TOP_LEFT`, `TOP_RIGHT`, `BOTTOM_LEFT`, `BOTTOM_RIGHT`) resizing width and height simultaneously.
-    - 4 edge handles (`TOP`, `BOTTOM`, `LEFT`, `RIGHT`) lengthening or shrinking single dimensions independently.
-    - Interior drag (`CENTER`) translating the bounding box across screen boundaries.
-  - Clamps coordinates strictly within `[0.0f, 1.0f]` and enforces minimum box constraints (`15%` width, `10%` height).
-  - Added unit test suite in `CropBoxGeometryTest.kt` verifying handle drags, boundary clamping, and minimum constraints.
-- **Screenshot-Style Crop UI (`ZoneEditorScreen.kt`):**
-  - Dimmed outer background scrim (`Color.Black.copy(alpha = 0.55f)`).
-  - Rule-of-thirds guide lines rendered dynamically inside the selection window while dragging.
-  - 8 visible, high-contrast touch grab handles (white circles for corners, white pills for edges) with generous `36.dp` touch targets.
-  - Real-time text preview rendering inside the active selection box (respecting current text orientation and contrast).
-
-### Verification Status
-- Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** (`app/build/outputs/apk/debug/app-debug.apk`).
-- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (13/13 unit tests passed).
+### Resolution & Action Plan (Steps 2 & 3)
+- **Step 2 (Fix Text Auto-Fitting, Rotation & Hard Clipping):**
+  - In `CanvasWallpaperRenderer.kt`, add `canvas.clipRect(leftPx, topPx, rightPx, bottomPx)` around text rendering.
+  - In `findOptimalTextLayout` / `createStaticLayout`, lower font floor to `10sp`, calculate max lines, and apply `TextUtils.TruncateAt.END` fallback when font size hits minimum.
+  - Add unit tests for long quote truncation and strict bounding.
+- **Step 3 (Zone Editor 60fps Gesture Smoothness & Aspect Ratio Parity):**
+  - In `ZoneEditorScreen.kt`, hold local ephemeral `mutableStateOf(rect)` for 60fps frame rendering during gestures, calling `viewModel.updateRect()` ONLY on `onDragEnd` / `onDragCancel`.
+  - Use `rememberUpdatedState` inside `pointerInput(Unit)` so gestures remain continuously locked without mid-drag cancellation.
+  - Lock preview container to true screen aspect ratio (`screenWidth / screenHeight`) and add a "Long Quote Preview" toggle.
