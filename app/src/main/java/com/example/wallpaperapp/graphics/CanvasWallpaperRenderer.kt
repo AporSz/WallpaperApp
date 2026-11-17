@@ -24,6 +24,7 @@ import com.example.wallpaperapp.domain.engine.WallpaperRenderer
 import com.example.wallpaperapp.domain.model.Quote
 import com.example.wallpaperapp.domain.model.RenderConfig
 import com.example.wallpaperapp.domain.model.TextOrientation
+import java.io.File
 
 class CanvasWallpaperRenderer(
     private val context: Context,
@@ -62,11 +63,12 @@ class CanvasWallpaperRenderer(
         val boxWidthPx = (rightPx - leftPx).toInt().coerceAtLeast(100)
         val boxHeightPx = (bottomPx - topPx).toInt().coerceAtLeast(100)
 
-        // 5. Configure text paint
+        // 5. Configure text paint with active resolved Typeface
+        val resolvedTypeface = resolveTypeface(config.fontId)
         val textPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = contrastResult.textColorArgb
             setShadowLayer(8f, 3f, 3f, contrastResult.shadowColorArgb)
-            typeface = Typeface.create(Typeface.SERIF, Typeface.NORMAL)
+            typeface = resolvedTypeface
         }
 
         // 6. Swap layout constraints for vertical text orientations
@@ -115,6 +117,33 @@ class CanvasWallpaperRenderer(
         canvas.restore()
 
         return compositeBitmap
+    }
+
+    private fun resolveTypeface(fontId: String): Typeface {
+        return try {
+            when (fontId) {
+                "builtin_sans" -> Typeface.SANS_SERIF
+                "builtin_serif" -> Typeface.SERIF
+                "builtin_mono" -> Typeface.MONOSPACE
+                "builtin_cursive" -> Typeface.create("cursive", Typeface.NORMAL)
+                else -> {
+                    val filePath = if (fontId.startsWith("custom_")) {
+                        fontId.removePrefix("custom_")
+                    } else {
+                        fontId
+                    }
+                    val file = File(filePath)
+                    if (file.exists() && file.length() > 0) {
+                        Typeface.createFromFile(file)
+                    } else {
+                        Typeface.SANS_SERIF
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("CanvasWallpaperRenderer", "Error resolving font: $fontId, fallback to SANS_SERIF", e)
+            Typeface.SANS_SERIF
+        }
     }
 
     private fun loadScaledBitmap(input: Any, targetWidth: Int, targetHeight: Int): Bitmap? {
@@ -205,8 +234,23 @@ class CanvasWallpaperRenderer(
     }
 
     private fun cropCenterFill(src: Bitmap, targetWidth: Int, targetHeight: Int): Bitmap {
-        val srcWidth = src.width
-        val srcHeight = src.height
+        var inputBitmap = src
+        var srcWidth = inputBitmap.width
+        var srcHeight = inputBitmap.height
+
+        val isTargetPortrait = targetHeight > targetWidth
+        val isSourceLandscape = srcWidth > srcHeight
+
+        // Auto-rotate landscape images 90° clockwise to fill portrait screen cleanly at high resolution
+        if (isTargetPortrait && isSourceLandscape) {
+            val matrix = Matrix().apply { postRotate(90f) }
+            val rotated = Bitmap.createBitmap(inputBitmap, 0, 0, srcWidth, srcHeight, matrix, true)
+            if (rotated != inputBitmap) {
+                inputBitmap = rotated
+            }
+            srcWidth = inputBitmap.width
+            srcHeight = inputBitmap.height
+        }
 
         val scale = maxOf(
             targetWidth.toFloat() / srcWidth,
@@ -225,7 +269,7 @@ class CanvasWallpaperRenderer(
             postScale(scale, scale)
             postTranslate(dx, dy)
         }
-        canvas.drawBitmap(src, matrix, Paint(Paint.FILTER_BITMAP_FLAG))
+        canvas.drawBitmap(inputBitmap, matrix, Paint(Paint.FILTER_BITMAP_FLAG))
         return result
     }
 

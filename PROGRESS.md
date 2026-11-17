@@ -213,3 +213,18 @@
 
 ### Verification Status
 - Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Phase 5 - Step 3: Graphics & Landscape Auto-Rotate Engine Update
+
+### Rendering Engine Update Summary
+- **Custom Font Resolution (`CanvasWallpaperRenderer.kt`):**
+  - Implemented `resolveTypeface(fontId)` resolving built-in presets (`builtin_sans`, `builtin_serif`, `builtin_mono`, `builtin_cursive`) and custom font files from internal storage (`context.filesDir/fonts/`).
+  - Applied resolved `Typeface` directly to `TextPaint.typeface`.
+- **Landscape Image Auto-Rotation to Portrait:**
+  - Updated `cropCenterFill`: when targeting a portrait display (`targetHeight > targetWidth`) and the source image is landscape (`srcWidth > srcHeight`), the renderer automatically rotates the bitmap `90°` clockwise before cropping/scaling.
+  - Prevents landscape wallpapers from zooming into a blurry horizontal strip.
+
+### Verification Status
+- Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
