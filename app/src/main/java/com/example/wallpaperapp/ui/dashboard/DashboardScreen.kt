@@ -4,7 +4,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,9 +17,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
@@ -40,6 +44,7 @@ import com.example.wallpaperapp.domain.model.AppThemeMode
 import com.example.wallpaperapp.domain.model.QuoteFont
 import com.example.wallpaperapp.domain.model.WallpaperTarget
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     viewModel: DashboardViewModel,
@@ -57,6 +62,7 @@ fun DashboardScreen(
     val shuffleFonts by viewModel.shuffleFontsState.collectAsState()
 
     var isScheduleExpanded by remember { mutableStateOf(false) }
+    var isFontDropdownExpanded by remember { mutableStateOf(false) }
 
     val fontPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -90,6 +96,8 @@ fun DashboardScreen(
     val activeIntervalLabel = remember(schedule.intervalMinutes) {
         intervals.find { it.first == schedule.intervalMinutes }?.second ?: "${schedule.intervalMinutes} Mins"
     }
+
+    val selectedFont = remember(activeFontId) { QuoteFont.findById(activeFontId) }
 
     Column(
         modifier = Modifier
@@ -198,7 +206,7 @@ fun DashboardScreen(
             }
         }
 
-        // 3. Relocated Dashboard Typography Control Panel
+        // 3. Compact Dropdown Typography & Styling Section
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -212,21 +220,45 @@ fun DashboardScreen(
                     style = MaterialTheme.typography.titleMedium
                 )
 
-                // Horizontal Font Choice Chips
+                // Compact Material 3 Exposed Dropdown Menu Box
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    QuoteFont.BUILTIN_FONTS.forEach { font ->
-                        FilterChip(
-                            selected = activeFontId == font.id,
-                            onClick = { viewModel.setQuoteFontId(font.id) },
-                            label = { Text(font.name) }
+                    ExposedDropdownMenuBox(
+                        expanded = isFontDropdownExpanded,
+                        onExpandedChange = { isFontDropdownExpanded = !isFontDropdownExpanded },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        OutlinedTextField(
+                            value = selectedFont.name,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Active Font Family") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isFontDropdownExpanded) },
+                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                            modifier = Modifier
+                                .menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true)
+                            .fillMaxWidth()
                         )
+
+                        ExposedDropdownMenu(
+                            expanded = isFontDropdownExpanded,
+                            onDismissRequest = { isFontDropdownExpanded = false }
+                        ) {
+                            QuoteFont.BUILTIN_FONTS.forEach { font ->
+                                DropdownMenuItem(
+                                    text = { Text(font.name) },
+                                    onClick = {
+                                        viewModel.setQuoteFontId(font.id)
+                                        isFontDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
                     }
+
                     OutlinedButton(
                         onClick = {
                             fontPickerLauncher.launch(

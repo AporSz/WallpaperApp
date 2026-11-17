@@ -114,7 +114,7 @@
   - Provides clean dependency injection container for Room Database, DataStore, Repositories, Shuffle Engines, Rendering Engine, Applier, Use Case, and Scheduler.
 
 ### Verification Status
-- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (8/8 unit tests passed).
+- Built & verified Kotlin compilation & unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (8/8 unit tests passed).
 
 ---
 
@@ -351,3 +351,17 @@
 
 ### Verification Status
 - Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Phase 7 - Step 3: Convert Font Selection to Dropdown List & Final Verification
+
+### Dropdown Font Selector & Final Verification Summary
+- **Material 3 Dropdown Font Selector ([`DashboardScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/dashboard/DashboardScreen.kt)):**
+  - Replaced expanded font chip row with Material 3 `ExposedDropdownMenuBox` displaying the active font family name.
+  - Dropdown menu lists all 12 built-in font choices plus custom imported fonts in a compact space.
+  - Kept **Bold**, **Italic**, **Shuffle Fonts**, `+ Import`, and **Full Font Preview Screen** buttons organized cleanly.
+
+### Verification Status
+- Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
+- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
