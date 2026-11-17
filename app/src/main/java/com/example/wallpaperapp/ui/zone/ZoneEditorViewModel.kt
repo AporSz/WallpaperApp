@@ -34,6 +34,12 @@ class ZoneEditorViewModel(
     val quoteFontId: StateFlow<String> = settingsRepository.observeQuoteFontId()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "builtin_sans")
 
+    val isBoldState: StateFlow<Boolean> = settingsRepository.observeIsBold()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val isItalicState: StateFlow<Boolean> = settingsRepository.observeIsItalic()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     private val _sampleQuote = MutableStateFlow<Quote?>(null)
     val sampleQuote: StateFlow<Quote?> = _sampleQuote.asStateFlow()
 
@@ -64,10 +70,6 @@ class ZoneEditorViewModel(
         viewModelScope.launch {
             settingsRepository.setNormalizedRect(rect)
         }
-    }
-
-    fun applyPreset(rect: NormalizedRect) {
-        updateRect(rect)
     }
 
     fun setTextOrientation(orientation: TextOrientation) {

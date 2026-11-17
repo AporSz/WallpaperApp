@@ -1,7 +1,5 @@
 package com.example.wallpaperapp.ui.zone
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -25,7 +23,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -48,15 +45,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.example.wallpaperapp.domain.model.NormalizedRect
 import com.example.wallpaperapp.domain.model.Quote
 import com.example.wallpaperapp.domain.model.TextOrientation
 import com.example.wallpaperapp.ui.zone.CropBoxGeometry.resizeOrMove
 import java.io.File
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @Composable
@@ -70,19 +69,14 @@ fun ZoneEditorScreen(
 
     val orientation by viewModel.textOrientation.collectAsState()
     val activeFontId by viewModel.quoteFontId.collectAsState()
+    val isBold by viewModel.isBoldState.collectAsState()
+    val isItalic by viewModel.isItalicState.collectAsState()
+
     val sampleQuote by viewModel.sampleQuote.collectAsState()
     val imageUri by viewModel.sampleImageUri.collectAsState()
 
     var isDragging by remember { mutableStateOf(false) }
     var useLongQuotePreview by remember { mutableStateOf(false) }
-
-    val fontPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            viewModel.importCustomFont(context, uri)
-        }
-    }
 
     val activeFontFamily = remember(activeFontId) {
         when (activeFontId) {
@@ -90,6 +84,14 @@ fun ZoneEditorScreen(
             "builtin_serif" -> FontFamily.Serif
             "builtin_mono" -> FontFamily.Monospace
             "builtin_cursive" -> FontFamily.Cursive
+            "builtin_casual" -> FontFamily.Cursive
+            "builtin_sans_medium" -> FontFamily.SansSerif
+            "builtin_serif_bold" -> FontFamily.Serif
+            "builtin_mono_medium" -> FontFamily.Monospace
+            "builtin_sans_black" -> FontFamily.SansSerif
+            "builtin_sans_condensed" -> FontFamily.SansSerif
+            "builtin_sans_light" -> FontFamily.SansSerif
+            "builtin_serif_italic" -> FontFamily.Serif
             else -> {
                 val filePath = if (activeFontId.startsWith("custom_")) {
                     activeFontId.removePrefix("custom_")
@@ -135,74 +137,6 @@ fun ZoneEditorScreen(
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.align(Alignment.Start)
         )
-
-        // Zone Presets row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            FilterChip(
-                selected = localRect == NormalizedRect.UPPER_THIRD,
-                onClick = {
-                    localRect = NormalizedRect.UPPER_THIRD
-                    viewModel.applyPreset(NormalizedRect.UPPER_THIRD)
-                },
-                label = { Text("Upper Third") }
-            )
-            FilterChip(
-                selected = localRect == NormalizedRect.CENTER,
-                onClick = {
-                    localRect = NormalizedRect.CENTER
-                    viewModel.applyPreset(NormalizedRect.CENTER)
-                },
-                label = { Text("Center") }
-            )
-            FilterChip(
-                selected = localRect == NormalizedRect.LOWER_THIRD,
-                onClick = {
-                    localRect = NormalizedRect.LOWER_THIRD
-                    viewModel.applyPreset(NormalizedRect.LOWER_THIRD)
-                },
-                label = { Text("Lower Third") }
-            )
-        }
-
-        // Font Family Selector row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            FilterChip(
-                selected = activeFontId == "builtin_sans",
-                onClick = { viewModel.setQuoteFontId("builtin_sans") },
-                label = { Text("Sans") }
-            )
-            FilterChip(
-                selected = activeFontId == "builtin_serif",
-                onClick = { viewModel.setQuoteFontId("builtin_serif") },
-                label = { Text("Serif") }
-            )
-            FilterChip(
-                selected = activeFontId == "builtin_mono",
-                onClick = { viewModel.setQuoteFontId("builtin_mono") },
-                label = { Text("Mono") }
-            )
-            FilterChip(
-                selected = activeFontId == "builtin_cursive",
-                onClick = { viewModel.setQuoteFontId("builtin_cursive") },
-                label = { Text("Script") }
-            )
-            OutlinedButton(
-                onClick = {
-                    fontPickerLauncher.launch(
-                        arrayOf("font/ttf", "font/otf", "application/x-font-ttf", "application/octet-stream")
-                    )
-                }
-            ) {
-                Text("+ Font")
-            }
-        }
 
         // Text Orientation Selector & Long Quote Toggle row
         Row(
@@ -277,30 +211,45 @@ fun ZoneEditorScreen(
                 val widthDp = with(density) { widthPx.toDp() }
                 val heightDp = with(density) { heightPx.toDp() }
 
-                // 2. Dimmed Outer Scrim Canvas
+                val boxCenterX = localRect.left + localRect.width / 2f
+                val boxCenterY = localRect.top + localRect.height / 2f
+
+                val isNearVerticalCenter = abs(boxCenterX - 0.5f) < 0.015f
+                val isNearHorizontalCenter = abs(boxCenterY - 0.5f) < 0.015f
+
+                // 2. Dimmed Outer Scrim Canvas & Visual Alignment Guiding Lines
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val scrimColor = Color.Black.copy(alpha = 0.55f)
-                    // Top scrim
+                    // Outer Scrim
                     drawRect(scrimColor, Offset(0f, 0f), Size(containerWidthPx, topPx))
-                    // Bottom scrim
                     drawRect(scrimColor, Offset(0f, topPx + heightPx), Size(containerWidthPx, containerHeightPx - (topPx + heightPx)))
-                    // Left scrim
                     drawRect(scrimColor, Offset(0f, topPx), Size(leftPx, heightPx))
-                    // Right scrim
                     drawRect(scrimColor, Offset(leftPx + widthPx, topPx), Size(containerWidthPx - (leftPx + widthPx), heightPx))
 
-                    // 3. Rule of Thirds Guide Lines inside box (shown while dragging)
+                    // 3. Visual Guiding Lines with High Contrast Highlight during alignment
                     if (isDragging) {
-                        val guideColor = Color.White.copy(alpha = 0.45f)
                         val strokeW = 1.dp.toPx()
-                        drawLine(guideColor, Offset(leftPx + widthPx / 3f, topPx), Offset(leftPx + widthPx / 3f, topPx + heightPx), strokeWidth = strokeW)
-                        drawLine(guideColor, Offset(leftPx + 2 * widthPx / 3f, topPx), Offset(leftPx + 2 * widthPx / 3f, topPx + heightPx), strokeWidth = strokeW)
-                        drawLine(guideColor, Offset(leftPx, topPx + heightPx / 3f), Offset(leftPx + widthPx, topPx + heightPx / 3f), strokeWidth = strokeW)
-                        drawLine(guideColor, Offset(leftPx, topPx + 2 * heightPx / 3f), Offset(leftPx + widthPx, topPx + 2 * heightPx / 3f), strokeWidth = strokeW)
+
+                        // Vertical Center Line (x = 0.5f)
+                        val vertCenterColor = if (isNearVerticalCenter) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.35f)
+                        val vertStrokeW = if (isNearVerticalCenter) 2.dp.toPx() else strokeW
+                        drawLine(vertCenterColor, Offset(containerWidthPx * 0.5f, 0f), Offset(containerWidthPx * 0.5f, containerHeightPx), strokeWidth = vertStrokeW)
+
+                        // Horizontal Center Line (y = 0.5f)
+                        val horizCenterColor = if (isNearHorizontalCenter) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.35f)
+                        val horizStrokeW = if (isNearHorizontalCenter) 2.dp.toPx() else strokeW
+                        drawLine(horizCenterColor, Offset(0f, containerHeightPx * 0.5f), Offset(containerWidthPx, containerHeightPx * 0.5f), strokeWidth = horizStrokeW)
+
+                        // Rule of Thirds Guides
+                        val thirdColor = Color.White.copy(alpha = 0.3f)
+                        drawLine(thirdColor, Offset(containerWidthPx * 0.333f, 0f), Offset(containerWidthPx * 0.333f, containerHeightPx), strokeWidth = strokeW)
+                        drawLine(thirdColor, Offset(containerWidthPx * 0.666f, 0f), Offset(containerWidthPx * 0.666f, containerHeightPx), strokeWidth = strokeW)
+                        drawLine(thirdColor, Offset(0f, containerHeightPx * 0.333f), Offset(containerWidthPx, containerHeightPx * 0.333f), strokeWidth = strokeW)
+                        drawLine(thirdColor, Offset(0f, containerHeightPx * 0.666f), Offset(containerWidthPx, containerHeightPx * 0.666f), strokeWidth = strokeW)
                     }
                 }
 
-                // 4. Active Bounding Box Overlay Window + Ephemeral Center Drag
+                // 4. Active Bounding Box Overlay Window + Ephemeral Center Drag with Magnetic Snapping
                 Box(
                     modifier = Modifier
                         .offset { IntOffset(leftPx.roundToInt(), topPx.roundToInt()) }
@@ -323,7 +272,23 @@ fun ZoneEditorScreen(
                                 change.consume()
                                 val dxNorm = dragAmount.x / currentContainerW
                                 val dyNorm = dragAmount.y / currentContainerH
-                                localRect = currentLocalRect.resizeOrMove(HandleType.CENTER, dxNorm, dyNorm)
+                                val newRect = currentLocalRect.resizeOrMove(HandleType.CENTER, dxNorm, dyNorm)
+
+                                // Apply magnetic snap near center axes
+                                val snapThresh = 0.015f
+                                val cX = newRect.left + newRect.width / 2f
+                                val cY = newRect.top + newRect.height / 2f
+                                var sLeft = newRect.left
+                                var sTop = newRect.top
+
+                                if (abs(cX - 0.5f) < snapThresh) {
+                                    sLeft = 0.5f - newRect.width / 2f
+                                }
+                                if (abs(cY - 0.5f) < snapThresh) {
+                                    sTop = 0.5f - newRect.height / 2f
+                                }
+
+                                localRect = newRect.copy(left = sLeft, top = sTop, right = sLeft + newRect.width, bottom = sTop + newRect.height)
                             }
                         },
                     contentAlignment = Alignment.Center
@@ -334,6 +299,7 @@ fun ZoneEditorScreen(
                         TextOrientation.VERTICAL_DOWN -> 90f
                     }
 
+                    // 1:1 WYSIWYG Live Text Preview Rendering
                     Column(
                         modifier = Modifier
                             .padding(6.dp)
@@ -347,6 +313,8 @@ fun ZoneEditorScreen(
                             color = Color.White,
                             style = MaterialTheme.typography.bodySmall,
                             fontFamily = activeFontFamily,
+                            fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
+                            fontStyle = if (isItalic) FontStyle.Italic else FontStyle.Normal,
                             overflow = TextOverflow.Ellipsis
                         )
                         val currentQuote = activeQuote
@@ -357,6 +325,8 @@ fun ZoneEditorScreen(
                                 color = Color.White.copy(alpha = 0.85f),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontFamily = activeFontFamily,
+                                fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
+                                fontStyle = if (isItalic) FontStyle.Italic else FontStyle.Normal,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
@@ -388,7 +358,8 @@ fun ZoneEditorScreen(
                         onDrag = { dxPx, dyPx ->
                             val dxNorm = dxPx / currentContainerW
                             val dyNorm = dyPx / currentContainerH
-                            localRect = currentLocalRect.resizeOrMove(handleType, dxNorm, dyNorm)
+                            val newRect = currentLocalRect.resizeOrMove(handleType, dxNorm, dyNorm)
+                            localRect = newRect
                         }
                     )
                 }

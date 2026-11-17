@@ -50,7 +50,7 @@
   - `RenderConfig`: Holds target normalized rect and font scaling range.
 - **Pure Kotlin Domain Interfaces (`com.example.wallpaperapp.domain.*`):**
   - `QuoteRepository`: Interface for quote persistence & observation.
-  - `ImageRepository`: Interface for wallpaper image persistence & observation.
+  - `ImageRepository`: Interface for quote persistence & observation.
   - `SettingsRepository`: Interface for preference persistence (target screen, normalized rect, schedule, shuffle queues).
   - `ShuffleEngine<T>`: Non-repeating shuffle bag abstraction.
   - `ContrastAnalyzer<I>`: Abstraction for background luminance contrast computation.
@@ -302,3 +302,20 @@
 
 ### Verification Status
 - Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Phase 6 - Step 4: Zone Editor Cleanup, Guiding Lines & 1:1 WYSIWYG Text Rendering
+
+### Zone Editor Redesign Implementation Summary
+- **Removed Preset Buttons ([`ZoneEditorScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/ZoneEditorScreen.kt)):**
+  - Removed preset buttons (`Upper Third`, `Center`, `Lower Third`) from the Zone Editor UI.
+- **Visual Guiding Lines & Magnetic Snapping ([`ZoneEditorScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/ZoneEditorScreen.kt)):**
+  - Drawn vertical center line (`x = 0.5f`), horizontal center line (`y = 0.5f`), and rule-of-thirds guide lines on preview canvas during dragging.
+  - When dragging near center axes (`threshold = 0.015f`), center lines highlight in bright cyan (`#00E5FF`) and magnetize/snap the selection box cleanly to the axis.
+- **1:1 WYSIWYG Live Text Rendering:**
+  - Rendered live quote preview using exact typography properties (`fontFamily`, `fontWeight`, `fontStyle`, `orientation`, `clipToBounds`, and long quote preview toggle) inside the active selection box.
+
+### Verification Status
+- Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
+- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
