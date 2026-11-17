@@ -114,7 +114,7 @@
   - Provides clean dependency injection container for Room Database, DataStore, Repositories, Shuffle Engines, Rendering Engine, Applier, Use Case, and Scheduler.
 
 ### Verification Status
-- Built & verified Kotlin compilation & unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (8/8 unit tests passed).
+- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (8/8 unit tests passed).
 
 ---
 
@@ -365,3 +365,28 @@
 ### Verification Status
 - Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
 - Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Phase 8 - Step 1: Codebase Inspection & Integration Plan
+
+### Architecture & Inspection Summary
+- **Key Modules Inspected:**
+  - `RenderConfig` (`com.example.wallpaperapp.domain.model`): Holds rendering configuration.
+  - `SettingsRepository` & `DataStoreSettingsRepository`: DataStore persistence for `LandscapeHandlingMode`.
+  - `CanvasWallpaperRenderer`: Image orientation rotation (`+90°`, `-90°`, `CROP`) in `cropCenterFill()`.
+  - `PoolsScreen` & `PoolsViewModel`: Image/quote grid items, orientation badge indicators, landscape mode card & quality warning banner, and 1:1 wallpaper click-to-preview dialog.
+
+### Concrete Integration Plan (Steps 2–4)
+- **Step 2 (Domain, Data & Renderer Support for Landscape Handling Modes):**
+  - Add pure Kotlin enum `LandscapeHandlingMode` (`ROTATE_90_CW`, `ROTATE_90_CCW`, `CROP`).
+  - Add `landscapeHandlingMode` to `RenderConfig`, `SettingsRepository`, and `DataStoreSettingsRepository`.
+  - Update `CanvasWallpaperRenderer.kt`: when target is portrait (`targetHeight > targetWidth`) and image is landscape (`srcWidth > srcHeight`), apply `ROTATE_90_CW` (+90°), `ROTATE_90_CCW` (-90°), or `CROP` (no rotation).
+  - Update `RotateWallpaperUseCase` to observe and pass `landscapeHandlingMode`.
+- **Step 3 (Pools Screen Orientation Thumbnails & Quality Warning Banner):**
+  - Add Landscape Handling Mode selector card at top of Images tab with filter chips for `Rotate +90°`, `Rotate -90°`, `Crop to Fit`.
+  - Display quality warning banner when `CROP` is selected: *"Warning: Cropping landscape images to fit a portrait screen zooms in heavily and may drastically reduce image quality."*
+  - Update image thumbnail cards to display EXIF/natural orientation badges (`Landscape • +90°`, `Landscape • -90°`, `Landscape • Cropped`).
+- **Step 4 (Click-to-Preview Specific Images & Quotes from Pools Screen):**
+  - Make quote cards and image cards in Pools tab clickable.
+  - Build 1:1 full-aspect wallpaper preview dialog powered by `QuoteTextCanvasDrawer.drawQuoteOnCanvas(...)` with "Cycle Image" or "Cycle Quote" actions.
