@@ -54,6 +54,8 @@ class RotateWallpaperUseCaseTest {
         var appThemeMode = AppThemeMode.SYSTEM
         var textOrientation = TextOrientation.HORIZONTAL
 
+        var quoteFontId = "builtin_sans"
+
         private val targetState = MutableStateFlow(target)
         private val rectState = MutableStateFlow(rect)
         private val scheduleState = MutableStateFlow(schedule)
@@ -61,6 +63,7 @@ class RotateWallpaperUseCaseTest {
         private val imageQueueState = MutableStateFlow(imageQueue)
         private val themeModeState = MutableStateFlow(appThemeMode)
         private val orientationState = MutableStateFlow(textOrientation)
+        private val fontIdState = MutableStateFlow(quoteFontId)
 
         override fun observeWallpaperTarget(): Flow<WallpaperTarget> = targetState
         override suspend fun setWallpaperTarget(target: WallpaperTarget) {
@@ -102,6 +105,12 @@ class RotateWallpaperUseCaseTest {
         override suspend fun setTextOrientation(orientation: TextOrientation) {
             this.textOrientation = orientation
             orientationState.value = orientation
+        }
+
+        override fun observeQuoteFontId(): Flow<String> = fontIdState
+        override suspend fun setQuoteFontId(fontId: String) {
+            this.quoteFontId = fontId
+            fontIdState.value = fontId
         }
     }
 

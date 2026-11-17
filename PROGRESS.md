@@ -142,6 +142,30 @@
 
 ---
 
+## Phase 4 - Step 1: Root Cause Diagnosis & Codebase Inspection
+
+### Diagnosis Summary: Gesture Jank & Text Overflow Bugs
+1. **Bounding Box Drag Jank & Stutter (`ZoneEditorScreen.kt`):**
+   - **DataStore Writes inside `onDrag`:** `viewModel.updateRect()` was called on every single pixel move during gestures, writing to disk DataStore on every drag event.
+   - **PointerInput Key Invalidation:** Passing `rect` into `.pointerInput(containerWidthPx, containerHeightPx, rect)` caused Compose to cancel and restart active drag gestures mid-drag whenever `rect` changed.
+   - **Preview Container Aspect Ratio:** `Card` used `.weight(1f)` without matching the physical device display aspect ratio (`screenWidth / screenHeight`).
+2. **Text Overflow & Off-Screen Clipping for Long Quotes (`CanvasWallpaperRenderer.kt`):**
+   - **Missing Hard Canvas Clip:** Text drawing lacked `canvas.clipRect(leftPx, topPx, rightPx, bottomPx)` boundaries, allowing glyphs to bleed outside `NormalizedRect` or off-screen.
+   - **Missing MaxLines & Truncation Fallback:** When a quote is long and font scaling hits `minFontSizeSp`, `createStaticLayout` did not calculate or enforce `.setMaxLines()` or `.setEllipsize(TextUtils.TruncateAt.END)`.
+   - **Vertical Orientation Bounds & Matrix:** Rotated text required exact pivot translation and hard canvas clipping boundaries.
+
+### Resolution & Action Plan (Steps 2 & 3)
+- **Step 2 (Fix Text Auto-Fitting, Rotation & Hard Clipping):**
+  - In `CanvasWallpaperRenderer.kt`, add `canvas.clipRect(leftPx, topPx, rightPx, bottomPx)` around text rendering.
+  - In `findOptimalTextLayout` / `createStaticLayout`, lower font floor to `10sp`, calculate max lines, and apply `TextUtils.TruncateAt.END` fallback when font size hits minimum.
+  - Add unit tests for long quote truncation and strict bounding.
+- **Step 3 (Zone Editor 60fps Gesture Smoothness & Aspect Ratio Parity):**
+  - In `ZoneEditorScreen.kt`, hold local ephemeral `mutableStateOf(rect)` for 60fps frame rendering during gestures, calling `viewModel.updateRect()` ONLY on `onDragEnd` / `onDragCancel`.
+  - Use `rememberUpdatedState` inside `pointerInput(Unit)` so gestures remain continuously locked without mid-drag cancellation.
+  - Lock preview container to true screen aspect ratio (`screenWidth / screenHeight`) and add a "Long Quote Preview" toggle.
+
+---
+
 ## Phase 5 - Step 1: Codebase Inspection & Feature Integration Plan
 
 ### Architecture & Codebase Inspection Summary
@@ -171,3 +195,21 @@
   - Update `DashboardScreen.kt`: replace interval selection with exact 10 frequencies (15m, 30m, 1h, 2h, 3h, 4h, 6h, 8h, 12h, 24h/Daily).
   - Update `ZoneEditorScreen.kt`: add Font Picker UI (built-in preset chips + custom `.ttf`/`.otf` file importer button), rendering live typography preview using active typeface.
   - Re-verify debug APK build and unit test suite.
+
+---
+
+## Phase 5 - Step 2: Domain & Data Layer Extensions
+
+### Domain & Data Layer Implementation Summary
+- **Pure Kotlin Font Model (`QuoteFont.kt`):**
+  - Created `QuoteFont.kt` defining `FontType` (`BUILTIN_SANS`, `BUILTIN_SERIF`, `BUILTIN_MONO`, `BUILTIN_CURSIVE`, `CUSTOM_FILE`) and built-in font presets.
+- **DataStore & Custom Font Storage Persistence:**
+  - Created `FontStorageManager.kt` to safely copy custom `.ttf`/`.otf` font files from Uris into `context.filesDir/fonts/`, maintaining persistent access across background worker runs.
+  - Extended `SettingsRepository` & `DataStoreSettingsRepository` to observe/set `key_quote_font_id` with fallback `"builtin_sans"`.
+  - Updated `RenderConfig` to include `fontId: String = "builtin_sans"`.
+- **Use Case & Unit Tests:**
+  - Updated `RotateWallpaperUseCase` to observe `quoteFontId` and pass it into `RenderConfig`.
+  - Updated `RotateWallpaperUseCaseTest` fake repository.
+
+### Verification Status
+- Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).

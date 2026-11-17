@@ -4,5 +4,6 @@ data class RenderConfig(
     val targetRect: NormalizedRect = NormalizedRect.CENTER,
     val maxFontSizeSp: Float = 36.0f,
     val minFontSizeSp: Float = 12.0f,
-    val textOrientation: TextOrientation = TextOrientation.HORIZONTAL
+    val textOrientation: TextOrientation = TextOrientation.HORIZONTAL,
+    val fontId: String = "builtin_sans"
 )

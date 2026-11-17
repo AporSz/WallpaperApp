@@ -37,6 +37,7 @@ class RotateWallpaperUseCase(
             val targetScreen = settingsRepository.observeWallpaperTarget().first()
             val rect = settingsRepository.observeNormalizedRect().first()
             val orientation = settingsRepository.observeTextOrientation().first()
+            val fontId = settingsRepository.observeQuoteFontId().first()
             val quoteQueue = settingsRepository.observeQuoteShuffleQueue().first()
             val imageQueue = settingsRepository.observeImageShuffleQueue().first()
 
@@ -59,7 +60,11 @@ class RotateWallpaperUseCase(
                 val (candidateImage, nextImageQueue) = imageResult
                 updatedImageQueue = nextImageQueue
 
-                val renderConfig = RenderConfig(targetRect = rect, textOrientation = orientation)
+                val renderConfig = RenderConfig(
+                    targetRect = rect,
+                    textOrientation = orientation,
+                    fontId = fontId
+                )
                 renderedBitmap = wallpaperRenderer.renderWallpaper(candidateImage.uri, selectedQuote, renderConfig)
 
                 if (renderedBitmap == null) {

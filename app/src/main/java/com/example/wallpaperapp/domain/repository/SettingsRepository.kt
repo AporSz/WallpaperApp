@@ -28,4 +28,7 @@ interface SettingsRepository {
 
     fun observeTextOrientation(): Flow<TextOrientation>
     suspend fun setTextOrientation(orientation: TextOrientation)
+
+    fun observeQuoteFontId(): Flow<String>
+    suspend fun setQuoteFontId(fontId: String)
 }

@@ -32,6 +32,7 @@ class DataStoreSettingsRepository(
         val IMAGE_SHUFFLE_QUEUE = stringPreferencesKey("key_image_shuffle_queue")
         val APP_THEME_MODE = stringPreferencesKey("key_app_theme_mode")
         val TEXT_ORIENTATION = stringPreferencesKey("key_text_orientation")
+        val QUOTE_FONT_ID = stringPreferencesKey("key_quote_font_id")
     }
 
     override fun observeWallpaperTarget(): Flow<WallpaperTarget> {
@@ -146,6 +147,18 @@ class DataStoreSettingsRepository(
     override suspend fun setTextOrientation(orientation: TextOrientation) {
         dataStore.edit { prefs ->
             prefs[PreferencesKeys.TEXT_ORIENTATION] = orientation.name
+        }
+    }
+
+    override fun observeQuoteFontId(): Flow<String> {
+        return dataStore.data.map { prefs ->
+            prefs[PreferencesKeys.QUOTE_FONT_ID] ?: "builtin_sans"
+        }
+    }
+
+    override suspend fun setQuoteFontId(fontId: String) {
+        dataStore.edit { prefs ->
+            prefs[PreferencesKeys.QUOTE_FONT_ID] = fontId
         }
     }
 
