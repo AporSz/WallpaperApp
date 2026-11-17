@@ -142,61 +142,32 @@
 
 ---
 
-## Phase 4 - Step 1: Root Cause Diagnosis & Codebase Inspection
+## Phase 5 - Step 1: Codebase Inspection & Feature Integration Plan
 
-### Diagnosis Summary: Gesture Jank & Text Overflow Bugs
-1. **Bounding Box Drag Jank & Stutter (`ZoneEditorScreen.kt`):**
-   - **DataStore Writes inside `onDrag`:** `viewModel.updateRect()` was called on every single pixel move during gestures, writing to disk DataStore on every drag event.
-   - **PointerInput Key Invalidation:** Passing `rect` into `.pointerInput(containerWidthPx, containerHeightPx, rect)` caused Compose to cancel and restart active drag gestures mid-drag whenever `rect` changed.
-   - **Preview Container Aspect Ratio:** `Card` used `.weight(1f)` without matching the physical device display aspect ratio (`screenWidth / screenHeight`).
-2. **Text Overflow & Off-Screen Clipping for Long Quotes (`CanvasWallpaperRenderer.kt`):**
-   - **Missing Hard Canvas Clip:** Text drawing lacked `canvas.clipRect(leftPx, topPx, rightPx, bottomPx)` boundaries, allowing glyphs to bleed outside `NormalizedRect` or off-screen.
-   - **Missing MaxLines & Truncation Fallback:** When a quote is long and font scaling hits `minFontSizeSp`, `createStaticLayout` did not calculate or enforce `.setMaxLines()` or `.setEllipsize(TextUtils.TruncateAt.END)`.
-   - **Vertical Orientation Bounds & Matrix:** Rotated text required exact pivot translation and hard canvas clipping boundaries.
+### Architecture & Codebase Inspection Summary
+- **Inspected Key Components:**
+  - `RenderConfig` (`com.example.wallpaperapp.domain.model`): Holds rendering configuration.
+  - `SettingsRepository` & `DataStoreSettingsRepository`: Manages preference persistence via Jetpack DataStore.
+  - `CanvasWallpaperRenderer`: Handles bitmap decoding, contrast calculation, static layout fitting, and canvas rendering.
+  - `DashboardScreen` / `DashboardViewModel`: Manages target selection, scheduling, and theme settings.
+  - `ZoneEditorScreen` / `ZoneEditorViewModel`: Manages interactive zone selection and live quote typography preview.
 
-### Resolution & Action Plan (Steps 2 & 3)
-- **Step 2 (Fix Text Auto-Fitting, Rotation & Hard Clipping):**
-  - In `CanvasWallpaperRenderer.kt`, add `canvas.clipRect(leftPx, topPx, rightPx, bottomPx)` around text rendering.
-  - In `findOptimalTextLayout` / `createStaticLayout`, lower font floor to `10sp`, calculate max lines, and apply `TextUtils.TruncateAt.END` fallback when font size hits minimum.
-  - Add unit tests for long quote truncation and strict bounding.
-- **Step 3 (Zone Editor 60fps Gesture Smoothness & Aspect Ratio Parity):**
-  - In `ZoneEditorScreen.kt`, hold local ephemeral `mutableStateOf(rect)` for 60fps frame rendering during gestures, calling `viewModel.updateRect()` ONLY on `onDragEnd` / `onDragCancel`.
-  - Use `rememberUpdatedState` inside `pointerInput(Unit)` so gestures remain continuously locked without mid-drag cancellation.
-  - Lock preview container to true screen aspect ratio (`screenWidth / screenHeight`) and add a "Long Quote Preview" toggle.
+### User Clarifications Confirmed
+- **Git Push Policy:** Local Git commits ONLY. No `git push`.
+- **Landscape Image Auto-Rotation:** Rotate landscape images (`width > height`) `90°` Clockwise when targeting portrait displays (`screenHeight > screenWidth`).
 
----
-
-## Phase 4 - Step 2: Fix Text Auto-Fitting, Vertical Rotation & Hard Clipping
-
-### Text Fitting & Clipping Resolution Summary
-- **Hard Canvas Clipping Boundary (`CanvasWallpaperRenderer.kt`):**
-  - Added `canvas.clipRect(leftPx, topPx, rightPx, bottomPx)` inside `canvas.save()` and `canvas.restore()`.
-  - Guarantees 100% hard protection against any quote text or author glyph bleeding outside the bounding box or off-screen.
-- **Long Quote Auto-Fit & Truncation Fallback:**
-  - Lowered minimum font floor constraint to `10sp`.
-  - Added automatic line height capacity calculation (`fitLines`) and `TextUtils.TruncateAt.END` ellipsis fallback in `findOptimalTextLayout()` when a quote exceeds layout capacity at minimum font size.
-- **Rotated Text Alignment:**
-  - Aligned matrix center pivot rotation for `VERTICAL_UP` (-90°) and `VERTICAL_DOWN` (+90°) cleanly inside the hard clip rectangle.
-
-### Verification Status
-- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed, including `CanvasWallpaperRendererTest`).
-
----
-
-## Phase 4 - Step 3: Refactor Zone Editor for 60fps Smooth Gestures & Exact Bounds Preview
-
-### Zone Editor Gesture Refactoring Summary
-- **Decoupled Drag State for Zero-Jank 60/120fps Rendering (`ZoneEditorScreen.kt`):**
-  - Ephemeral `localRect` (`mutableStateOf(savedRect)`) handles drag movements smoothly in memory on every frame.
-  - `viewModel.updateRect(currentLocalRect)` is called **only** on `onDragEnd` and `onDragCancel`, eliminating disk I/O latency during active drag gestures.
-- **Eliminated PointerInput Re-Keying Stutter:**
-  - Used `rememberUpdatedState` inside `.pointerInput(Unit)` so drag gesture detectors remain continuously active without being cancelled or restarted mid-gesture.
-- **Aspect-Ratio-Locked Preview Canvas:**
-  - Locked the editor preview container using `Modifier.aspectRatio(screenAspectRatio)` matching the device's physical screen dimensions (`screenWidth / screenHeight`), ensuring 1:1 coordinate parity between preview and final wallpaper.
-- **Live Preview & "Long Text" Toggle:**
-  - Added text bounds clipping (`clipToBounds()`) and ellipsis overflow handling.
-  - Added a "Long Text" FilterChip toggle to test long quote layout behavior interactively.
-
-### Verification Status
-- Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** (`app/build/outputs/apk/debug/app-debug.apk`).
-- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+### Concrete Integration Plan (Steps 2–4)
+- **Step 2 (Domain & Data Layer Extensions):**
+  - Create pure Kotlin model `QuoteFont` with built-in font presets (`builtin_sans`, `builtin_serif`, `builtin_mono`, `builtin_cursive`) and custom font support.
+  - Create `FontStorageManager` to safely copy custom `.ttf`/`.otf` files into `context.filesDir/fonts/`.
+  - Extend `SettingsRepository` to observe/set `quoteFontId`.
+  - Update `RenderConfig` to include `fontId: String = "builtin_sans"`.
+  - Update `RotateWallpaperUseCase` to observe `quoteFontId` and pass it to `RenderConfig`.
+- **Step 3 (Graphics & Landscape Auto-Rotate Engine Update):**
+  - Update `CanvasWallpaperRenderer`:
+    1. Resolve `Typeface` from `fontId` (built-in presets vs custom font file in `context.filesDir/fonts/`).
+    2. Inspect bitmap dimensions `(srcWidth, srcHeight)` vs display dimensions `(targetWidth, targetHeight)`: if `targetHeight > targetWidth` (portrait screen) and `srcWidth > srcHeight` (landscape image), automatically rotate bitmap `90°` clockwise before cropping/scaling.
+- **Step 4 (UI & Theme Integration for Custom Fonts & Expanded Intervals):**
+  - Update `DashboardScreen.kt`: replace interval selection with exact 10 frequencies (15m, 30m, 1h, 2h, 3h, 4h, 6h, 8h, 12h, 24h/Daily).
+  - Update `ZoneEditorScreen.kt`: add Font Picker UI (built-in preset chips + custom `.ttf`/`.otf` file importer button), rendering live typography preview using active typeface.
+  - Re-verify debug APK build and unit test suite.
