@@ -163,3 +163,20 @@
   - In `ZoneEditorScreen.kt`, hold local ephemeral `mutableStateOf(rect)` for 60fps frame rendering during gestures, calling `viewModel.updateRect()` ONLY on `onDragEnd` / `onDragCancel`.
   - Use `rememberUpdatedState` inside `pointerInput(Unit)` so gestures remain continuously locked without mid-drag cancellation.
   - Lock preview container to true screen aspect ratio (`screenWidth / screenHeight`) and add a "Long Quote Preview" toggle.
+
+---
+
+## Phase 4 - Step 2: Fix Text Auto-Fitting, Vertical Rotation & Hard Clipping
+
+### Text Fitting & Clipping Resolution Summary
+- **Hard Canvas Clipping Boundary (`CanvasWallpaperRenderer.kt`):**
+  - Added `canvas.clipRect(leftPx, topPx, rightPx, bottomPx)` inside `canvas.save()` and `canvas.restore()`.
+  - Guarantees 100% hard protection against any quote text or author glyph bleeding outside the bounding box or off-screen.
+- **Long Quote Auto-Fit & Truncation Fallback:**
+  - Lowered minimum font floor constraint to `10sp`.
+  - Added automatic line height capacity calculation (`fitLines`) and `TextUtils.TruncateAt.END` ellipsis fallback in `findOptimalTextLayout()` when a quote exceeds layout capacity at minimum font size.
+- **Rotated Text Alignment:**
+  - Aligned matrix center pivot rotation for `VERTICAL_UP` (-90°) and `VERTICAL_DOWN` (+90°) cleanly inside the hard clip rectangle.
+
+### Verification Status
+- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed, including `CanvasWallpaperRendererTest`).

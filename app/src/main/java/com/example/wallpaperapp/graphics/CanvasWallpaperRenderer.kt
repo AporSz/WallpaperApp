@@ -13,6 +13,7 @@ import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.StaticLayout
 import android.text.TextPaint
+import android.text.TextUtils
 import android.text.style.AbsoluteSizeSpan
 import android.text.style.ForegroundColorSpan
 import android.text.style.StyleSpan
@@ -73,22 +74,25 @@ class CanvasWallpaperRenderer(
         val layoutLineWidthPx = if (isVertical) boxHeightPx else boxWidthPx
         val layoutMaxHeightPx = if (isVertical) boxWidthPx else boxHeightPx
 
+        val minFontSp = config.minFontSizeSp.coerceAtMost(10.0f)
+
         val optimalLayout = findOptimalTextLayout(
             quote = quote,
             textPaint = textPaint,
             layoutLineWidthPx = layoutLineWidthPx,
             layoutMaxHeightPx = layoutMaxHeightPx,
-            minSp = config.minFontSizeSp,
+            minSp = minFontSp,
             maxSp = config.maxFontSizeSp,
             scaledDensity = displayMetrics.scaledDensity,
             textColor = contrastResult.textColorArgb
         )
 
-        // 7. Draw text onto Canvas with proper matrix translation & rotation
+        // 7. Draw text onto Canvas with HARD CLIPPING boundary & proper matrix translation/rotation
         val centerX = leftPx + boxWidthPx / 2f
         val centerY = topPx + boxHeightPx / 2f
 
         canvas.save()
+        canvas.clipRect(leftPx, topPx, rightPx, bottomPx)
 
         when (config.textOrientation) {
             TextOrientation.HORIZONTAL -> {
@@ -256,7 +260,32 @@ class CanvasWallpaperRenderer(
             }
         }
 
-        return bestLayout ?: createStaticLayout(formattedText, textPaint, minSp, quote, layoutLineWidthPx, scaledDensity, textColor)
+        if (bestLayout != null) {
+            return bestLayout
+        }
+
+        // At minSp, text is too tall to fit completely. Calculate maximum fitting lines and truncate with ellipsis.
+        val sampleLayout = createStaticLayout(formattedText, textPaint, minSp, quote, layoutLineWidthPx, scaledDensity, textColor)
+        var fitLines = 1
+        for (line in 0 until sampleLayout.lineCount) {
+            if (sampleLayout.getLineBottom(line) <= layoutMaxHeightPx) {
+                fitLines = line + 1
+            } else {
+                break
+            }
+        }
+
+        return createStaticLayout(
+            text = formattedText,
+            basePaint = textPaint,
+            fontSizeSp = minSp,
+            quote = quote,
+            boxWidthPx = layoutLineWidthPx,
+            scaledDensity = scaledDensity,
+            textColor = textColor,
+            maxLines = fitLines,
+            ellipsize = TextUtils.TruncateAt.END
+        )
     }
 
     private fun buildFormattedSpannable(quote: Quote): SpannableStringBuilder {
@@ -277,10 +306,12 @@ class CanvasWallpaperRenderer(
         quote: Quote,
         boxWidthPx: Int,
         scaledDensity: Float,
-        textColor: Int
+        textColor: Int,
+        maxLines: Int = Int.MAX_VALUE,
+        ellipsize: TextUtils.TruncateAt? = null
     ): StaticLayout {
-        val quoteFontSizePx = (fontSizeSp * scaledDensity).toInt()
-        val authorFontSizePx = ((fontSizeSp * 0.75f) * scaledDensity).toInt()
+        val quoteFontSizePx = (fontSizeSp * scaledDensity).toInt().coerceAtLeast(1)
+        val authorFontSizePx = ((fontSizeSp * 0.75f) * scaledDensity).toInt().coerceAtLeast(1)
 
         val mainText = "“${quote.text}”"
         val spannable = SpannableStringBuilder(text)
@@ -324,10 +355,18 @@ class CanvasWallpaperRenderer(
             }
         }
 
-        return StaticLayout.Builder.obtain(spannable, 0, spannable.length, basePaint, boxWidthPx)
+        val builder = StaticLayout.Builder.obtain(spannable, 0, spannable.length, basePaint, boxWidthPx)
             .setAlignment(Layout.Alignment.ALIGN_CENTER)
             .setLineSpacing(0f, 1.15f)
             .setIncludePad(true)
-            .build()
+
+        if (maxLines != Int.MAX_VALUE) {
+            builder.setMaxLines(maxLines)
+        }
+        if (ellipsize != null) {
+            builder.setEllipsize(ellipsize)
+        }
+
+        return builder.build()
     }
 }
