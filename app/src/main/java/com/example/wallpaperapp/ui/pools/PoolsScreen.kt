@@ -7,9 +7,12 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -24,7 +27,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -37,6 +42,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -52,13 +58,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.wallpaperapp.domain.model.LandscapeHandlingMode
+import com.example.wallpaperapp.domain.model.NormalizedRect
+import com.example.wallpaperapp.domain.model.Quote
+import com.example.wallpaperapp.domain.model.TextOrientation
+import com.example.wallpaperapp.domain.model.WallpaperImage
+import com.example.wallpaperapp.graphics.QuoteTextCanvasDrawer
 
 @Composable
 fun PoolsScreen(
@@ -68,9 +84,18 @@ fun PoolsScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
     var showAddQuoteDialog by remember { mutableStateOf(false) }
 
+    var previewingQuote by remember { mutableStateOf<Quote?>(null) }
+    var previewingImage by remember { mutableStateOf<WallpaperImage?>(null) }
+
     val quotes by viewModel.quotesState.collectAsState()
     val images by viewModel.imagesState.collectAsState()
+
     val landscapeMode by viewModel.landscapeHandlingModeState.collectAsState()
+    val rect by viewModel.rectState.collectAsState()
+    val orientation by viewModel.orientationState.collectAsState()
+    val fontId by viewModel.fontIdState.collectAsState()
+    val isBold by viewModel.isBoldState.collectAsState()
+    val isItalic by viewModel.isItalicState.collectAsState()
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia()
@@ -132,7 +157,9 @@ fun PoolsScreen(
                     ) {
                         items(quotes, key = { it.id }) { quote ->
                             Card(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { previewingQuote = quote },
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                             ) {
                                 Row(
@@ -282,6 +309,7 @@ fun PoolsScreen(
                                         .aspectRatio(0.75f)
                                         .clip(RoundedCornerShape(8.dp))
                                         .background(Color.DarkGray)
+                                        .clickable { previewingImage = image }
                                 ) {
                                     AsyncImage(
                                         model = image.uri,
@@ -346,6 +374,223 @@ fun PoolsScreen(
             }
         )
     }
+
+    // 1:1 Wallpaper Item Click-to-Preview Modal
+    if (previewingQuote != null || previewingImage != null) {
+        PoolItemPreviewDialog(
+            initialQuote = previewingQuote,
+            initialImage = previewingImage,
+            allQuotes = quotes,
+            allImages = images,
+            rect = rect,
+            orientation = orientation,
+            fontId = fontId,
+            isBold = isBold,
+            isItalic = isItalic,
+            landscapeMode = landscapeMode,
+            onDismiss = {
+                previewingQuote = null
+                previewingImage = null
+            }
+        )
+    }
+}
+
+@Composable
+fun PoolItemPreviewDialog(
+    initialQuote: Quote?,
+    initialImage: WallpaperImage?,
+    allQuotes: List<Quote>,
+    allImages: List<WallpaperImage>,
+    rect: NormalizedRect,
+    orientation: TextOrientation,
+    fontId: String,
+    isBold: Boolean,
+    isItalic: Boolean,
+    landscapeMode: LandscapeHandlingMode,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+
+    var selectedQuoteIndex by remember {
+        mutableIntStateOf(
+            if (initialQuote != null && allQuotes.isNotEmpty()) {
+                allQuotes.indexOf(initialQuote).coerceAtLeast(0)
+            } else {
+                0
+            }
+        )
+    }
+
+    var selectedImageIndex by remember {
+        mutableIntStateOf(
+            if (initialImage != null && allImages.isNotEmpty()) {
+                allImages.indexOf(initialImage).coerceAtLeast(0)
+            } else {
+                0
+            }
+        )
+    }
+
+    val activeQuote = remember(selectedQuoteIndex, allQuotes, initialQuote) {
+        if (allQuotes.isNotEmpty()) {
+            allQuotes[selectedQuoteIndex % allQuotes.size]
+        } else {
+            initialQuote ?: Quote("preview", "The journey of a thousand miles begins with a single step.", "Lao Tzu")
+        }
+    }
+
+    val activeImageUri = remember(selectedImageIndex, allImages, initialImage) {
+        if (allImages.isNotEmpty()) {
+            allImages[selectedImageIndex % allImages.size].uri
+        } else {
+            initialImage?.uri
+        }
+    }
+
+    val displayMetrics = context.resources.displayMetrics
+    val screenAspectRatio = displayMetrics.widthPixels.toFloat() / displayMetrics.heightPixels.toFloat().coerceAtLeast(1f)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = if (initialQuote != null) "Quote Preview" else "Image Preview",
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Full Wallpaper Aspect Ratio Card
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(screenAspectRatio),
+                    colors = CardDefaults.cardColors(containerColor = Color.Black)
+                ) {
+                    BoxWithConstraints(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(8.dp))
+                    ) {
+                        val containerWidthPx = this.constraints.maxWidth.toFloat()
+                        val containerHeightPx = this.constraints.maxHeight.toFloat()
+
+                        val leftPx = rect.left * containerWidthPx
+                        val topPx = rect.top * containerHeightPx
+                        val rightPx = rect.right * containerWidthPx
+                        val bottomPx = rect.bottom * containerHeightPx
+
+                        val density = LocalDensity.current
+
+                        val isLandscape = remember(activeImageUri) {
+                            if (activeImageUri != null) checkIsLandscape(context, activeImageUri) else false
+                        }
+
+                        val rotationDegrees = remember(isLandscape, landscapeMode) {
+                            if (isLandscape) {
+                                when (landscapeMode) {
+                                    LandscapeHandlingMode.ROTATE_90_CW -> 90f
+                                    LandscapeHandlingMode.ROTATE_90_CCW -> -90f
+                                    LandscapeHandlingMode.CROP -> 0f
+                                }
+                            } else {
+                                0f
+                            }
+                        }
+
+                        // Background
+                        if (activeImageUri != null) {
+                            AsyncImage(
+                                model = activeImageUri,
+                                contentDescription = "Preview Background",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer { rotationZ = rotationDegrees }
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color(0xFF222222))
+                            )
+                        }
+
+                        // Outer Scrim & 1:1 Bounding Box Canvas Render
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val scrimColor = Color.Black.copy(alpha = 0.50f)
+                            drawRect(scrimColor, Offset(0f, 0f), Size(containerWidthPx, topPx))
+                            drawRect(scrimColor, Offset(0f, bottomPx), Size(containerWidthPx, containerHeightPx - bottomPx))
+                            drawRect(scrimColor, Offset(0f, topPx), Size(leftPx, bottomPx - topPx))
+                            drawRect(scrimColor, Offset(rightPx, topPx), Size(containerWidthPx - rightPx, bottomPx - topPx))
+
+                            // Border overlay around bounding box
+                            drawRect(
+                                color = Color(0x6600E5FF),
+                                topLeft = Offset(leftPx, topPx),
+                                size = Size(rightPx - leftPx, bottomPx - topPx),
+                                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
+                            )
+
+                            // 1:1 Bounding-Box-Filling Native Canvas Render
+                            drawIntoCanvas { composeCanvas ->
+                                val nativeCanvas = composeCanvas.nativeCanvas
+                                QuoteTextCanvasDrawer.drawQuoteOnCanvas(
+                                    canvas = nativeCanvas,
+                                    quote = activeQuote,
+                                    leftPx = leftPx,
+                                    topPx = topPx,
+                                    rightPx = rightPx,
+                                    bottomPx = bottomPx,
+                                    orientation = orientation,
+                                    fontId = fontId,
+                                    isBold = isBold,
+                                    isItalic = isItalic,
+                                    textColorArgb = android.graphics.Color.WHITE,
+                                    shadowColorArgb = android.graphics.Color.BLACK,
+                                    scaledDensity = density.density
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Cycling buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    if (initialQuote != null && allImages.size > 1) {
+                        OutlinedButton(
+                            onClick = { selectedImageIndex = (selectedImageIndex + 1) % allImages.size }
+                        ) {
+                            Text("Cycle Image")
+                        }
+                    }
+
+                    if (initialImage != null && allQuotes.size > 1) {
+                        OutlinedButton(
+                            onClick = { selectedQuoteIndex = (selectedQuoteIndex + 1) % allQuotes.size }
+                        ) {
+                            Text("Cycle Quote")
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
 }
 
 private fun checkIsLandscape(context: Context, uriString: String): Boolean {

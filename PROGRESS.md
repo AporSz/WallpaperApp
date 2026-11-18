@@ -415,9 +415,25 @@
 ### Pools UI Implementation Summary
 - **Landscape Handling Selector & Quality Warning Banner ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
   - Added a top card in the Images tab with filter chips for `Rotate +90°`, `Rotate -90°`, and `Crop to Fit`.
-  - Added an orange warning banner when `Crop` is selected: *"Warning: Cropping landscape images to fit a portrait screen zooms in heavily and may drastically reduce image quality."*
+  - Added an orange warning banner when `Crop` is active (*"⚠️ Warning: Cropping landscape images to fit a portrait screen zooms in heavily and may drastically reduce image quality."*).
 - **Orientation-Accurate Thumbnails & Badges ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
-  - Image cards inspect EXIF/natural bounds and display orientation badges (`Landscape • +90°`, `Landscape • -90°`, or `Landscape • Cropped`), applying rotation directly in the thumbnail preview.
+  - Image cards inspect EXIF/natural dimensions and render orientation badges (`Landscape • +90°`, `Landscape • -90°`, or `Landscape • Cropped`), applying rotation transformations directly in the thumbnail preview.
 
 ### Verification Status
 - Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Phase 8 - Step 4: Click-to-Preview Specific Images & Quotes from Pools Screen
+
+### Click-to-Preview Implementation Summary
+- **Interactive Asset Cards ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
+  - Tapping any quote card in Quotes tab opens a 1:1 full-aspect wallpaper preview dialog rendering that exact quote with a "Cycle Image" action to test against different background images.
+  - Tapping any image card in Images tab opens a 1:1 full-aspect wallpaper preview dialog rendering that exact image with a "Cycle Quote" action to test against different quotes.
+- **1:1 Full-Aspect Wallpaper Preview Dialog ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
+  - Powered by `QuoteTextCanvasDrawer.drawQuoteOnCanvas(...)` and `AsyncImage` with `LandscapeHandlingMode` rotation transformation.
+  - Preserves active `NormalizedRect`, `TextOrientation`, `QuoteFont`, `isBold`, `isItalic`, and dynamic contrast color for 100% 1:1 parity with the final system wallpaper.
+
+### Verification Status
+- Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
+- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).

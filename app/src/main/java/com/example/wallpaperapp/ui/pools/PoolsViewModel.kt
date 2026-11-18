@@ -5,7 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.wallpaperapp.domain.model.LandscapeHandlingMode
+import com.example.wallpaperapp.domain.model.NormalizedRect
 import com.example.wallpaperapp.domain.model.Quote
+import com.example.wallpaperapp.domain.model.TextOrientation
 import com.example.wallpaperapp.domain.model.WallpaperImage
 import com.example.wallpaperapp.domain.repository.ImageRepository
 import com.example.wallpaperapp.domain.repository.QuoteRepository
@@ -30,6 +32,21 @@ class PoolsViewModel(
 
     val landscapeHandlingModeState: StateFlow<LandscapeHandlingMode> = settingsRepository.observeLandscapeHandlingMode()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LandscapeHandlingMode.ROTATE_90_CW)
+
+    val rectState: StateFlow<NormalizedRect> = settingsRepository.observeNormalizedRect()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), NormalizedRect.CENTER)
+
+    val orientationState: StateFlow<TextOrientation> = settingsRepository.observeTextOrientation()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TextOrientation.HORIZONTAL)
+
+    val fontIdState: StateFlow<String> = settingsRepository.observeQuoteFontId()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "builtin_sans")
+
+    val isBoldState: StateFlow<Boolean> = settingsRepository.observeIsBold()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val isItalicState: StateFlow<Boolean> = settingsRepository.observeIsItalic()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     fun setLandscapeHandlingMode(mode: LandscapeHandlingMode) {
         viewModelScope.launch {
