@@ -437,3 +437,24 @@
 ### Verification Status
 - Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
 - Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Phase 9 - Step 1: Codebase Inspection & Performance Bottleneck Audit
+
+### Performance Bottleneck Audit Summary
+1. **Root Cause of Scrolling Jank in Pools Image Grid:**
+   - In [`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt), `checkIsLandscape(context, image.uri)` opens ContentResolver streams and decodes `BitmapFactory.Options` bounds synchronously inside `remember(image.uri)` on the UI main thread during frame recomposition when scrolling.
+   - `AsyncImage(model = image.uri)` decodes multi-megapixel source photos without downsampling to thumbnail grid-cell dimensions (`aspectRatio(0.75f)`) and lacks a Coil `Transformation` cached on background IO dispatchers.
+   - `contentType` parameter was missing on `LazyVerticalGrid` items.
+2. **Root Cause of Dialog Preview Framing:**
+   - `PoolItemPreviewDialog` used a Material 3 `AlertDialog` pop-up box with dialog margins instead of a dedicated full-screen edge-to-edge overlay surface.
+
+### Resolution & Action Plan (Steps 2 & 3)
+- **Step 2 (Optimize Pools Image Scrolling — Coil Cached Thumbnail Pipeline):**
+  - Implement a Coil `Transformation` (`LandscapeOrientationTransformation`) that inspects EXIF bounds and applies `LandscapeHandlingMode` rotation/crop **off the main thread on Coil's IO dispatcher**.
+  - Pass `contentType = { "pool_image" }` to `LazyVerticalGrid` and remove synchronous `checkIsLandscape()` main-thread calls.
+- **Step 3 (True Full-Screen Edge-to-Edge Preview Destination):**
+  - Replace `AlertDialog` in `PoolsScreen.kt` with a full-screen edge-to-edge surface covering `Modifier.fillMaxSize()`.
+  - Include floating top-left Back button, bottom floating action controls ("Cycle Quote" / "Cycle Image" + "Apply Wallpaper Now").
+  - Re-verify debug APK build and unit test suite.
