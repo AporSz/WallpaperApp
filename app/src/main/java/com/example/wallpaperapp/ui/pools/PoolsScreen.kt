@@ -1,6 +1,5 @@
 package com.example.wallpaperapp.ui.pools
 
-import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -69,11 +68,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.wallpaperapp.domain.model.LandscapeHandlingMode
 import com.example.wallpaperapp.domain.model.NormalizedRect
 import com.example.wallpaperapp.domain.model.Quote
 import com.example.wallpaperapp.domain.model.TextOrientation
 import com.example.wallpaperapp.domain.model.WallpaperImage
+import com.example.wallpaperapp.graphics.LandscapeOrientationTransformation
 import com.example.wallpaperapp.graphics.QuoteTextCanvasDrawer
 
 @Composable
@@ -155,7 +156,11 @@ fun PoolsScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         contentPadding = PaddingValues(bottom = 80.dp)
                     ) {
-                        items(quotes, key = { it.id }) { quote ->
+                        items(
+                            items = quotes,
+                            key = { it.id },
+                            contentType = { "pool_quote" }
+                        ) { quote ->
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -258,7 +263,7 @@ fun PoolsScreen(
                         }
                     }
 
-                    // Images Grid
+                    // Images Grid with Fluid Off-Thread Coil Transformation & Caching
                     if (images.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
@@ -274,32 +279,24 @@ fun PoolsScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             contentPadding = PaddingValues(bottom = 80.dp)
                         ) {
-                            items(images, key = { it.id }) { image ->
-                                val isLandscape = remember(image.uri) {
-                                    checkIsLandscape(context, image.uri)
+                            items(
+                                items = images,
+                                key = { it.id },
+                                contentType = { "pool_image" }
+                            ) { image ->
+                                val imageRequest = remember(image.uri, landscapeMode) {
+                                    ImageRequest.Builder(context)
+                                        .data(image.uri)
+                                        .transformations(LandscapeOrientationTransformation(landscapeMode))
+                                        .crossfade(true)
+                                        .build()
                                 }
 
-                                val badgeText = remember(isLandscape, landscapeMode) {
-                                    if (isLandscape) {
-                                        when (landscapeMode) {
-                                            LandscapeHandlingMode.ROTATE_90_CW -> "Landscape • +90°"
-                                            LandscapeHandlingMode.ROTATE_90_CCW -> "Landscape • -90°"
-                                            LandscapeHandlingMode.CROP -> "Landscape • Cropped"
-                                        }
-                                    } else {
-                                        "Portrait"
-                                    }
-                                }
-
-                                val rotationDegrees = remember(isLandscape, landscapeMode) {
-                                    if (isLandscape) {
-                                        when (landscapeMode) {
-                                            LandscapeHandlingMode.ROTATE_90_CW -> 90f
-                                            LandscapeHandlingMode.ROTATE_90_CCW -> -90f
-                                            LandscapeHandlingMode.CROP -> 0f
-                                        }
-                                    } else {
-                                        0f
+                                val badgeText = remember(landscapeMode) {
+                                    when (landscapeMode) {
+                                        LandscapeHandlingMode.ROTATE_90_CW -> "+90° Mode"
+                                        LandscapeHandlingMode.ROTATE_90_CCW -> "-90° Mode"
+                                        LandscapeHandlingMode.CROP -> "Crop Mode"
                                     }
                                 }
 
@@ -312,12 +309,10 @@ fun PoolsScreen(
                                         .clickable { previewingImage = image }
                                 ) {
                                     AsyncImage(
-                                        model = image.uri,
+                                        model = imageRequest,
                                         contentDescription = "Wallpaper Image",
                                         contentScale = ContentScale.Crop,
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .graphicsLayer { rotationZ = rotationDegrees }
+                                        modifier = Modifier.fillMaxSize()
                                     )
 
                                     // Orientation Badge Indicator
@@ -489,31 +484,23 @@ fun PoolItemPreviewDialog(
 
                         val density = LocalDensity.current
 
-                        val isLandscape = remember(activeImageUri) {
-                            if (activeImageUri != null) checkIsLandscape(context, activeImageUri) else false
-                        }
-
-                        val rotationDegrees = remember(isLandscape, landscapeMode) {
-                            if (isLandscape) {
-                                when (landscapeMode) {
-                                    LandscapeHandlingMode.ROTATE_90_CW -> 90f
-                                    LandscapeHandlingMode.ROTATE_90_CCW -> -90f
-                                    LandscapeHandlingMode.CROP -> 0f
-                                }
-                            } else {
-                                0f
-                            }
+                        val imageRequest = remember(activeImageUri, landscapeMode) {
+                            if (activeImageUri != null) {
+                                ImageRequest.Builder(context)
+                                    .data(activeImageUri)
+                                    .transformations(LandscapeOrientationTransformation(landscapeMode))
+                                    .crossfade(true)
+                                    .build()
+                            } else null
                         }
 
                         // Background
-                        if (activeImageUri != null) {
+                        if (imageRequest != null) {
                             AsyncImage(
-                                model = activeImageUri,
+                                model = imageRequest,
                                 contentDescription = "Preview Background",
                                 contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .graphicsLayer { rotationZ = rotationDegrees }
+                                modifier = Modifier.fillMaxSize()
                             )
                         } else {
                             Box(
@@ -591,19 +578,6 @@ fun PoolItemPreviewDialog(
             }
         }
     )
-}
-
-private fun checkIsLandscape(context: Context, uriString: String): Boolean {
-    return try {
-        val uri = Uri.parse(uriString)
-        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        context.contentResolver.openInputStream(uri)?.use { stream ->
-            BitmapFactory.decodeStream(stream, null, options)
-        }
-        options.outWidth > options.outHeight
-    } catch (_: Exception) {
-        false
-    }
 }
 
 @Composable

@@ -458,3 +458,19 @@
   - Replace `AlertDialog` in `PoolsScreen.kt` with a full-screen edge-to-edge surface covering `Modifier.fillMaxSize()`.
   - Include floating top-left Back button, bottom floating action controls ("Cycle Quote" / "Cycle Image" + "Apply Wallpaper Now").
   - Re-verify debug APK build and unit test suite.
+
+---
+
+## Phase 9 - Step 2: Optimize Pools Image Scrolling (Lazy Grid + Coil Cached Thumbnail Pipeline)
+
+### Image Scrolling Optimization Summary
+- **Off-Thread Coil Transformation ([`LandscapeOrientationTransformation.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/graphics/LandscapeOrientationTransformation.kt)):**
+  - Created [`LandscapeOrientationTransformation.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/graphics/LandscapeOrientationTransformation.kt) executing landscape image orientation checks and matrix rotations on Coil's background IO dispatcher.
+  - Implemented `cacheKey = "landscape_orientation_${mode.name}"` so Coil caches downsampled, transformed thumbnails in memory and disk.
+- **Removed Main-Thread File I/O ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
+  - Removed all synchronous main-thread `checkIsLandscape()` calls from grid item composition.
+- **Lazy Grid Performance Best Practices:**
+  - Added `contentType = { "pool_image" }` and `contentType = { "pool_quote" }` with stable `key = { it.id }` for fluid 60/120fps scrolling.
+
+### Verification Status
+- Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
