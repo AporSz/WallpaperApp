@@ -11,6 +11,7 @@ import android.util.Log
 import androidx.exifinterface.media.ExifInterface
 import com.example.wallpaperapp.domain.engine.ContrastAnalyzer
 import com.example.wallpaperapp.domain.engine.WallpaperRenderer
+import com.example.wallpaperapp.domain.model.LandscapeHandlingMode
 import com.example.wallpaperapp.domain.model.Quote
 import com.example.wallpaperapp.domain.model.RenderConfig
 
@@ -28,8 +29,8 @@ class CanvasWallpaperRenderer(
         val targetWidth = displayMetrics.widthPixels.coerceAtLeast(720)
         val targetHeight = displayMetrics.heightPixels.coerceAtLeast(1280)
 
-        // 1. Load and downsample background image
-        val backgroundBitmap = loadScaledBitmap(imageInput, targetWidth, targetHeight)
+        // 1. Load and downsample background image respecting LandscapeHandlingMode
+        val backgroundBitmap = loadScaledBitmap(imageInput, targetWidth, targetHeight, config.landscapeHandlingMode)
             ?: run {
                 Log.e("CanvasWallpaperRenderer", "Failed to load background bitmap for input: $imageInput")
                 return null
@@ -69,7 +70,7 @@ class CanvasWallpaperRenderer(
         return compositeBitmap
     }
 
-    private fun loadScaledBitmap(input: Any, targetWidth: Int, targetHeight: Int): Bitmap? {
+    private fun loadScaledBitmap(input: Any, targetWidth: Int, targetHeight: Int, mode: LandscapeHandlingMode): Bitmap? {
         return try {
             val srcBitmap: Bitmap? = when (input) {
                 is Bitmap -> input
@@ -77,7 +78,7 @@ class CanvasWallpaperRenderer(
                 is String -> decodeUriDownsampled(Uri.parse(input), targetWidth, targetHeight)
                 else -> null
             }
-            srcBitmap?.let { cropCenterFill(it, targetWidth, targetHeight) }
+            srcBitmap?.let { cropCenterFill(it, targetWidth, targetHeight, mode) }
         } catch (e: Exception) {
             Log.e("CanvasWallpaperRenderer", "Error loading scaled bitmap", e)
             null
@@ -156,7 +157,7 @@ class CanvasWallpaperRenderer(
         return sampleSize
     }
 
-    private fun cropCenterFill(src: Bitmap, targetWidth: Int, targetHeight: Int): Bitmap {
+    private fun cropCenterFill(src: Bitmap, targetWidth: Int, targetHeight: Int, mode: LandscapeHandlingMode): Bitmap {
         var inputBitmap = src
         var srcWidth = inputBitmap.width
         var srcHeight = inputBitmap.height
@@ -165,13 +166,21 @@ class CanvasWallpaperRenderer(
         val isSourceLandscape = srcWidth > srcHeight
 
         if (isTargetPortrait && isSourceLandscape) {
-            val matrix = Matrix().apply { postRotate(90f) }
-            val rotated = Bitmap.createBitmap(inputBitmap, 0, 0, srcWidth, srcHeight, matrix, true)
-            if (rotated != inputBitmap) {
-                inputBitmap = rotated
+            val rotationDegrees = when (mode) {
+                LandscapeHandlingMode.ROTATE_90_CW -> 90f
+                LandscapeHandlingMode.ROTATE_90_CCW -> -90f
+                LandscapeHandlingMode.CROP -> 0f
             }
-            srcWidth = inputBitmap.width
-            srcHeight = inputBitmap.height
+
+            if (rotationDegrees != 0f) {
+                val matrix = Matrix().apply { postRotate(rotationDegrees) }
+                val rotated = Bitmap.createBitmap(inputBitmap, 0, 0, srcWidth, srcHeight, matrix, true)
+                if (rotated != inputBitmap) {
+                    inputBitmap = rotated
+                }
+                srcWidth = inputBitmap.width
+                srcHeight = inputBitmap.height
+            }
         }
 
         val scale = maxOf(

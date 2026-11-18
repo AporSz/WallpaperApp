@@ -5,6 +5,7 @@ import com.example.wallpaperapp.data.engine.ShuffleBagEngine
 import com.example.wallpaperapp.domain.applier.WallpaperApplier
 import com.example.wallpaperapp.domain.engine.WallpaperRenderer
 import com.example.wallpaperapp.domain.model.AppThemeMode
+import com.example.wallpaperapp.domain.model.LandscapeHandlingMode
 import com.example.wallpaperapp.domain.model.NormalizedRect
 import com.example.wallpaperapp.domain.model.Quote
 import com.example.wallpaperapp.domain.model.RenderConfig
@@ -117,6 +118,7 @@ class RotateWallpaperUseCaseTest {
         private val italicState = MutableStateFlow(false)
         private val shuffleFontsState = MutableStateFlow(false)
         private val fontQueueState = MutableStateFlow(emptyList<String>())
+        private val landscapeModeState = MutableStateFlow(LandscapeHandlingMode.ROTATE_90_CW)
 
         override fun observeIsBold(): Flow<Boolean> = boldState
         override suspend fun setIsBold(isBold: Boolean) { boldState.value = isBold }
@@ -129,6 +131,9 @@ class RotateWallpaperUseCaseTest {
 
         override fun observeFontShuffleQueue(): Flow<List<String>> = fontQueueState
         override suspend fun setFontShuffleQueue(queue: List<String>) { fontQueueState.value = queue }
+
+        override fun observeLandscapeHandlingMode(): Flow<LandscapeHandlingMode> = landscapeModeState
+        override suspend fun setLandscapeHandlingMode(mode: LandscapeHandlingMode) { landscapeModeState.value = mode }
     }
 
     private class FakeWallpaperRenderer : WallpaperRenderer<Any, Bitmap> {

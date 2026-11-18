@@ -1,6 +1,7 @@
 package com.example.wallpaperapp.domain.repository
 
 import com.example.wallpaperapp.domain.model.AppThemeMode
+import com.example.wallpaperapp.domain.model.LandscapeHandlingMode
 import com.example.wallpaperapp.domain.model.NormalizedRect
 import com.example.wallpaperapp.domain.model.ScheduleConfig
 import com.example.wallpaperapp.domain.model.TextOrientation
@@ -43,4 +44,7 @@ interface SettingsRepository {
 
     fun observeFontShuffleQueue(): Flow<List<String>>
     suspend fun setFontShuffleQueue(queue: List<String>)
+
+    fun observeLandscapeHandlingMode(): Flow<LandscapeHandlingMode>
+    suspend fun setLandscapeHandlingMode(mode: LandscapeHandlingMode)
 }

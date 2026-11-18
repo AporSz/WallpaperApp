@@ -390,3 +390,20 @@
 - **Step 4 (Click-to-Preview Specific Images & Quotes from Pools Screen):**
   - Make quote cards and image cards in Pools tab clickable.
   - Build 1:1 full-aspect wallpaper preview dialog powered by `QuoteTextCanvasDrawer.drawQuoteOnCanvas(...)` with "Cycle Image" or "Cycle Quote" actions.
+
+---
+
+## Phase 8 - Step 2: Domain, Data & Renderer Support for Landscape Handling Modes
+
+### Domain, Data & Renderer Implementation Summary
+- **Pure Kotlin Enum Model ([`LandscapeHandlingMode.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/model/LandscapeHandlingMode.kt)):**
+  - Created [`LandscapeHandlingMode.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/model/LandscapeHandlingMode.kt) defining `ROTATE_90_CW` (+90° Clockwise), `ROTATE_90_CCW` (-90° Counter-Clockwise), and `CROP` (Center Crop / No Rotation).
+- **DataStore & Repository Persistence:**
+  - Extended [`SettingsRepository.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/repository/SettingsRepository.kt) & [`DataStoreSettingsRepository.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/data/repository/DataStoreSettingsRepository.kt) with `observeLandscapeHandlingMode()` and `setLandscapeHandlingMode()` with default fallback `ROTATE_90_CW`.
+- **Rendering Matrix Transformation ([`CanvasWallpaperRenderer.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/graphics/CanvasWallpaperRenderer.kt)):**
+  - Updated `cropCenterFill` to apply `+90°`, `-90°`, or `0°` (Crop) rotation matrix when rendering landscape images on portrait displays.
+- **Use Case & Unit Tests:**
+  - Updated [`RotateWallpaperUseCase.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/usecase/RotateWallpaperUseCase.kt) and fake test repository in [`RotateWallpaperUseCaseTest.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/test/java/com/example/wallpaperapp/domain/usecase/RotateWallpaperUseCaseTest.kt).
+
+### Verification Status
+- Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).

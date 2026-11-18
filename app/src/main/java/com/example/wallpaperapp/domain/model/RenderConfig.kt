@@ -7,5 +7,6 @@ data class RenderConfig(
     val textOrientation: TextOrientation = TextOrientation.HORIZONTAL,
     val fontId: String = "builtin_sans",
     val isBold: Boolean = false,
-    val isItalic: Boolean = false
+    val isItalic: Boolean = false,
+    val landscapeHandlingMode: LandscapeHandlingMode = LandscapeHandlingMode.ROTATE_90_CW
 )

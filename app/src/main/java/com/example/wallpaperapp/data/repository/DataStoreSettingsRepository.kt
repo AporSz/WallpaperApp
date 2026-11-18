@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.example.wallpaperapp.domain.model.AppThemeMode
+import com.example.wallpaperapp.domain.model.LandscapeHandlingMode
 import com.example.wallpaperapp.domain.model.NormalizedRect
 import com.example.wallpaperapp.domain.model.ScheduleConfig
 import com.example.wallpaperapp.domain.model.TextOrientation
@@ -37,6 +38,7 @@ class DataStoreSettingsRepository(
         val IS_ITALIC = booleanPreferencesKey("key_is_italic")
         val SHUFFLE_FONTS = booleanPreferencesKey("key_shuffle_fonts")
         val FONT_SHUFFLE_QUEUE = stringPreferencesKey("key_font_shuffle_queue")
+        val LANDSCAPE_HANDLING_MODE = stringPreferencesKey("key_landscape_handling_mode")
     }
 
     override fun observeWallpaperTarget(): Flow<WallpaperTarget> {
@@ -212,6 +214,23 @@ class DataStoreSettingsRepository(
     override suspend fun setFontShuffleQueue(queue: List<String>) {
         dataStore.edit { prefs ->
             prefs[PreferencesKeys.FONT_SHUFFLE_QUEUE] = formatQueue(queue)
+        }
+    }
+
+    override fun observeLandscapeHandlingMode(): Flow<LandscapeHandlingMode> {
+        return dataStore.data.map { prefs ->
+            val name = prefs[PreferencesKeys.LANDSCAPE_HANDLING_MODE] ?: LandscapeHandlingMode.ROTATE_90_CW.name
+            try {
+                LandscapeHandlingMode.valueOf(name)
+            } catch (e: Exception) {
+                LandscapeHandlingMode.ROTATE_90_CW
+            }
+        }
+    }
+
+    override suspend fun setLandscapeHandlingMode(mode: LandscapeHandlingMode) {
+        dataStore.edit { prefs ->
+            prefs[PreferencesKeys.LANDSCAPE_HANDLING_MODE] = mode.name
         }
     }
 
