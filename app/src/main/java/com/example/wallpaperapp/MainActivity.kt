@@ -72,7 +72,8 @@ class MainActivity : ComponentActivity() {
         val poolsViewModel: PoolsViewModel by viewModels {
             PoolsViewModel.Factory(
                 quoteRepository = container.quoteRepository,
-                imageRepository = container.imageRepository
+                imageRepository = container.imageRepository,
+                settingsRepository = container.settingsRepository
             )
         }
 

@@ -4,10 +4,12 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.wallpaperapp.domain.model.LandscapeHandlingMode
 import com.example.wallpaperapp.domain.model.Quote
 import com.example.wallpaperapp.domain.model.WallpaperImage
 import com.example.wallpaperapp.domain.repository.ImageRepository
 import com.example.wallpaperapp.domain.repository.QuoteRepository
+import com.example.wallpaperapp.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -16,7 +18,8 @@ import java.util.UUID
 
 class PoolsViewModel(
     private val quoteRepository: QuoteRepository,
-    private val imageRepository: ImageRepository
+    private val imageRepository: ImageRepository,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     val quotesState: StateFlow<List<Quote>> = quoteRepository.observeAllQuotes()
@@ -24,6 +27,15 @@ class PoolsViewModel(
 
     val imagesState: StateFlow<List<WallpaperImage>> = imageRepository.observeAllImages()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val landscapeHandlingModeState: StateFlow<LandscapeHandlingMode> = settingsRepository.observeLandscapeHandlingMode()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LandscapeHandlingMode.ROTATE_90_CW)
+
+    fun setLandscapeHandlingMode(mode: LandscapeHandlingMode) {
+        viewModelScope.launch {
+            settingsRepository.setLandscapeHandlingMode(mode)
+        }
+    }
 
     fun addQuote(text: String, author: String?) {
         if (text.isBlank()) return
@@ -64,11 +76,12 @@ class PoolsViewModel(
 
     class Factory(
         private val quoteRepository: QuoteRepository,
-        private val imageRepository: ImageRepository
+        private val imageRepository: ImageRepository,
+        private val settingsRepository: SettingsRepository
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return PoolsViewModel(quoteRepository, imageRepository) as T
+            return PoolsViewModel(quoteRepository, imageRepository, settingsRepository) as T
         }
     }
 }

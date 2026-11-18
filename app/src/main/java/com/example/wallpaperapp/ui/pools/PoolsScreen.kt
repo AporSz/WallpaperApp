@@ -1,6 +1,9 @@
 package com.example.wallpaperapp.ui.pools
 
+import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,6 +32,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,10 +53,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.wallpaperapp.domain.model.LandscapeHandlingMode
 
 @Composable
 fun PoolsScreen(
@@ -64,6 +70,7 @@ fun PoolsScreen(
 
     val quotes by viewModel.quotesState.collectAsState()
     val images by viewModel.imagesState.collectAsState()
+    val landscapeMode by viewModel.landscapeHandlingModeState.collectAsState()
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia()
@@ -73,7 +80,7 @@ fun PoolsScreen(
             uris.forEach { uri ->
                 try {
                     context.contentResolver.takePersistableUriPermission(uri, flag)
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     // Ignore if permission isn't persistable for this URI
                 }
             }
@@ -171,47 +178,143 @@ fun PoolsScreen(
                     Icon(imageVector = Icons.Default.Add, contentDescription = "Add Quote")
                 }
             } else {
-                // Images Grid
-                if (images.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "No images added yet. Tap + to pick images!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(bottom = 80.dp)
+                // Images Tab (Landscape Mode Selector + Grid)
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // Landscape Mode Selector Card
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
-                        items(images, key = { it.id }) { image ->
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .aspectRatio(0.75f)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Color.DarkGray)
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "Landscape Image Handling Mode",
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                AsyncImage(
-                                    model = image.uri,
-                                    contentDescription = "Wallpaper Image",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
+                                FilterChip(
+                                    selected = landscapeMode == LandscapeHandlingMode.ROTATE_90_CW,
+                                    onClick = { viewModel.setLandscapeHandlingMode(LandscapeHandlingMode.ROTATE_90_CW) },
+                                    label = { Text("Rotate +90°") }
                                 )
-                                IconButton(
-                                    onClick = { viewModel.deleteImage(image.id) },
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(bottomStart = 8.dp))
+                                FilterChip(
+                                    selected = landscapeMode == LandscapeHandlingMode.ROTATE_90_CCW,
+                                    onClick = { viewModel.setLandscapeHandlingMode(LandscapeHandlingMode.ROTATE_90_CCW) },
+                                    label = { Text("Rotate -90°") }
+                                )
+                                FilterChip(
+                                    selected = landscapeMode == LandscapeHandlingMode.CROP,
+                                    onClick = { viewModel.setLandscapeHandlingMode(LandscapeHandlingMode.CROP) },
+                                    label = { Text("Crop") }
+                                )
+                            }
+
+                            if (landscapeMode == LandscapeHandlingMode.CROP) {
+                                Card(
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3CD)),
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = "Delete Image",
-                                        tint = Color.White
+                                    Text(
+                                        text = "⚠️ Warning: Cropping landscape images to fit a portrait screen zooms in heavily and may drastically reduce image quality.",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color(0xFF856404),
+                                        modifier = Modifier.padding(8.dp)
                                     )
+                                }
+                            }
+                        }
+                    }
+
+                    // Images Grid
+                    if (images.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "No images added yet. Tap + to pick images!",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(bottom = 80.dp)
+                        ) {
+                            items(images, key = { it.id }) { image ->
+                                val isLandscape = remember(image.uri) {
+                                    checkIsLandscape(context, image.uri)
+                                }
+
+                                val badgeText = remember(isLandscape, landscapeMode) {
+                                    if (isLandscape) {
+                                        when (landscapeMode) {
+                                            LandscapeHandlingMode.ROTATE_90_CW -> "Landscape • +90°"
+                                            LandscapeHandlingMode.ROTATE_90_CCW -> "Landscape • -90°"
+                                            LandscapeHandlingMode.CROP -> "Landscape • Cropped"
+                                        }
+                                    } else {
+                                        "Portrait"
+                                    }
+                                }
+
+                                val rotationDegrees = remember(isLandscape, landscapeMode) {
+                                    if (isLandscape) {
+                                        when (landscapeMode) {
+                                            LandscapeHandlingMode.ROTATE_90_CW -> 90f
+                                            LandscapeHandlingMode.ROTATE_90_CCW -> -90f
+                                            LandscapeHandlingMode.CROP -> 0f
+                                        }
+                                    } else {
+                                        0f
+                                    }
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .aspectRatio(0.75f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color.DarkGray)
+                                ) {
+                                    AsyncImage(
+                                        model = image.uri,
+                                        contentDescription = "Wallpaper Image",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer { rotationZ = rotationDegrees }
+                                    )
+
+                                    // Orientation Badge Indicator
+                                    Text(
+                                        text = badgeText,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color.White,
+                                        modifier = Modifier
+                                            .align(Alignment.BottomStart)
+                                            .background(Color.Black.copy(alpha = 0.65f), RoundedCornerShape(topEnd = 6.dp))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+
+                                    IconButton(
+                                        onClick = { viewModel.deleteImage(image.id) },
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(bottomStart = 8.dp))
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Delete Image",
+                                            tint = Color.White
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -242,6 +345,19 @@ fun PoolsScreen(
                 showAddQuoteDialog = false
             }
         )
+    }
+}
+
+private fun checkIsLandscape(context: Context, uriString: String): Boolean {
+    return try {
+        val uri = Uri.parse(uriString)
+        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        context.contentResolver.openInputStream(uri)?.use { stream ->
+            BitmapFactory.decodeStream(stream, null, options)
+        }
+        options.outWidth > options.outHeight
+    } catch (_: Exception) {
+        false
     }
 }
 

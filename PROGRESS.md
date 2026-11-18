@@ -407,3 +407,17 @@
 
 ### Verification Status
 - Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Phase 8 - Step 3: Pools Screen Orientation Thumbnails & Quality Warning Banner
+
+### Pools UI Implementation Summary
+- **Landscape Handling Selector & Quality Warning Banner ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
+  - Added a top card in the Images tab with filter chips for `Rotate +90°`, `Rotate -90°`, and `Crop to Fit`.
+  - Added an orange warning banner when `Crop` is selected: *"Warning: Cropping landscape images to fit a portrait screen zooms in heavily and may drastically reduce image quality."*
+- **Orientation-Accurate Thumbnails & Badges ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
+  - Image cards inspect EXIF/natural bounds and display orientation badges (`Landscape • +90°`, `Landscape • -90°`, or `Landscape • Cropped`), applying rotation directly in the thumbnail preview.
+
+### Verification Status
+- Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
