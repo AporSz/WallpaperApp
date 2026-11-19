@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.wallpaperapp.data.local.FontStorageManager
 import com.example.wallpaperapp.domain.model.AppThemeMode
 import com.example.wallpaperapp.domain.model.ScheduleConfig
+import com.example.wallpaperapp.domain.model.TextColorScheme
 import com.example.wallpaperapp.domain.model.WallpaperTarget
 import com.example.wallpaperapp.domain.repository.SettingsRepository
 import com.example.wallpaperapp.domain.scheduler.WallpaperScheduler
@@ -46,6 +47,9 @@ class DashboardViewModel(
 
     val shuffleFontsState: StateFlow<Boolean> = settingsRepository.observeShuffleFonts()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val textColorSchemeState: StateFlow<TextColorScheme> = settingsRepository.observeTextColorScheme()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TextColorScheme.HIGH_CONTRAST)
 
     private val _message = MutableSharedFlow<String>()
     val message: SharedFlow<String> = _message.asSharedFlow()
@@ -101,6 +105,12 @@ class DashboardViewModel(
     fun setShuffleFonts(enabled: Boolean) {
         viewModelScope.launch {
             settingsRepository.setShuffleFonts(enabled)
+        }
+    }
+
+    fun setTextColorScheme(scheme: TextColorScheme) {
+        viewModelScope.launch {
+            settingsRepository.setTextColorScheme(scheme)
         }
     }
 

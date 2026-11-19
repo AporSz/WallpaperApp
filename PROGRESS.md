@@ -527,3 +527,18 @@
 
 ### Verification Status
 - Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Phase 10 - Step 3: Collapsible Dashboard Card & Full-Screen Color Scheme Preview
+
+### Dashboard & Full-Screen Preview Implementation Summary
+- **Collapsible Text Color Scheme Card ([`DashboardScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/dashboard/DashboardScreen.kt)):**
+  - Refactored Dashboard with a compact accordion card for `Text Color Scheme` displaying current active scheme name (*"Text Color Scheme: High Contrast"*), expanding on tap to reveal all 5 options with descriptions, auto-collapsing on selection, and featuring a "Full Color Preview Screen" button.
+- **Dedicated Full-Screen Color Scheme Preview ([`ColorSchemePreviewScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/color/ColorSchemePreviewScreen.kt) & [`MainActivity.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/MainActivity.kt)):**
+  - Created full-screen edge-to-edge wallpaper preview screen powered by `CanvasWallpaperRenderer` + `PaletteContrastAnalyzer` + `QuoteTextCanvasDrawer`.
+  - Bottom selector bar allows tapping between all 5 color schemes in real time with a **"Use This Color Scheme"** confirmation button.
+
+### Verification Status
+- Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
+- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).

@@ -42,6 +42,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.wallpaperapp.domain.model.AppThemeMode
 import com.example.wallpaperapp.domain.model.QuoteFont
+import com.example.wallpaperapp.domain.model.TextColorScheme
 import com.example.wallpaperapp.domain.model.WallpaperTarget
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,7 +50,8 @@ import com.example.wallpaperapp.domain.model.WallpaperTarget
 fun DashboardScreen(
     viewModel: DashboardViewModel,
     snackbarHostState: SnackbarHostState,
-    onNavigateToFontPreview: () -> Unit = {}
+    onNavigateToFontPreview: () -> Unit = {},
+    onNavigateToColorPreview: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -60,9 +62,11 @@ fun DashboardScreen(
     val isBold by viewModel.isBoldState.collectAsState()
     val isItalic by viewModel.isItalicState.collectAsState()
     val shuffleFonts by viewModel.shuffleFontsState.collectAsState()
+    val activeColorScheme by viewModel.textColorSchemeState.collectAsState()
 
     var isScheduleExpanded by remember { mutableStateOf(false) }
     var isFontDropdownExpanded by remember { mutableStateOf(false) }
+    var isColorSchemeExpanded by remember { mutableStateOf(false) }
 
     val fontPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -240,7 +244,7 @@ fun DashboardScreen(
                             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                             modifier = Modifier
                                 .menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true)
-                            .fillMaxWidth()
+                                .fillMaxWidth()
                         )
 
                         ExposedDropdownMenu(
@@ -302,7 +306,81 @@ fun DashboardScreen(
             }
         }
 
-        // 4. App Theme Mode
+        // 4. Text Color Scheme Accordion Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { isColorSchemeExpanded = !isColorSchemeExpanded },
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Text Color Scheme",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = "${activeColorScheme.displayName} (Tap to change)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                AnimatedVisibility(visible = isColorSchemeExpanded) {
+                    Column(
+                        modifier = Modifier.padding(top = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(text = "Select Color Strategy", style = MaterialTheme.typography.labelLarge)
+
+                        TextColorScheme.entries.forEach { scheme ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        viewModel.setTextColorScheme(scheme)
+                                        isColorSchemeExpanded = false // Auto-collapse upon selection!
+                                    }
+                            ) {
+                                RadioButton(
+                                    selected = activeColorScheme == scheme,
+                                    onClick = {
+                                        viewModel.setTextColorScheme(scheme)
+                                        isColorSchemeExpanded = false // Auto-collapse upon selection!
+                                    }
+                                )
+                                Column {
+                                    Text(text = scheme.displayName, style = MaterialTheme.typography.bodyMedium)
+                                    Text(
+                                        text = scheme.description,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        OutlinedButton(
+                            onClick = onNavigateToColorPreview,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Full Color Preview Screen")
+                        }
+                    }
+                }
+            }
+        }
+
+        // 5. App Theme Mode
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -337,7 +415,7 @@ fun DashboardScreen(
             }
         }
 
-        // 5. Manual Shuffle & Apply Now
+        // 6. Manual Shuffle & Apply Now
         Button(
             onClick = { viewModel.rotateNow() },
             modifier = Modifier

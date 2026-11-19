@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.wallpaperapp.domain.model.AppThemeMode
+import com.example.wallpaperapp.ui.color.ColorSchemePreviewScreen
 import com.example.wallpaperapp.ui.dashboard.DashboardScreen
 import com.example.wallpaperapp.ui.dashboard.DashboardViewModel
 import com.example.wallpaperapp.ui.font.FontPreviewScreen
@@ -107,6 +108,7 @@ fun MainAppScreen(
 ) {
     var selectedScreenIndex by remember { mutableIntStateOf(0) }
     var showFontPreviewScreen by remember { mutableStateOf(false) }
+    var showColorSchemePreviewScreen by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     val screens = listOf(
@@ -120,6 +122,12 @@ fun MainAppScreen(
             dashboardViewModel = dashboardViewModel,
             zoneEditorViewModel = zoneEditorViewModel,
             onConfirmFont = { showFontPreviewScreen = false }
+        )
+    } else if (showColorSchemePreviewScreen) {
+        ColorSchemePreviewScreen(
+            dashboardViewModel = dashboardViewModel,
+            zoneEditorViewModel = zoneEditorViewModel,
+            onConfirmScheme = { showColorSchemePreviewScreen = false }
         )
     } else {
         Scaffold(
@@ -142,7 +150,8 @@ fun MainAppScreen(
                     0 -> DashboardScreen(
                         viewModel = dashboardViewModel,
                         snackbarHostState = snackbarHostState,
-                        onNavigateToFontPreview = { showFontPreviewScreen = true }
+                        onNavigateToFontPreview = { showFontPreviewScreen = true },
+                        onNavigateToColorPreview = { showColorSchemePreviewScreen = true }
                     )
                     1 -> ZoneEditorScreen(
                         viewModel = zoneEditorViewModel
