@@ -469,7 +469,7 @@
   - Implemented `cacheKey = "landscape_orientation_${mode.name}"` so Coil caches downsampled, transformed thumbnails in memory and disk.
 - **Removed Main-Thread File I/O ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
   - Removed all synchronous main-thread `checkIsLandscape()` calls from grid item composition.
-- **Lazy Grid Performance Best Practices:**
+- **Lazy Composition Performance Optimization ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
   - Added `contentType = { "pool_image" }` and `contentType = { "pool_quote" }` with stable `key = { it.id }` for fluid 60/120fps scrolling.
 
 ### Verification Status

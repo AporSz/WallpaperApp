@@ -27,10 +27,12 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -61,7 +63,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -114,265 +115,9 @@ fun PoolsScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Asset Pools",
-            style = MaterialTheme.typography.headlineMedium
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-
-        TabRow(selectedTabIndex = selectedTab) {
-            Tab(
-                selected = selectedTab == 0,
-                onClick = { selectedTab = 0 },
-                text = { Text("Quotes (${quotes.size})") }
-            )
-            Tab(
-                selected = selectedTab == 1,
-                onClick = { selectedTab = 1 },
-                text = { Text("Images (${images.size})") }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Box(modifier = Modifier.weight(1f)) {
-            if (selectedTab == 0) {
-                // Quotes List
-                if (quotes.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "No quotes added yet. Tap + to add quotes!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                } else {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(bottom = 80.dp)
-                    ) {
-                        items(
-                            items = quotes,
-                            key = { it.id },
-                            contentType = { "pool_quote" }
-                        ) { quote ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { previewingQuote = quote },
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "“${quote.text}”",
-                                            style = MaterialTheme.typography.bodyLarge
-                                        )
-                                        if (!quote.author.isNullOrBlank()) {
-                                            Spacer(modifier = Modifier.height(4.dp))
-                                            Text(
-                                                text = "— ${quote.author}",
-                                                style = MaterialTheme.typography.labelMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                    IconButton(onClick = { viewModel.deleteQuote(quote.id) }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = "Delete Quote",
-                                            tint = MaterialTheme.colorScheme.error
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                FloatingActionButton(
-                    onClick = { showAddQuoteDialog = true },
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(16.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = "Add Quote")
-                }
-            } else {
-                // Images Tab (Landscape Mode Selector + Grid)
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    // Landscape Mode Selector Card
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text(
-                                text = "Landscape Image Handling Mode",
-                                style = MaterialTheme.typography.titleSmall
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                FilterChip(
-                                    selected = landscapeMode == LandscapeHandlingMode.ROTATE_90_CW,
-                                    onClick = { viewModel.setLandscapeHandlingMode(LandscapeHandlingMode.ROTATE_90_CW) },
-                                    label = { Text("Rotate +90°") }
-                                )
-                                FilterChip(
-                                    selected = landscapeMode == LandscapeHandlingMode.ROTATE_90_CCW,
-                                    onClick = { viewModel.setLandscapeHandlingMode(LandscapeHandlingMode.ROTATE_90_CCW) },
-                                    label = { Text("Rotate -90°") }
-                                )
-                                FilterChip(
-                                    selected = landscapeMode == LandscapeHandlingMode.CROP,
-                                    onClick = { viewModel.setLandscapeHandlingMode(LandscapeHandlingMode.CROP) },
-                                    label = { Text("Crop") }
-                                )
-                            }
-
-                            if (landscapeMode == LandscapeHandlingMode.CROP) {
-                                Card(
-                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3CD)),
-                                    shape = RoundedCornerShape(6.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(
-                                        text = "⚠️ Warning: Cropping landscape images to fit a portrait screen zooms in heavily and may drastically reduce image quality.",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color(0xFF856404),
-                                        modifier = Modifier.padding(8.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Images Grid with Fluid Off-Thread Coil Transformation & Caching
-                    if (images.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(
-                                text = "No images added yet. Tap + to pick images!",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    } else {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            contentPadding = PaddingValues(bottom = 80.dp)
-                        ) {
-                            items(
-                                items = images,
-                                key = { it.id },
-                                contentType = { "pool_image" }
-                            ) { image ->
-                                val imageRequest = remember(image.uri, landscapeMode) {
-                                    ImageRequest.Builder(context)
-                                        .data(image.uri)
-                                        .transformations(LandscapeOrientationTransformation(landscapeMode))
-                                        .crossfade(true)
-                                        .build()
-                                }
-
-                                val badgeText = remember(landscapeMode) {
-                                    when (landscapeMode) {
-                                        LandscapeHandlingMode.ROTATE_90_CW -> "+90° Mode"
-                                        LandscapeHandlingMode.ROTATE_90_CCW -> "-90° Mode"
-                                        LandscapeHandlingMode.CROP -> "Crop Mode"
-                                    }
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .aspectRatio(0.75f)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color.DarkGray)
-                                        .clickable { previewingImage = image }
-                                ) {
-                                    AsyncImage(
-                                        model = imageRequest,
-                                        contentDescription = "Wallpaper Image",
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-
-                                    // Orientation Badge Indicator
-                                    Text(
-                                        text = badgeText,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color.White,
-                                        modifier = Modifier
-                                            .align(Alignment.BottomStart)
-                                            .background(Color.Black.copy(alpha = 0.65f), RoundedCornerShape(topEnd = 6.dp))
-                                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-
-                                    IconButton(
-                                        onClick = { viewModel.deleteImage(image.id) },
-                                        modifier = Modifier
-                                            .align(Alignment.TopEnd)
-                                            .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(bottomStart = 8.dp))
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = "Delete Image",
-                                            tint = Color.White
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                FloatingActionButton(
-                    onClick = {
-                        photoPickerLauncher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
-                    },
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(16.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = "Add Images")
-                }
-            }
-        }
-    }
-
-    if (showAddQuoteDialog) {
-        AddQuoteDialog(
-            onDismiss = { showAddQuoteDialog = false },
-            onConfirm = { text, author ->
-                viewModel.addQuote(text, author)
-                showAddQuoteDialog = false
-            }
-        )
-    }
-
-    // 1:1 Wallpaper Item Click-to-Preview Modal
+    // 1:1 Edge-to-Edge Full Screen Preview Surface
     if (previewingQuote != null || previewingImage != null) {
-        PoolItemPreviewDialog(
+        PoolItemFullScreenPreview(
             initialQuote = previewingQuote,
             initialImage = previewingImage,
             allQuotes = quotes,
@@ -388,11 +133,267 @@ fun PoolsScreen(
                 previewingImage = null
             }
         )
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "Asset Pools",
+                style = MaterialTheme.typography.headlineMedium
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            TabRow(selectedTabIndex = selectedTab) {
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    text = { Text("Quotes (${quotes.size})") }
+                )
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    text = { Text("Images (${images.size})") }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Box(modifier = Modifier.weight(1f)) {
+                if (selectedTab == 0) {
+                    // Quotes List
+                    if (quotes.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "No quotes added yet. Tap + to add quotes!",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(bottom = 80.dp)
+                        ) {
+                            items(
+                                items = quotes,
+                                key = { it.id },
+                                contentType = { "pool_quote" }
+                            ) { quote ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { previewingQuote = quote },
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "“${quote.text}”",
+                                                style = MaterialTheme.typography.bodyLarge
+                                            )
+                                            if (!quote.author.isNullOrBlank()) {
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                Text(
+                                                    text = "— ${quote.author}",
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                        IconButton(onClick = { viewModel.deleteQuote(quote.id) }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "Delete Quote",
+                                                tint = MaterialTheme.colorScheme.error
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    FloatingActionButton(
+                        onClick = { showAddQuoteDialog = true },
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add Quote")
+                    }
+                } else {
+                    // Images Tab (Landscape Mode Selector + Grid)
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        // Landscape Mode Selector Card
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "Landscape Image Handling Mode",
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    FilterChip(
+                                        selected = landscapeMode == LandscapeHandlingMode.ROTATE_90_CW,
+                                        onClick = { viewModel.setLandscapeHandlingMode(LandscapeHandlingMode.ROTATE_90_CW) },
+                                        label = { Text("Rotate +90°") }
+                                    )
+                                    FilterChip(
+                                        selected = landscapeMode == LandscapeHandlingMode.ROTATE_90_CCW,
+                                        onClick = { viewModel.setLandscapeHandlingMode(LandscapeHandlingMode.ROTATE_90_CCW) },
+                                        label = { Text("Rotate -90°") }
+                                    )
+                                    FilterChip(
+                                        selected = landscapeMode == LandscapeHandlingMode.CROP,
+                                        onClick = { viewModel.setLandscapeHandlingMode(LandscapeHandlingMode.CROP) },
+                                        label = { Text("Crop") }
+                                    )
+                                }
+
+                                if (landscapeMode == LandscapeHandlingMode.CROP) {
+                                    Card(
+                                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3CD)),
+                                        shape = RoundedCornerShape(6.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(
+                                            text = "⚠️ Warning: Cropping landscape images to fit a portrait screen zooms in heavily and may drastically reduce image quality.",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color(0xFF856404),
+                                            modifier = Modifier.padding(8.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Images Grid
+                        if (images.isEmpty()) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = "No images added yet. Tap + to pick images!",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        } else {
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(2),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(bottom = 80.dp)
+                            ) {
+                                items(
+                                    items = images,
+                                    key = { it.id },
+                                    contentType = { "pool_image" }
+                                ) { image ->
+                                    val imageRequest = remember(image.uri, landscapeMode) {
+                                        ImageRequest.Builder(context)
+                                            .data(image.uri)
+                                            .transformations(LandscapeOrientationTransformation(landscapeMode))
+                                            .crossfade(true)
+                                            .build()
+                                    }
+
+                                    val badgeText = remember(landscapeMode) {
+                                        when (landscapeMode) {
+                                            LandscapeHandlingMode.ROTATE_90_CW -> "+90° Mode"
+                                            LandscapeHandlingMode.ROTATE_90_CCW -> "-90° Mode"
+                                            LandscapeHandlingMode.CROP -> "Crop Mode"
+                                        }
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .aspectRatio(0.75f)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color.DarkGray)
+                                            .clickable { previewingImage = image }
+                                    ) {
+                                        AsyncImage(
+                                            model = imageRequest,
+                                            contentDescription = "Wallpaper Image",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+
+                                        // Orientation Badge Indicator
+                                        Text(
+                                            text = badgeText,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color.White,
+                                            modifier = Modifier
+                                                .align(Alignment.BottomStart)
+                                                .background(Color.Black.copy(alpha = 0.65f), RoundedCornerShape(topEnd = 6.dp))
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+
+                                        IconButton(
+                                            onClick = { viewModel.deleteImage(image.id) },
+                                            modifier = Modifier
+                                                .align(Alignment.TopEnd)
+                                                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(bottomStart = 8.dp))
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "Delete Image",
+                                                tint = Color.White
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    FloatingActionButton(
+                        onClick = {
+                            photoPickerLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add Images")
+                    }
+                }
+            }
+        }
+    }
+
+    if (showAddQuoteDialog) {
+        AddQuoteDialog(
+            onDismiss = { showAddQuoteDialog = false },
+            onConfirm = { text, author ->
+                viewModel.addQuote(text, author)
+                showAddQuoteDialog = false
+            }
+        )
     }
 }
 
 @Composable
-fun PoolItemPreviewDialog(
+fun PoolItemFullScreenPreview(
     initialQuote: Quote?,
     initialImage: WallpaperImage?,
     allQuotes: List<Quote>,
@@ -446,138 +447,145 @@ fun PoolItemPreviewDialog(
     val displayMetrics = context.resources.displayMetrics
     val screenAspectRatio = displayMetrics.widthPixels.toFloat() / displayMetrics.heightPixels.toFloat().coerceAtLeast(1f)
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = if (initialQuote != null) "Quote Preview" else "Image Preview",
-                style = MaterialTheme.typography.titleLarge
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Full Wallpaper Aspect Ratio Card
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(screenAspectRatio),
-                    colors = CardDefaults.cardColors(containerColor = Color.Black)
-                ) {
-                    BoxWithConstraints(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(8.dp))
-                    ) {
-                        val containerWidthPx = this.constraints.maxWidth.toFloat()
-                        val containerHeightPx = this.constraints.maxHeight.toFloat()
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        // Edge-to-Edge Full-Screen Aspect Ratio Surface
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .align(Alignment.Center)
+                .aspectRatio(screenAspectRatio)
+        ) {
+            val containerWidthPx = this.constraints.maxWidth.toFloat()
+            val containerHeightPx = this.constraints.maxHeight.toFloat()
 
-                        val leftPx = rect.left * containerWidthPx
-                        val topPx = rect.top * containerHeightPx
-                        val rightPx = rect.right * containerWidthPx
-                        val bottomPx = rect.bottom * containerHeightPx
+            val leftPx = rect.left * containerWidthPx
+            val topPx = rect.top * containerHeightPx
+            val rightPx = rect.right * containerWidthPx
+            val bottomPx = rect.bottom * containerHeightPx
 
-                        val density = LocalDensity.current
+            val density = LocalDensity.current
 
-                        val imageRequest = remember(activeImageUri, landscapeMode) {
-                            if (activeImageUri != null) {
-                                ImageRequest.Builder(context)
-                                    .data(activeImageUri)
-                                    .transformations(LandscapeOrientationTransformation(landscapeMode))
-                                    .crossfade(true)
-                                    .build()
-                            } else null
-                        }
-
-                        // Background
-                        if (imageRequest != null) {
-                            AsyncImage(
-                                model = imageRequest,
-                                contentDescription = "Preview Background",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color(0xFF222222))
-                            )
-                        }
-
-                        // Outer Scrim & 1:1 Bounding Box Canvas Render
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-                            val scrimColor = Color.Black.copy(alpha = 0.50f)
-                            drawRect(scrimColor, Offset(0f, 0f), Size(containerWidthPx, topPx))
-                            drawRect(scrimColor, Offset(0f, bottomPx), Size(containerWidthPx, containerHeightPx - bottomPx))
-                            drawRect(scrimColor, Offset(0f, topPx), Size(leftPx, bottomPx - topPx))
-                            drawRect(scrimColor, Offset(rightPx, topPx), Size(containerWidthPx - rightPx, bottomPx - topPx))
-
-                            // Border overlay around bounding box
-                            drawRect(
-                                color = Color(0x6600E5FF),
-                                topLeft = Offset(leftPx, topPx),
-                                size = Size(rightPx - leftPx, bottomPx - topPx),
-                                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
-                            )
-
-                            // 1:1 Bounding-Box-Filling Native Canvas Render
-                            drawIntoCanvas { composeCanvas ->
-                                val nativeCanvas = composeCanvas.nativeCanvas
-                                QuoteTextCanvasDrawer.drawQuoteOnCanvas(
-                                    canvas = nativeCanvas,
-                                    quote = activeQuote,
-                                    leftPx = leftPx,
-                                    topPx = topPx,
-                                    rightPx = rightPx,
-                                    bottomPx = bottomPx,
-                                    orientation = orientation,
-                                    fontId = fontId,
-                                    isBold = isBold,
-                                    isItalic = isItalic,
-                                    textColorArgb = android.graphics.Color.WHITE,
-                                    shadowColorArgb = android.graphics.Color.BLACK,
-                                    scaledDensity = density.density
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Cycling buttons
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    if (initialQuote != null && allImages.size > 1) {
-                        OutlinedButton(
-                            onClick = { selectedImageIndex = (selectedImageIndex + 1) % allImages.size }
-                        ) {
-                            Text("Cycle Image")
-                        }
-                    }
-
-                    if (initialImage != null && allQuotes.size > 1) {
-                        OutlinedButton(
-                            onClick = { selectedQuoteIndex = (selectedQuoteIndex + 1) % allQuotes.size }
-                        ) {
-                            Text("Cycle Quote")
-                        }
-                    }
-                }
+            val imageRequest = remember(activeImageUri, landscapeMode) {
+                if (activeImageUri != null) {
+                    ImageRequest.Builder(context)
+                        .data(activeImageUri)
+                        .transformations(LandscapeOrientationTransformation(landscapeMode))
+                        .crossfade(true)
+                        .build()
+                } else null
             }
-        },
-        confirmButton = {
-            Button(onClick = onDismiss) {
-                Text("Close")
+
+            // Background Image
+            if (imageRequest != null) {
+                AsyncImage(
+                    model = imageRequest,
+                    contentDescription = "Full Screen Preview Background",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF222222))
+                )
+            }
+
+            // Dimmed Scrim & 1:1 Bounding Box Canvas Text Render
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val scrimColor = Color.Black.copy(alpha = 0.45f)
+                drawRect(scrimColor, Offset(0f, 0f), Size(containerWidthPx, topPx))
+                drawRect(scrimColor, Offset(0f, bottomPx), Size(containerWidthPx, containerHeightPx - bottomPx))
+                drawRect(scrimColor, Offset(0f, topPx), Size(leftPx, bottomPx - topPx))
+                drawRect(scrimColor, Offset(rightPx, topPx), Size(containerWidthPx - rightPx, bottomPx - topPx))
+
+                // Border overlay around bounding box
+                drawRect(
+                    color = Color(0x8800E5FF),
+                    topLeft = Offset(leftPx, topPx),
+                    size = Size(rightPx - leftPx, bottomPx - topPx),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
+                )
+
+                // 1:1 Bounding-Box-Filling Native Canvas Render
+                drawIntoCanvas { composeCanvas ->
+                    val nativeCanvas = composeCanvas.nativeCanvas
+                    QuoteTextCanvasDrawer.drawQuoteOnCanvas(
+                        canvas = nativeCanvas,
+                        quote = activeQuote,
+                        leftPx = leftPx,
+                        topPx = topPx,
+                        rightPx = rightPx,
+                        bottomPx = bottomPx,
+                        orientation = orientation,
+                        fontId = fontId,
+                        isBold = isBold,
+                        isItalic = isItalic,
+                        textColorArgb = android.graphics.Color.WHITE,
+                        shadowColorArgb = android.graphics.Color.BLACK,
+                        scaledDensity = density.density
+                    )
+                }
             }
         }
-    )
+
+        // Top Floating Close Button
+        IconButton(
+            onClick = onDismiss,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(20.dp)
+                .background(Color.Black.copy(alpha = 0.6f), CircleShape)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Close Full Screen Preview",
+                tint = Color.White
+            )
+        }
+
+        // Bottom Floating Action Controls
+        Card(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(24.dp)
+                .fillMaxWidth(0.9f),
+            colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.85f)),
+            shape = RoundedCornerShape(24.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (initialQuote != null && allImages.size > 1) {
+                    OutlinedButton(
+                        onClick = { selectedImageIndex = (selectedImageIndex + 1) % allImages.size }
+                    ) {
+                        Text("Cycle Image", color = Color.White)
+                    }
+                }
+
+                if (initialImage != null && allQuotes.size > 1) {
+                    OutlinedButton(
+                        onClick = { selectedQuoteIndex = (selectedQuoteIndex + 1) % allQuotes.size }
+                    ) {
+                        Text("Cycle Quote", color = Color.White)
+                    }
+                }
+
+                Button(onClick = onDismiss) {
+                    Text("Done")
+                }
+            }
+        }
+    }
 }
 
 @Composable
