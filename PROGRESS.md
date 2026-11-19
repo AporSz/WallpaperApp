@@ -396,7 +396,7 @@
 ## Phase 8 - Step 2: Domain, Data & Renderer Support for Landscape Handling Modes
 
 ### Domain, Data & Renderer Implementation Summary
-- **Pure Kotlin Enum Model ([`LandscapeHandlingMode.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/model/LandscapeHandlingMode.kt)):**
+- **Pure Kotlin Enum Model ([`LandscapeHandlingMode.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain.model.LandscapeHandlingMode.kt)):**
   - Created [`LandscapeHandlingMode.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/model/LandscapeHandlingMode.kt) defining `ROTATE_90_CW` (+90° Clockwise), `ROTATE_90_CCW` (-90° Counter-Clockwise), and `CROP` (Center Crop / No Rotation).
 - **DataStore & Repository Persistence:**
   - Extended [`SettingsRepository.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/repository/SettingsRepository.kt) & [`DataStoreSettingsRepository.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/data/repository/DataStoreSettingsRepository.kt) with `observeLandscapeHandlingMode()` and `setLandscapeHandlingMode()` with default fallback `ROTATE_90_CW`.
@@ -474,3 +474,39 @@
 
 ### Verification Status
 - Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Phase 9 - Step 3: Convert Pools Item Preview from Pop-Up Dialog to Full-Screen Destination
+
+### Full-Screen Preview Implementation Summary
+- **Edge-to-Edge Full-Screen Surface ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
+  - Replaced pop-up `AlertDialog` with a dedicated full-screen overlay destination surface (`PoolItemFullScreenPreview`) covering `Modifier.fillMaxSize()` edge-to-edge with no dialog margins or rounded card borders.
+  - 1:1 wallpaper parity powered by `QuoteTextCanvasDrawer.drawQuoteOnCanvas(...)` and `AsyncImage` with `LandscapeOrientationTransformation`.
+  - Minimal floating controls: top-left floating Close icon button over circular translucent backdrop, bottom floating pill with "Cycle Image", "Cycle Quote", and "Done" action buttons.
+
+### Verification Status
+- Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
+- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Phase 10 - Step 1: Codebase Inspection & Integration Plan
+
+### Architecture & Inspection Summary
+- **Key Modules Inspected:**
+  - `ContrastAnalyzer` & `ContrastResult`: Luminance and color determination interfaces.
+  - `PaletteContrastAnalyzer`: AndroidX `Palette` analysis and lightness/luminance math.
+  - `RenderConfig` & `SettingsRepository`: Datastore preference persistence for `TextColorScheme`.
+  - `CanvasWallpaperRenderer` & `QuoteTextCanvasDrawer`: Text paint color and shadow resolution.
+  - `DashboardScreen` / `DashboardViewModel`: Collapsible Text Color Scheme card & "Full Color Preview Screen" button.
+  - `ColorSchemePreviewScreen`: Dedicated full-screen real-time wallpaper color preview modal.
+
+### Concrete Integration Plan (Steps 2–3)
+- **Step 2 (Domain, Data & Color Strategy Engine):**
+  - Create pure Kotlin enum `TextColorScheme` with 5 options: `HIGH_CONTRAST`, `SOFT_CONTRAST`, `WARM_AMBER`, `COOL_FROST`, and `PALETTE_HARMONY`.
+  - Add `textColorScheme` to `RenderConfig`, `SettingsRepository`, and `DataStoreSettingsRepository`.
+  - Update `PaletteContrastAnalyzer.kt` & `QuoteTextCanvasDrawer.kt`: calculate text color and drop shadow dynamically according to the active scheme and background luminance/swatch.
+- **Step 3 (Collapsible Dashboard Card & Full-Screen Color Scheme Preview):**
+  - Refactor `DashboardScreen.kt`: add compact accordion card for `Text Color Scheme` displaying current scheme name when collapsed, expanding to list all 5 options with color swatches, auto-collapsing on selection, and featuring a "Full Color Preview Screen" button.
+  - Create `ColorSchemePreviewScreen.kt` for live full-screen wallpaper color preview with 5-scheme switcher chips and "Use This Scheme" confirmation button.
