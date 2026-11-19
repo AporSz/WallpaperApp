@@ -41,6 +41,8 @@ coupled to the platform.
 
 ### 2. Domain interfaces depend on `android.graphics.Bitmap`
 
+> **Status:** ✅ Resolved — Domain interfaces (`ContrastAnalyzer<I>`, `WallpaperRenderer<I, B>`, `WallpaperApplier<B>`) use generic type parameters without platform framework imports. Using `Bitmap` as a type argument in `RotateWallpaperUseCase` is documented and accepted as a pragmatic Android-native trade-off.
+
 **Files:** `domain/engine/ContrastAnalyzer.kt`, `domain/engine/WallpaperRenderer.kt`,
 `domain/applier/WallpaperApplier.kt`
 

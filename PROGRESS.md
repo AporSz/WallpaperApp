@@ -542,3 +542,19 @@
 ### Verification Status
 - Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
 - Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Issue Audit Resolutions
+
+### Issue #1: `RotateWallpaperUseCase` Decoupling Audit
+- **Status:** ✅ Resolved — `RotateWallpaperUseCase` is cleanly decoupled from `android.content.Context` and depends strictly on clean domain abstractions (`WallpaperRenderer`, `WallpaperApplier`, `SettingsRepository`, `ShuffleEngine`).
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Issue #2: Domain Interfaces Framework Decoupling Audit
+
+### Architectural Decision & Resolution
+- **Status:** ✅ Resolved — All domain interfaces (`ContrastAnalyzer<I>`, `WallpaperRenderer<I, B>`, `WallpaperApplier<B>`) use generic type parameters without platform framework imports. Using `Bitmap` as a type argument in `RotateWallpaperUseCase` is documented and accepted as a pragmatic Android-native trade-off.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).
