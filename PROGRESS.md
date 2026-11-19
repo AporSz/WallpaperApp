@@ -396,7 +396,7 @@
 ## Phase 8 - Step 2: Domain, Data & Renderer Support for Landscape Handling Modes
 
 ### Domain, Data & Renderer Implementation Summary
-- **Pure Kotlin Enum Model ([`LandscapeHandlingMode.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain.model.LandscapeHandlingMode.kt)):**
+- **Pure Kotlin Enum Model ([`LandscapeHandlingMode.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/model/LandscapeHandlingMode.kt)):**
   - Created [`LandscapeHandlingMode.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/model/LandscapeHandlingMode.kt) defining `ROTATE_90_CW` (+90° Clockwise), `ROTATE_90_CCW` (-90° Counter-Clockwise), and `CROP` (Center Crop / No Rotation).
 - **DataStore & Repository Persistence:**
   - Extended [`SettingsRepository.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/repository/SettingsRepository.kt) & [`DataStoreSettingsRepository.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/data/repository/DataStoreSettingsRepository.kt) with `observeLandscapeHandlingMode()` and `setLandscapeHandlingMode()` with default fallback `ROTATE_90_CW`.
@@ -510,3 +510,20 @@
 - **Step 3 (Collapsible Dashboard Card & Full-Screen Color Scheme Preview):**
   - Refactor `DashboardScreen.kt`: add compact accordion card for `Text Color Scheme` displaying current scheme name when collapsed, expanding to list all 5 options with color swatches, auto-collapsing on selection, and featuring a "Full Color Preview Screen" button.
   - Create `ColorSchemePreviewScreen.kt` for live full-screen wallpaper color preview with 5-scheme switcher chips and "Use This Scheme" confirmation button.
+
+---
+
+## Phase 10 - Step 2: Domain, Data & Color Strategy Engine (ContrastAnalyzer)
+
+### Color Strategy Engine Implementation Summary
+- **Pure Kotlin Enum Model ([`TextColorScheme.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/model/TextColorScheme.kt)):**
+  - Created [`TextColorScheme.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/model/TextColorScheme.kt) defining `HIGH_CONTRAST`, `SOFT_CONTRAST`, `WARM_AMBER`, `COOL_FROST`, and `PALETTE_HARMONY`.
+- **DataStore & Repository Persistence:**
+  - Extended [`SettingsRepository.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/repository/SettingsRepository.kt) & [`DataStoreSettingsRepository.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/data/repository/DataStoreSettingsRepository.kt) with `observeTextColorScheme()` and `setTextColorScheme()`.
+- **Graphics Strategy Engine ([`PaletteContrastAnalyzer.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/graphics/PaletteContrastAnalyzer.kt)):**
+  - Updated `PaletteContrastAnalyzer.kt` to dynamically compute text color and drop shadow ARGB values according to the active scheme and background luminance/swatch.
+- **Use Case Integration:**
+  - Updated [`RotateWallpaperUseCase.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/usecase/RotateWallpaperUseCase.kt), [`CanvasWallpaperRenderer.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/graphics/CanvasWallpaperRenderer.kt), and fake test repository in [`RotateWallpaperUseCaseTest.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/test/java/com/example/wallpaperapp/domain/usecase/RotateWallpaperUseCaseTest.kt).
+
+### Verification Status
+- Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).

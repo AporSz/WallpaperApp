@@ -36,8 +36,8 @@ class CanvasWallpaperRenderer(
                 return null
             }
 
-        // 2. Analyze contrast of background in the unrotated cropped bounding box
-        val contrastResult = contrastAnalyzer.analyzeContrast(backgroundBitmap, config.targetRect)
+        // 2. Analyze contrast of background in the unrotated cropped bounding box respecting TextColorScheme
+        val contrastResult = contrastAnalyzer.analyzeContrast(backgroundBitmap, config.targetRect, config.textColorScheme)
 
         // 3. Prepare mutable composite bitmap & canvas
         val compositeBitmap = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)

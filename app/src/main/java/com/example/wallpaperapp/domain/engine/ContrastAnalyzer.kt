@@ -1,6 +1,7 @@
 package com.example.wallpaperapp.domain.engine
 
 import com.example.wallpaperapp.domain.model.NormalizedRect
+import com.example.wallpaperapp.domain.model.TextColorScheme
 
 data class ContrastResult(
     val textColorArgb: Int,
@@ -9,9 +10,9 @@ data class ContrastResult(
 )
 
 interface ContrastAnalyzer<I> {
-    /**
-     * Analyzes luminance of the region defined by [rect] in [image]
-     * and returns optimal text color and shadow color.
-     */
-    suspend fun analyzeContrast(image: I, rect: NormalizedRect): ContrastResult
+    suspend fun analyzeContrast(
+        image: I,
+        rect: NormalizedRect,
+        scheme: TextColorScheme = TextColorScheme.HIGH_CONTRAST
+    ): ContrastResult
 }

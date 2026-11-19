@@ -134,6 +134,11 @@ class RotateWallpaperUseCaseTest {
 
         override fun observeLandscapeHandlingMode(): Flow<LandscapeHandlingMode> = landscapeModeState
         override suspend fun setLandscapeHandlingMode(mode: LandscapeHandlingMode) { landscapeModeState.value = mode }
+
+        private val colorSchemeState = MutableStateFlow(com.example.wallpaperapp.domain.model.TextColorScheme.HIGH_CONTRAST)
+
+        override fun observeTextColorScheme(): Flow<com.example.wallpaperapp.domain.model.TextColorScheme> = colorSchemeState
+        override suspend fun setTextColorScheme(scheme: com.example.wallpaperapp.domain.model.TextColorScheme) { colorSchemeState.value = scheme }
     }
 
     private class FakeWallpaperRenderer : WallpaperRenderer<Any, Bitmap> {

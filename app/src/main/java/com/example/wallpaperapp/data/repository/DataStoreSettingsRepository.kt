@@ -11,6 +11,7 @@ import com.example.wallpaperapp.domain.model.AppThemeMode
 import com.example.wallpaperapp.domain.model.LandscapeHandlingMode
 import com.example.wallpaperapp.domain.model.NormalizedRect
 import com.example.wallpaperapp.domain.model.ScheduleConfig
+import com.example.wallpaperapp.domain.model.TextColorScheme
 import com.example.wallpaperapp.domain.model.TextOrientation
 import com.example.wallpaperapp.domain.model.WallpaperTarget
 import com.example.wallpaperapp.domain.repository.SettingsRepository
@@ -39,6 +40,7 @@ class DataStoreSettingsRepository(
         val SHUFFLE_FONTS = booleanPreferencesKey("key_shuffle_fonts")
         val FONT_SHUFFLE_QUEUE = stringPreferencesKey("key_font_shuffle_queue")
         val LANDSCAPE_HANDLING_MODE = stringPreferencesKey("key_landscape_handling_mode")
+        val TEXT_COLOR_SCHEME = stringPreferencesKey("key_text_color_scheme")
     }
 
     override fun observeWallpaperTarget(): Flow<WallpaperTarget> {
@@ -231,6 +233,23 @@ class DataStoreSettingsRepository(
     override suspend fun setLandscapeHandlingMode(mode: LandscapeHandlingMode) {
         dataStore.edit { prefs ->
             prefs[PreferencesKeys.LANDSCAPE_HANDLING_MODE] = mode.name
+        }
+    }
+
+    override fun observeTextColorScheme(): Flow<TextColorScheme> {
+        return dataStore.data.map { prefs ->
+            val name = prefs[PreferencesKeys.TEXT_COLOR_SCHEME] ?: TextColorScheme.HIGH_CONTRAST.name
+            try {
+                TextColorScheme.valueOf(name)
+            } catch (e: Exception) {
+                TextColorScheme.HIGH_CONTRAST
+            }
+        }
+    }
+
+    override suspend fun setTextColorScheme(scheme: TextColorScheme) {
+        dataStore.edit { prefs ->
+            prefs[PreferencesKeys.TEXT_COLOR_SCHEME] = scheme.name
         }
     }
 

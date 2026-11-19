@@ -4,6 +4,7 @@ import com.example.wallpaperapp.domain.model.AppThemeMode
 import com.example.wallpaperapp.domain.model.LandscapeHandlingMode
 import com.example.wallpaperapp.domain.model.NormalizedRect
 import com.example.wallpaperapp.domain.model.ScheduleConfig
+import com.example.wallpaperapp.domain.model.TextColorScheme
 import com.example.wallpaperapp.domain.model.TextOrientation
 import com.example.wallpaperapp.domain.model.WallpaperTarget
 import kotlinx.coroutines.flow.Flow
@@ -47,4 +48,7 @@ interface SettingsRepository {
 
     fun observeLandscapeHandlingMode(): Flow<LandscapeHandlingMode>
     suspend fun setLandscapeHandlingMode(mode: LandscapeHandlingMode)
+
+    fun observeTextColorScheme(): Flow<TextColorScheme>
+    suspend fun setTextColorScheme(scheme: TextColorScheme)
 }

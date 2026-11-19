@@ -8,5 +8,6 @@ data class RenderConfig(
     val fontId: String = "builtin_sans",
     val isBold: Boolean = false,
     val isItalic: Boolean = false,
-    val landscapeHandlingMode: LandscapeHandlingMode = LandscapeHandlingMode.ROTATE_90_CW
+    val landscapeHandlingMode: LandscapeHandlingMode = LandscapeHandlingMode.ROTATE_90_CW,
+    val textColorScheme: TextColorScheme = TextColorScheme.HIGH_CONTRAST
 )

@@ -7,10 +7,15 @@ import androidx.palette.graphics.Palette
 import com.example.wallpaperapp.domain.engine.ContrastAnalyzer
 import com.example.wallpaperapp.domain.engine.ContrastResult
 import com.example.wallpaperapp.domain.model.NormalizedRect
+import com.example.wallpaperapp.domain.model.TextColorScheme
 
 class PaletteContrastAnalyzer : ContrastAnalyzer<Bitmap> {
 
-    override suspend fun analyzeContrast(image: Bitmap, rect: NormalizedRect): ContrastResult {
+    override suspend fun analyzeContrast(
+        image: Bitmap,
+        rect: NormalizedRect,
+        scheme: TextColorScheme
+    ): ContrastResult {
         if (image.width <= 0 || image.height <= 0) {
             return ContrastResult(
                 textColorArgb = Color.WHITE,
@@ -30,23 +35,61 @@ class PaletteContrastAnalyzer : ContrastAnalyzer<Bitmap> {
         val cropped = Bitmap.createBitmap(image, cropLeft, cropTop, width, height)
         val palette = Palette.from(cropped).generate()
 
-        // Calculate average luminance of the cropped region
         val luminance = calculateAverageLuminance(cropped, palette)
-
         val isDark = luminance < 0.5f
 
-        return if (isDark) {
-            ContrastResult(
-                textColorArgb = Color.WHITE,
-                shadowColorArgb = Color.argb(200, 0, 0, 0),
-                isDarkBackground = true
-            )
-        } else {
-            ContrastResult(
-                textColorArgb = Color.argb(255, 18, 18, 18),
-                shadowColorArgb = Color.argb(180, 255, 255, 255),
-                isDarkBackground = false
-            )
+        return when (scheme) {
+            TextColorScheme.HIGH_CONTRAST -> {
+                if (isDark) {
+                    ContrastResult(Color.WHITE, Color.argb(200, 0, 0, 0), true)
+                } else {
+                    ContrastResult(Color.argb(255, 18, 18, 18), Color.argb(180, 255, 255, 255), false)
+                }
+            }
+
+            TextColorScheme.SOFT_CONTRAST -> {
+                if (isDark) {
+                    ContrastResult(Color.parseColor("#EAE6DF"), Color.argb(200, 0, 0, 0), true)
+                } else {
+                    ContrastResult(Color.parseColor("#3A3F47"), Color.argb(180, 255, 255, 255), false)
+                }
+            }
+
+            TextColorScheme.WARM_AMBER -> {
+                if (isDark) {
+                    ContrastResult(Color.parseColor("#FDE68A"), Color.argb(200, 45, 18, 0), true)
+                } else {
+                    ContrastResult(Color.parseColor("#78350F"), Color.argb(180, 255, 250, 235), false)
+                }
+            }
+
+            TextColorScheme.COOL_FROST -> {
+                if (isDark) {
+                    ContrastResult(Color.parseColor("#E0F2FE"), Color.argb(200, 10, 25, 45), true)
+                } else {
+                    ContrastResult(Color.parseColor("#1E3A8A"), Color.argb(180, 240, 249, 255), false)
+                }
+            }
+
+            TextColorScheme.PALETTE_HARMONY -> {
+                val accentSwatch = palette.vibrantSwatch
+                    ?: palette.dominantSwatch
+                    ?: palette.mutedSwatch
+
+                val baseColor = accentSwatch?.rgb ?: if (isDark) Color.WHITE else Color.BLACK
+                val hsl = FloatArray(3)
+                ColorUtils.colorToHSL(baseColor, hsl)
+
+                if (isDark) {
+                    hsl[2] = 0.88f
+                    val harmonizedText = ColorUtils.HSLToColor(hsl)
+                    ContrastResult(harmonizedText, Color.argb(220, 0, 0, 0), true)
+                } else {
+                    hsl[2] = 0.18f
+                    val harmonizedText = ColorUtils.HSLToColor(hsl)
+                    ContrastResult(harmonizedText, Color.argb(200, 255, 255, 255), false)
+                }
+            }
         }
     }
 
@@ -57,7 +100,6 @@ class PaletteContrastAnalyzer : ContrastAnalyzer<Bitmap> {
             return ColorUtils.calculateLuminance(color).toFloat()
         }
 
-        // Fallback: Sample pixels directly across bitmap
         var totalLuminance = 0.0
         val sampleStepX = (bitmap.width / 10).coerceAtLeast(1)
         val sampleStepY = (bitmap.height / 10).coerceAtLeast(1)
