@@ -574,3 +574,11 @@
 ### Resource Safety & Resolution
 - **Status:** ✅ Resolved — All `openInputStream()` calls across `CanvasWallpaperRenderer`, `FontStorageManager`, and preview screens use Kotlin's `.use { stream -> ... }` auto-close extension blocks to prevent stream leaks.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Issue #5: Release Build Minification & Resource Shrinking Audit
+
+### Release Build Configuration & Resolution
+- **Status:** ✅ Resolved — Enabled `isMinifyEnabled = true` and `isShrinkResources = true` in `app/build.gradle.kts` release build type, and configured R8 keep rules in `proguard-rules.pro` for Room entities and domain models.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).

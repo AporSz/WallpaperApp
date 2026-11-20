@@ -81,6 +81,8 @@ inputStream.close()   // ← leaked if decodeStream() throws
 
 ### 5. Release build has minification and resource shrinking disabled
 
+> **Status:** ✅ Resolved — Set `isMinifyEnabled = true` and `isShrinkResources = true` in `app/build.gradle.kts` release build type and added R8/ProGuard keep rules for domain models, Room, and DataStore in `proguard-rules.pro`.
+
 **File:** `app/build.gradle.kts`
 
 ```kotlin
