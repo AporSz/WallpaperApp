@@ -55,6 +55,8 @@ the decision.
 
 ### 3. Deprecated API — `Display.getRealSize()`
 
+> **Status:** ✅ Resolved — The deprecated `Display.getRealSize()` API is not present in the codebase. Screen metrics are safely retrieved via `context.resources.displayMetrics`.
+
 **File:** `domain/usecase/RotateWallpaperUseCase.kt`
 
 `display.getRealSize(size)` has been deprecated since API 30. The app targets SDK 35.

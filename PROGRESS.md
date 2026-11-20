@@ -558,3 +558,11 @@
 ### Architectural Decision & Resolution
 - **Status:** ✅ Resolved — All domain interfaces (`ContrastAnalyzer<I>`, `WallpaperRenderer<I, B>`, `WallpaperApplier<B>`) use generic type parameters without platform framework imports. Using `Bitmap` as a type argument in `RotateWallpaperUseCase` is documented and accepted as a pragmatic Android-native trade-off.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Issue #3: Deprecated `Display.getRealSize()` Audit
+
+### API Compatibility & Resolution
+- **Status:** ✅ Resolved — The deprecated `Display.getRealSize()` API is not present anywhere in the codebase. Screen metrics are safely retrieved via `context.resources.displayMetrics`.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).
