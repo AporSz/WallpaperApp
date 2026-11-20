@@ -582,3 +582,11 @@
 ### Release Build Configuration & Resolution
 - **Status:** ✅ Resolved — Enabled `isMinifyEnabled = true` and `isShrinkResources = true` in `app/build.gradle.kts` release build type, and configured R8 keep rules in `proguard-rules.pro` for Room entities and domain models.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Issue #6: Missing `POST_NOTIFICATIONS` Permission Audit
+
+### Manifest Permissions & Resolution
+- **Status:** ✅ Resolved — Added `<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />` to `AndroidManifest.xml` for SDK 33+ notification support.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).

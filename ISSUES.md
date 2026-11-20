@@ -98,6 +98,8 @@ The release APK will be significantly larger and un-obfuscated.
 
 ### 6. Missing `POST_NOTIFICATIONS` permission
 
+> **Status:** ✅ Resolved — Added `<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />` to `AndroidManifest.xml` for SDK 33+ notification support.
+
 **File:** `AndroidManifest.xml`
 
 The app targets SDK 35 but does not declare `POST_NOTIFICATIONS`, required since
