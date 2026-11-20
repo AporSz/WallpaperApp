@@ -210,6 +210,8 @@ not present in the source tree. This will cause a build error.
 
 ### 17. `ShuffleBagEngine` is not thread-safe
 
+> **Status:** ✅ Resolved — Guarded `selectNext()` inside `synchronized(lock)` block in `ShuffleBagEngine.kt` to ensure thread-safe state evaluation across concurrent invocations.
+
 **File:** `data/engine/ShuffleBagEngine.kt`
 
 `next()` mutates `bag` and `lastItem` without synchronization. Concurrent calls can

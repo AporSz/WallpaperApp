@@ -499,7 +499,7 @@
   - `PaletteContrastAnalyzer`: AndroidX `Palette` analysis and lightness/luminance math.
   - `RenderConfig` & `SettingsRepository`: Datastore preference persistence for `TextColorScheme`.
   - `CanvasWallpaperRenderer` & `QuoteTextCanvasDrawer`: Text paint color and shadow resolution.
-  - `DashboardScreen` / `DashboardViewModel`: Collapsible Text Color Scheme card & "Full Color Preview Screen" button.
+  - `DashboardScreen` / `DashboardViewModel`: Manages target selection, scheduling, and theme settings.
   - `ColorSchemePreviewScreen`: Dedicated full-screen real-time wallpaper color preview modal.
 
 ### Concrete Integration Plan (Steps 2–3)
@@ -669,4 +669,12 @@
 
 ### Manifest Permissions & Resolution
 - **Status:** ✅ Resolved — Added `<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />` and `<uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />` to `AndroidManifest.xml` for Android 12–15 expedited/foreground worker tasks.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (17/17 unit tests passed).
+
+---
+
+## Issue #17: ShuffleBagEngine Thread Safety Audit
+
+### Thread Safety & Resolution
+- **Status:** ✅ Resolved — Guarded `selectNext()` inside `synchronized(lock)` block in `ShuffleBagEngine.kt` to ensure thread-safe state evaluation across concurrent invocations.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (17/17 unit tests passed).

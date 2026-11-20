@@ -7,11 +7,13 @@ class ShuffleBagEngine<T>(
     private val random: Random = Random.Default
 ) : ShuffleEngine<T> {
 
+    private val lock = Any()
+
     override fun selectNext(
         pool: List<T>,
         historyQueue: List<String>,
         idProvider: (T) -> String
-    ): Pair<T, List<String>>? {
+    ): Pair<T, List<String>>? = synchronized(lock) {
         if (pool.isEmpty()) return null
 
         val poolMap = pool.associateBy(idProvider)
@@ -20,7 +22,7 @@ class ShuffleBagEngine<T>(
         // Find remaining unserved items in the current cycle
         val unservedCandidates = pool.filter { idProvider(it) !in validHistory }
 
-        return if (unservedCandidates.isNotEmpty()) {
+        if (unservedCandidates.isNotEmpty()) {
             // Pick randomly from unserved candidates in the current cycle
             val selected = unservedCandidates[random.nextInt(unservedCandidates.size)]
             val updatedHistory = validHistory + idProvider(selected)
