@@ -654,3 +654,11 @@
 ### Build Signing & Resolution
 - **Status:** ✅ Resolved — Configured `signingConfigs.create("release")` in `app/build.gradle.kts` to read release keystore environment variables (`KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, etc.) with fallback to debug keystore for development builds.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (17/17 unit tests passed).
+
+---
+
+## Issue #15: Backup Rule XML Resources Audit
+
+### Backup Configuration & Resolution
+- **Status:** ✅ Resolved — Created `data_extraction_rules.xml` and `backup_rules.xml` under `app/src/main/res/xml/` and configured `android:dataExtractionRules` and `android:fullBackupContent` attributes in `AndroidManifest.xml`.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (17/17 unit tests passed).

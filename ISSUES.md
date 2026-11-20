@@ -195,6 +195,8 @@ No `signingConfigs` block is defined for the release build type.
 
 ### 15. Missing backup rule XML resources
 
+> **Status:** ✅ Resolved — Created `app/src/main/res/xml/data_extraction_rules.xml` and `app/src/main/res/xml/backup_rules.xml` resources, and configured `android:dataExtractionRules` and `android:fullBackupContent` in `AndroidManifest.xml`.
+
 **File:** `AndroidManifest.xml`
 
 References `@xml/data_extraction_rules` and `@xml/backup_rules`, but these files are
