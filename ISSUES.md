@@ -171,6 +171,8 @@ straight to `renderer.render()` and causes a `NullPointerException`.
 
 ### 12. ProGuard rules file is empty
 
+> **Status:** ✅ Resolved — Configured `proguard-rules.pro` with line-number attribute preservation (`-keepattributes SourceFile,LineNumberTable`), Room Database/DAO/Entity keep rules, WorkManager worker constructor rules, and graphics pipeline rules.
+
 **File:** `app/proguard-rules.pro`
 
 When minification is enabled (issue #5), Room entities, DAOs, and any reflection-based

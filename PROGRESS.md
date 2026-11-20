@@ -630,3 +630,11 @@
 ### Coroutine Threading & Resolution
 - **Status:** ✅ Resolved — Injected `CoroutineDispatcher` parameter defaulting to `Dispatchers.IO` into `RotateWallpaperUseCase` and wrapped operations in `withContext(dispatcher)` to ensure off-main-thread I/O and bitmap processing execution.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (17/17 unit tests passed).
+
+---
+
+## Issue #12: ProGuard Rules Configuration Audit
+
+### R8 & ProGuard Optimization & Resolution
+- **Status:** ✅ Resolved — Configured `proguard-rules.pro` with line-number attribute preservation (`-keepattributes SourceFile,LineNumberTable`), Room Database/DAO/Entity keep rules, WorkManager worker constructor rules, and graphics pipeline rules.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (17/17 unit tests passed).
