@@ -662,3 +662,11 @@
 ### Backup Configuration & Resolution
 - **Status:** ✅ Resolved — Created `data_extraction_rules.xml` and `backup_rules.xml` under `app/src/main/res/xml/` and configured `android:dataExtractionRules` and `android:fullBackupContent` attributes in `AndroidManifest.xml`.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (17/17 unit tests passed).
+
+---
+
+## Issue #16: Foreground Service Permissions Audit
+
+### Manifest Permissions & Resolution
+- **Status:** ✅ Resolved — Added `<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />` and `<uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />` to `AndroidManifest.xml` for Android 12–15 expedited/foreground worker tasks.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (17/17 unit tests passed).

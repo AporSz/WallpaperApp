@@ -204,8 +204,9 @@ not present in the source tree. This will cause a build error.
 
 ### 16. Missing `FOREGROUND_SERVICE` permission
 
-If `WallpaperWorker` needs to run as an expedited / foreground service (recommended for
-long rendering tasks on Android 12+), this permission is required.
+> **Status:** ✅ Resolved — Added `<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />` and `<uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />` to `AndroidManifest.xml` for Android 12–15 expedited/foreground worker tasks.
+
+**File:** `AndroidManifest.xml`
 
 ### 17. `ShuffleBagEngine` is not thread-safe
 
