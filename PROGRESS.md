@@ -590,3 +590,11 @@
 ### Manifest Permissions & Resolution
 - **Status:** ✅ Resolved — Added `<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />` to `AndroidManifest.xml` for SDK 33+ notification support.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Issue #7: Full-screen Bitmap Allocation Memory Safety Audit
+
+### Memory Safety & Resolution
+- **Status:** ✅ Resolved — Implemented low-memory detection via `ActivityManager` and `Runtime.freeMemory()`, added `RGB_565` fallback, wrapped bitmap creations in `createBitmapSafely` with `OutOfMemoryError` handling, and immediately recycled intermediate background bitmaps in `CanvasWallpaperRenderer`.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).

@@ -108,6 +108,8 @@ they will be silently suppressed.
 
 ### 7. Full-screen bitmap allocation without memory checks
 
+> **Status:** ✅ Resolved — Implemented low-memory detection via `ActivityManager` and `Runtime.freeMemory()`, added `RGB_565` fallback, wrapped bitmap creations in `createBitmapSafely` with `OutOfMemoryError` handling, and immediately recycled intermediate background bitmaps.
+
 **File:** `graphics/CanvasWallpaperRenderer.kt`
 
 ```kotlin

@@ -1,5 +1,6 @@
 package com.example.wallpaperapp.graphics
 
+import android.app.ActivityManager
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -39,10 +40,20 @@ class CanvasWallpaperRenderer(
         // 2. Analyze contrast of background in the unrotated cropped bounding box respecting TextColorScheme
         val contrastResult = contrastAnalyzer.analyzeContrast(backgroundBitmap, config.targetRect, config.textColorScheme)
 
-        // 3. Prepare mutable composite bitmap & canvas
-        val compositeBitmap = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
+        // 3. Prepare mutable composite bitmap & canvas with memory safety checks & OOM fallback
+        val preferredConfig = if (isLowMemory()) Bitmap.Config.RGB_565 else Bitmap.Config.ARGB_8888
+        val compositeBitmap = createBitmapSafely(targetWidth, targetHeight, preferredConfig) ?: run {
+            if (!backgroundBitmap.isRecycled) backgroundBitmap.recycle()
+            return null
+        }
+
         val canvas = Canvas(compositeBitmap)
         canvas.drawBitmap(backgroundBitmap, 0f, 0f, null)
+
+        // Recycle background bitmap immediately after drawing onto composite canvas to free 18MB+ memory
+        if (backgroundBitmap != compositeBitmap && !backgroundBitmap.isRecycled) {
+            backgroundBitmap.recycle()
+        }
 
         // 4. Calculate bounding box in pixels
         val leftPx = config.targetRect.left * targetWidth
@@ -82,6 +93,9 @@ class CanvasWallpaperRenderer(
         } catch (e: Exception) {
             Log.e("CanvasWallpaperRenderer", "Error loading scaled bitmap", e)
             null
+        } catch (oom: OutOfMemoryError) {
+            Log.e("CanvasWallpaperRenderer", "OOM loading scaled bitmap", oom)
+            null
         }
     }
 
@@ -98,9 +112,10 @@ class CanvasWallpaperRenderer(
             }
 
             val sampleSize = calculateInSampleSize(options.outWidth, options.outHeight, targetWidth, targetHeight)
+            val preferredConfig = if (isLowMemory()) Bitmap.Config.RGB_565 else Bitmap.Config.ARGB_8888
             val decodeOptions = BitmapFactory.Options().apply {
                 inSampleSize = sampleSize
-                inPreferredConfig = Bitmap.Config.ARGB_8888
+                inPreferredConfig = preferredConfig
                 inMutable = true
             }
 
@@ -116,6 +131,9 @@ class CanvasWallpaperRenderer(
             }
         } catch (e: Exception) {
             Log.e("CanvasWallpaperRenderer", "Error decoding URI: $uri", e)
+            null
+        } catch (oom: OutOfMemoryError) {
+            Log.e("CanvasWallpaperRenderer", "OOM decoding URI: $uri", oom)
             null
         }
     }
@@ -137,12 +155,17 @@ class CanvasWallpaperRenderer(
     }
 
     private fun rotateBitmap(src: Bitmap, degrees: Float): Bitmap {
-        val matrix = Matrix().apply { postRotate(degrees) }
-        val rotated = Bitmap.createBitmap(src, 0, 0, src.width, src.height, matrix, true)
-        if (rotated != src) {
-            src.recycle()
+        return try {
+            val matrix = Matrix().apply { postRotate(degrees) }
+            val rotated = Bitmap.createBitmap(src, 0, 0, src.width, src.height, matrix, true)
+            if (rotated != src && !src.isRecycled) {
+                src.recycle()
+            }
+            rotated
+        } catch (oom: OutOfMemoryError) {
+            Log.e("CanvasWallpaperRenderer", "OOM rotating bitmap", oom)
+            src
         }
-        return rotated
     }
 
     private fun calculateInSampleSize(srcW: Int, srcH: Int, reqW: Int, reqH: Int): Int {
@@ -157,50 +180,94 @@ class CanvasWallpaperRenderer(
         return sampleSize
     }
 
-    private fun cropCenterFill(src: Bitmap, targetWidth: Int, targetHeight: Int, mode: LandscapeHandlingMode): Bitmap {
-        var inputBitmap = src
-        var srcWidth = inputBitmap.width
-        var srcHeight = inputBitmap.height
+    private fun cropCenterFill(src: Bitmap, targetWidth: Int, targetHeight: Int, mode: LandscapeHandlingMode): Bitmap? {
+        return try {
+            var inputBitmap = src
+            var srcWidth = inputBitmap.width
+            var srcHeight = inputBitmap.height
 
-        val isTargetPortrait = targetHeight > targetWidth
-        val isSourceLandscape = srcWidth > srcHeight
+            val isTargetPortrait = targetHeight > targetWidth
+            val isSourceLandscape = srcWidth > srcHeight
 
-        if (isTargetPortrait && isSourceLandscape) {
-            val rotationDegrees = when (mode) {
-                LandscapeHandlingMode.ROTATE_90_CW -> 90f
-                LandscapeHandlingMode.ROTATE_90_CCW -> -90f
-                LandscapeHandlingMode.CROP -> 0f
-            }
-
-            if (rotationDegrees != 0f) {
-                val matrix = Matrix().apply { postRotate(rotationDegrees) }
-                val rotated = Bitmap.createBitmap(inputBitmap, 0, 0, srcWidth, srcHeight, matrix, true)
-                if (rotated != inputBitmap) {
-                    inputBitmap = rotated
+            if (isTargetPortrait && isSourceLandscape) {
+                val rotationDegrees = when (mode) {
+                    LandscapeHandlingMode.ROTATE_90_CW -> 90f
+                    LandscapeHandlingMode.ROTATE_90_CCW -> -90f
+                    LandscapeHandlingMode.CROP -> 0f
                 }
-                srcWidth = inputBitmap.width
-                srcHeight = inputBitmap.height
+
+                if (rotationDegrees != 0f) {
+                    val matrix = Matrix().apply { postRotate(rotationDegrees) }
+                    val rotated = Bitmap.createBitmap(inputBitmap, 0, 0, srcWidth, srcHeight, matrix, true)
+                    if (rotated != inputBitmap) {
+                        inputBitmap = rotated
+                    }
+                    srcWidth = inputBitmap.width
+                    srcHeight = inputBitmap.height
+                }
+            }
+
+            val scale = maxOf(
+                targetWidth.toFloat() / srcWidth,
+                targetHeight.toFloat() / srcHeight
+            )
+
+            val scaledW = scale * srcWidth
+            val scaledH = scale * srcHeight
+
+            val dx = (targetWidth - scaledW) / 2f
+            val dy = (targetHeight - scaledH) / 2f
+
+            val preferredConfig = if (isLowMemory()) Bitmap.Config.RGB_565 else Bitmap.Config.ARGB_8888
+            val result = createBitmapSafely(targetWidth, targetHeight, preferredConfig) ?: return null
+
+            val canvas = Canvas(result)
+            val matrix = Matrix().apply {
+                postScale(scale, scale)
+                postTranslate(dx, dy)
+            }
+            canvas.drawBitmap(inputBitmap, matrix, Paint(Paint.FILTER_BITMAP_FLAG))
+
+            if (inputBitmap != src && inputBitmap != result && !inputBitmap.isRecycled) {
+                inputBitmap.recycle()
+            }
+
+            result
+        } catch (oom: OutOfMemoryError) {
+            Log.e("CanvasWallpaperRenderer", "OOM in cropCenterFill", oom)
+            null
+        }
+    }
+
+    private fun createBitmapSafely(width: Int, height: Int, config: Bitmap.Config): Bitmap? {
+        return try {
+            Bitmap.createBitmap(width, height, config)
+        } catch (oom: OutOfMemoryError) {
+            Log.w("CanvasWallpaperRenderer", "OOM allocating bitmap of config $config, attempting RGB_565 fallback", oom)
+            try {
+                System.gc()
+                Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
+            } catch (e: OutOfMemoryError) {
+                Log.e("CanvasWallpaperRenderer", "Failed to allocate bitmap due to OOM", e)
+                null
             }
         }
+    }
 
-        val scale = maxOf(
-            targetWidth.toFloat() / srcWidth,
-            targetHeight.toFloat() / srcHeight
-        )
+    private fun isLowMemory(): Boolean {
+        return try {
+            val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+            if (activityManager != null) {
+                val memoryInfo = ActivityManager.MemoryInfo()
+                activityManager.getMemoryInfo(memoryInfo)
+                if (memoryInfo.lowMemory) return true
+            }
 
-        val scaledW = scale * srcWidth
-        val scaledH = scale * srcHeight
-
-        val dx = (targetWidth - scaledW) / 2f
-        val dy = (targetHeight - scaledH) / 2f
-
-        val result = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(result)
-        val matrix = Matrix().apply {
-            postScale(scale, scale)
-            postTranslate(dx, dy)
+            val runtime = Runtime.getRuntime()
+            val freeMemMb = (runtime.maxMemory() - (runtime.totalMemory() - runtime.freeMemory())) / (1024 * 1024)
+            freeMemMb < 32
+        } catch (e: Exception) {
+            false
         }
-        canvas.drawBitmap(inputBitmap, matrix, Paint(Paint.FILTER_BITMAP_FLAG))
-        return result
     }
 }
