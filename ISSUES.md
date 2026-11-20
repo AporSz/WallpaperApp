@@ -181,6 +181,8 @@ reporting.
 
 ### 13. Package name uses `com.example` placeholder
 
+> **Status:** ✅ Resolved — Updated `applicationId` in `app/build.gradle.kts` from `com.example.wallpaperapp` to `com.wallpaperapp.app`.
+
 **File:** `app/build.gradle.kts`
 
 `applicationId = "com.example.wallpaperapp"` must be changed before publishing.
