@@ -646,3 +646,11 @@
 ### Application ID Configuration & Resolution
 - **Status:** ✅ Resolved — Updated `applicationId` in `app/build.gradle.kts` from `com.example.wallpaperapp` to production-ready `com.wallpaperapp.app`.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (17/17 unit tests passed).
+
+---
+
+## Issue #14: Release Signing Configuration Audit
+
+### Build Signing & Resolution
+- **Status:** ✅ Resolved — Configured `signingConfigs.create("release")` in `app/build.gradle.kts` to read release keystore environment variables (`KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, etc.) with fallback to debug keystore for development builds.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (17/17 unit tests passed).

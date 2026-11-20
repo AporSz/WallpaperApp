@@ -189,6 +189,8 @@ reporting.
 
 ### 14. No release signing configuration
 
+> **Status:** ✅ Resolved — Configured `signingConfigs.create("release")` in `app/build.gradle.kts` to read release keystore parameters from environment variables (`KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, etc.) with debug keystore fallback.
+
 No `signingConfigs` block is defined for the release build type.
 
 ### 15. Missing backup rule XML resources
