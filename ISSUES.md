@@ -67,6 +67,8 @@ for backward compatibility.
 
 ### 4. InputStream not closed safely
 
+> **Status:** ✅ Resolved — All `openInputStream()` calls across `CanvasWallpaperRenderer`, `FontStorageManager`, and preview screens use Kotlin's `.use { stream -> ... }` auto-close extension blocks to prevent stream leaks.
+
 **File:** `domain/usecase/RotateWallpaperUseCase.kt`
 
 ```kotlin

@@ -566,3 +566,11 @@
 ### API Compatibility & Resolution
 - **Status:** ✅ Resolved — The deprecated `Display.getRealSize()` API is not present anywhere in the codebase. Screen metrics are safely retrieved via `context.resources.displayMetrics`.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Issue #4: Unsafe InputStream Resource Leak Audit
+
+### Resource Safety & Resolution
+- **Status:** ✅ Resolved — All `openInputStream()` calls across `CanvasWallpaperRenderer`, `FontStorageManager`, and preview screens use Kotlin's `.use { stream -> ... }` auto-close extension blocks to prevent stream leaks.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).
