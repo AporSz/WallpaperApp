@@ -152,6 +152,8 @@ tests and zero integration tests.
 
 ### 10. `BitmapFactory.decodeStream()` null return not checked
 
+> **Status:** ✅ Resolved — All `BitmapFactory.decodeStream()` calls in `CanvasWallpaperRenderer` and `ColorSchemePreviewScreen` safely handle `null` returns via `?: return null` / `if (bitmap != null)`, preventing `NullPointerException`s when reading unreadable or corrupt streams.
+
 **File:** `domain/usecase/RotateWallpaperUseCase.kt`
 
 If the stream contains corrupt data, `decodeStream()` returns `null`, which is passed

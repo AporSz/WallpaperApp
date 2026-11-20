@@ -401,4 +401,224 @@
 - **DataStore & Repository Persistence:**
   - Extended [`SettingsRepository.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/repository/SettingsRepository.kt) & [`DataStoreSettingsRepository.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/data/repository/DataStoreSettingsRepository.kt) with `observeLandscapeHandlingMode()` and `setLandscapeHandlingMode()` with default fallback `ROTATE_90_CW`.
 - **Rendering Matrix Transformation ([`CanvasWallpaperRenderer.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/graphics/CanvasWallpaperRenderer.kt)):**
---- END OF TRUNCATED OUTPUT ---
+  - Updated `cropCenterFill` to apply `+90°`, `-90°`, or `0°` (Crop) rotation matrix when rendering landscape images on portrait displays.
+- **Use Case & Unit Tests:**
+  - Updated [`RotateWallpaperUseCase.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/usecase/RotateWallpaperUseCase.kt) and fake test repository in [`RotateWallpaperUseCaseTest.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/test/java/com/example/wallpaperapp/domain/usecase/RotateWallpaperUseCaseTest.kt).
+
+### Verification Status
+- Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Phase 8 - Step 3: Pools Screen Orientation Thumbnails & Quality Warning Banner
+
+### Pools UI Implementation Summary
+- **Landscape Handling Selector & Quality Warning Banner ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
+  - Added a top card in the Images tab with filter chips for `Rotate +90°`, `Rotate -90°`, and `Crop to Fit`.
+  - Added an orange warning banner when `Crop` is active (*"⚠️ Warning: Cropping landscape images to fit a portrait screen zooms in heavily and may drastically reduce image quality."*).
+- **Orientation-Accurate Thumbnails & Badges ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
+  - Image cards inspect EXIF/natural dimensions and render orientation badges (`Landscape • +90°`, `Landscape • -90°`, or `Landscape • Cropped`), applying rotation transformations directly in the thumbnail preview.
+
+### Verification Status
+- Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Phase 8 - Step 4: Click-to-Preview Specific Images & Quotes from Pools Screen
+
+### Click-to-Preview Implementation Summary
+- **Interactive Asset Cards ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
+  - Tapping any quote card in Quotes tab opens a 1:1 full-aspect wallpaper preview dialog rendering that exact quote with a "Cycle Image" action to test against different background images.
+  - Tapping any image card in Images tab opens a 1:1 full-aspect wallpaper preview dialog rendering that exact image with a "Cycle Quote" action to test against different quotes.
+- **1:1 Full-Aspect Wallpaper Preview Dialog ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
+  - Powered by `QuoteTextCanvasDrawer.drawQuoteOnCanvas(...)` and `AsyncImage` with `LandscapeHandlingMode` rotation transformation.
+  - Preserves active `NormalizedRect`, `TextOrientation`, `QuoteFont`, `isBold`, `isItalic`, and dynamic contrast color for 100% 1:1 parity with the final system wallpaper.
+
+### Verification Status
+- Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
+- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Phase 9 - Step 1: Codebase Inspection & Performance Bottleneck Audit
+
+### Performance Bottleneck Audit Summary
+1. **Root Cause of Scrolling Jank in Pools Image Grid:**
+   - In [`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt), `checkIsLandscape(context, image.uri)` opens ContentResolver streams and decodes `BitmapFactory.Options` bounds synchronously inside `remember(image.uri)` on the UI main thread during frame recomposition when scrolling.
+   - `AsyncImage(model = image.uri)` decodes multi-megapixel source photos without downsampling to thumbnail grid-cell dimensions (`aspectRatio(0.75f)`) and lacks a Coil `Transformation` cached on background IO dispatchers.
+   - `contentType` parameter was missing on `LazyVerticalGrid` items.
+2. **Root Cause of Dialog Preview Framing:**
+   - `PoolItemPreviewDialog` used a Material 3 `AlertDialog` pop-up box with dialog margins instead of a dedicated full-screen edge-to-edge overlay surface.
+
+### Resolution & Action Plan (Steps 2 & 3)
+- **Step 2 (Optimize Pools Image Scrolling — Coil Cached Thumbnail Pipeline):**
+  - Implement a Coil `Transformation` (`LandscapeOrientationTransformation`) that inspects EXIF bounds and applies `LandscapeHandlingMode` rotation/crop **off the main thread on Coil's IO dispatcher**.
+  - Pass `contentType = { "pool_image" }` to `LazyVerticalGrid` and remove synchronous `checkIsLandscape()` main-thread calls.
+- **Step 3 (True Full-Screen Edge-to-Edge Preview Destination):**
+  - Replace `AlertDialog` in `PoolsScreen.kt` with a full-screen edge-to-edge surface covering `Modifier.fillMaxSize()`.
+  - Include floating top-left Back button, bottom floating action controls ("Cycle Quote" / "Cycle Image" + "Apply Wallpaper Now").
+  - Re-verify debug APK build and unit test suite.
+
+---
+
+## Phase 9 - Step 2: Optimize Pools Image Scrolling (Lazy Grid + Coil Cached Thumbnail Pipeline)
+
+### Image Scrolling Optimization Summary
+- **Off-Thread Coil Transformation ([`LandscapeOrientationTransformation.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/graphics/LandscapeOrientationTransformation.kt)):**
+  - Created [`LandscapeOrientationTransformation.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/graphics/LandscapeOrientationTransformation.kt) executing landscape image orientation checks and matrix rotations on Coil's background IO dispatcher.
+  - Implemented `cacheKey = "landscape_orientation_${mode.name}"` so Coil caches downsampled, transformed thumbnails in memory and disk.
+- **Removed Main-Thread File I/O ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
+  - Removed all synchronous main-thread `checkIsLandscape()` calls from grid item composition.
+- **Lazy Composition Performance Optimization ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
+  - Added `contentType = { "pool_image" }` and `contentType = { "pool_quote" }` with stable `key = { it.id }` for fluid 60/120fps scrolling.
+
+### Verification Status
+- Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Phase 9 - Step 3: Convert Pools Item Preview from Pop-Up Dialog to Full-Screen Destination
+
+### Full-Screen Preview Implementation Summary
+- **Edge-to-Edge Full-Screen Surface ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
+  - Replaced pop-up `AlertDialog` with a dedicated full-screen overlay destination surface (`PoolItemFullScreenPreview`) covering `Modifier.fillMaxSize()` edge-to-edge with no dialog margins or rounded card borders.
+  - 1:1 wallpaper parity powered by `QuoteTextCanvasDrawer.drawQuoteOnCanvas(...)` and `AsyncImage` with `LandscapeOrientationTransformation`.
+  - Minimal floating controls: top-left floating Close icon button over circular translucent backdrop, bottom floating pill with "Cycle Image", "Cycle Quote", and "Done" action buttons.
+
+### Verification Status
+- Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
+- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Phase 10 - Step 1: Codebase Inspection & Integration Plan
+
+### Architecture & Inspection Summary
+- **Key Modules Inspected:**
+  - `ContrastAnalyzer` & `ContrastResult`: Luminance and color determination interfaces.
+  - `PaletteContrastAnalyzer`: AndroidX `Palette` analysis and lightness/luminance math.
+  - `RenderConfig` & `SettingsRepository`: Datastore preference persistence for `TextColorScheme`.
+  - `CanvasWallpaperRenderer` & `QuoteTextCanvasDrawer`: Text paint color and shadow resolution.
+  - `DashboardScreen` / `DashboardViewModel`: Collapsible Text Color Scheme card & "Full Color Preview Screen" button.
+  - `ColorSchemePreviewScreen`: Dedicated full-screen real-time wallpaper color preview modal.
+
+### Concrete Integration Plan (Steps 2–3)
+- **Step 2 (Domain, Data & Color Strategy Engine):**
+  - Create pure Kotlin enum `TextColorScheme` with 5 options: `HIGH_CONTRAST`, `SOFT_CONTRAST`, `WARM_AMBER`, `COOL_FROST`, and `PALETTE_HARMONY`.
+  - Add `textColorScheme` to `RenderConfig`, `SettingsRepository`, and `DataStoreSettingsRepository`.
+  - Update `PaletteContrastAnalyzer.kt` & `QuoteTextCanvasDrawer.kt`: calculate text color and drop shadow dynamically according to the active scheme and background luminance/swatch.
+- **Step 3 (Collapsible Dashboard Card & Full-Screen Color Scheme Preview):**
+  - Refactor `DashboardScreen.kt`: add compact accordion card for `Text Color Scheme` displaying current scheme name when collapsed, expanding to list all 5 options with color swatches, auto-collapsing on selection, and featuring a "Full Color Preview Screen" button.
+  - Create `ColorSchemePreviewScreen.kt` for live full-screen wallpaper color preview with 5-scheme switcher chips and "Use This Scheme" confirmation button.
+
+---
+
+## Phase 10 - Step 2: Domain, Data & Color Strategy Engine (ContrastAnalyzer)
+
+### Color Strategy Engine Implementation Summary
+- **Pure Kotlin Enum Model ([`TextColorScheme.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/model/TextColorScheme.kt)):**
+  - Created [`TextColorScheme.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/model/TextColorScheme.kt) defining `HIGH_CONTRAST`, `SOFT_CONTRAST`, `WARM_AMBER`, `COOL_FROST`, and `PALETTE_HARMONY`.
+- **DataStore & Repository Persistence:**
+  - Extended [`SettingsRepository.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/repository/SettingsRepository.kt) & [`DataStoreSettingsRepository.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/data/repository/DataStoreSettingsRepository.kt) with `observeTextColorScheme()` and `setTextColorScheme()`.
+- **Graphics Strategy Engine ([`PaletteContrastAnalyzer.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/graphics/PaletteContrastAnalyzer.kt)):**
+  - Updated `PaletteContrastAnalyzer.kt` to dynamically compute text color and drop shadow ARGB values according to the active scheme and background luminance/swatch.
+- **Use Case Integration:**
+  - Updated [`RotateWallpaperUseCase.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/usecase/RotateWallpaperUseCase.kt), [`CanvasWallpaperRenderer.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/graphics/CanvasWallpaperRenderer.kt), and fake test repository in [`RotateWallpaperUseCaseTest.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/test/java/com/example/wallpaperapp/domain/usecase/RotateWallpaperUseCaseTest.kt).
+
+### Verification Status
+- Built & verified Kotlin compilation & unit test suite (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Phase 10 - Step 3: Collapsible Dashboard Card & Full-Screen Color Scheme Preview
+
+### Dashboard & Full-Screen Preview Implementation Summary
+- **Collapsible Text Color Scheme Card ([`DashboardScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/dashboard/DashboardScreen.kt)):**
+  - Refactored Dashboard with a compact accordion card for `Text Color Scheme` displaying current active scheme name (*"Text Color Scheme: High Contrast"*), expanding on tap to reveal all 5 options with descriptions, auto-collapsing on selection, and featuring a "Full Color Preview Screen" button.
+- **Dedicated Full-Screen Color Scheme Preview ([`ColorSchemePreviewScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/color/ColorSchemePreviewScreen.kt) & [`MainActivity.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/MainActivity.kt)):**
+  - Created full-screen edge-to-edge wallpaper preview screen powered by `CanvasWallpaperRenderer` + `PaletteContrastAnalyzer` + `QuoteTextCanvasDrawer`.
+  - Bottom selector bar allows tapping between all 5 color schemes in real time with a **"Use This Color Scheme"** confirmation button.
+
+### Verification Status
+- Built & verified Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
+- Unit tests executed (`./gradlew testDebugUnitTest`): **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Issue Audit Resolutions
+
+### Issue #1: `RotateWallpaperUseCase` Decoupling Audit
+- **Status:** ✅ Resolved — `RotateWallpaperUseCase` is cleanly decoupled from `android.content.Context` and depends strictly on clean domain abstractions (`WallpaperRenderer`, `WallpaperApplier`, `SettingsRepository`, `ShuffleEngine`).
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Issue #2: Domain Interfaces Framework Decoupling Audit
+
+### Architectural Decision & Resolution
+- **Status:** ✅ Resolved — All domain interfaces (`ContrastAnalyzer<I>`, `WallpaperRenderer<I, B>`, `WallpaperApplier<B>`) use generic type parameters without platform framework imports. Using `Bitmap` as a type argument in `RotateWallpaperUseCase` is documented and accepted as a pragmatic Android-native trade-off.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Issue #3: Deprecated `Display.getRealSize()` Audit
+
+### API Compatibility & Resolution
+- **Status:** ✅ Resolved — The deprecated `Display.getRealSize()` API is not present anywhere in the codebase. Screen metrics are safely retrieved via `context.resources.displayMetrics`.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Issue #4: Unsafe InputStream Resource Leak Audit
+
+### Resource Safety & Resolution
+- **Status:** ✅ Resolved — All `openInputStream()` calls across `CanvasWallpaperRenderer`, `FontStorageManager`, and preview screens use Kotlin's `.use { stream -> ... }` auto-close extension blocks to prevent stream leaks.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Issue #5: Release Build Minification & Resource Shrinking Audit
+
+### Release Build Configuration & Resolution
+- **Status:** ✅ Resolved — Enabled `isMinifyEnabled = true` and `isShrinkResources = true` in `app/build.gradle.kts` release build type, and configured R8 keep rules in `proguard-rules.pro` for Room entities and domain models.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Issue #6: Missing `POST_NOTIFICATIONS` Permission Audit
+
+### Manifest Permissions & Resolution
+- **Status:** ✅ Resolved — Added `<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />` to `AndroidManifest.xml` for SDK 33+ notification support.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Issue #7: Full-screen Bitmap Allocation Memory Safety Audit
+
+### Memory Safety & Resolution
+- **Status:** ✅ Resolved — Implemented low-memory detection via `ActivityManager` and `Runtime.freeMemory()`, added `RGB_565` fallback, wrapped bitmap creations in `createBitmapSafely` with `OutOfMemoryError` handling, and immediately recycled intermediate background bitmaps in `CanvasWallpaperRenderer`.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Issue #8: WallpaperWorker Retry Policy Audit
+
+### Background Execution & Resolution
+- **Status:** ✅ Resolved — Updated `WallpaperWorker.kt` to inspect result exceptions: returning `Result.failure()` for permanent errors (`IllegalStateException` from empty asset pools) and `Result.retry()` for transient errors.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Issue #9: Unit Test Coverage Expansion Audit
+
+### Test Suite Expansion & Resolution
+- **Status:** ✅ Resolved — Created `LandscapeOrientationTransformationTest` and `TextColorSchemeTest` expanding unit test coverage across graphics transformations and domain color models.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (17/17 unit tests passed).
+
+---
+
+## Issue #10: Unchecked `BitmapFactory.decodeStream()` Null Return Audit
+
+### Stream Decoding Null-Safety & Resolution
+- **Status:** ✅ Resolved — All `BitmapFactory.decodeStream()` calls across `CanvasWallpaperRenderer` and `ColorSchemePreviewScreen` safely handle `null` returns via `?: return null` and `if (bitmap != null)`, preventing `NullPointerException`s when decoding corrupt or unreadable image streams.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (17/17 unit tests passed).
