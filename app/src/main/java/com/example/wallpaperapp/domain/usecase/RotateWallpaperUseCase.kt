@@ -12,7 +12,10 @@ import com.example.wallpaperapp.domain.model.WallpaperImage
 import com.example.wallpaperapp.domain.repository.ImageRepository
 import com.example.wallpaperapp.domain.repository.QuoteRepository
 import com.example.wallpaperapp.domain.repository.SettingsRepository
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 
 class RotateWallpaperUseCase(
     private val quoteRepository: QuoteRepository,
@@ -22,19 +25,20 @@ class RotateWallpaperUseCase(
     private val imageShuffleEngine: ShuffleEngine<WallpaperImage>,
     private val wallpaperRenderer: WallpaperRenderer<Any, Bitmap>,
     private val wallpaperApplier: WallpaperApplier<Bitmap>,
-    private val fontShuffleEngine: ShuffleEngine<QuoteFont> = ShuffleBagEngine()
+    private val fontShuffleEngine: ShuffleEngine<QuoteFont> = ShuffleBagEngine(),
+    private val dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
 
-    suspend operator fun invoke(): Result<Boolean> {
-        return try {
+    suspend operator fun invoke(): Result<Boolean> = withContext(dispatcher) {
+        try {
             val quotes = quoteRepository.getAllQuotes()
             if (quotes.isEmpty()) {
-                return Result.failure(IllegalStateException("No quotes available in pool"))
+                return@withContext Result.failure(IllegalStateException("No quotes available in pool"))
             }
 
             val images = imageRepository.getAllImages()
             if (images.isEmpty()) {
-                return Result.failure(IllegalStateException("No images available in pool"))
+                return@withContext Result.failure(IllegalStateException("No images available in pool"))
             }
 
             val targetScreen = settingsRepository.observeWallpaperTarget().first()
@@ -64,7 +68,7 @@ class RotateWallpaperUseCase(
             val imageQueue = settingsRepository.observeImageShuffleQueue().first()
 
             val quoteResult = quoteShuffleEngine.selectNext(quotes, quoteQueue) { it.id }
-                ?: return Result.failure(IllegalStateException("Failed to select next quote"))
+                ?: return@withContext Result.failure(IllegalStateException("Failed to select next quote"))
 
             val (selectedQuote, updatedQuoteQueue) = quoteResult
 
@@ -105,7 +109,7 @@ class RotateWallpaperUseCase(
             }
 
             if (renderedBitmap == null) {
-                return Result.failure(IllegalStateException("Failed to load or render any valid background image"))
+                return@withContext Result.failure(IllegalStateException("Failed to load or render any valid background image"))
             }
 
             val applied = wallpaperApplier.applyWallpaper(renderedBitmap, targetScreen)

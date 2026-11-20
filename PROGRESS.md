@@ -218,7 +218,7 @@
 
 ## Phase 5 - Step 3: Graphics & Landscape Auto-Rotate Engine Update
 
-### Rendering Engine Update Summary
+### Rendering Engine Summary
 - **Custom Font Resolution (`CanvasWallpaperRenderer.kt`):**
   - Implemented `resolveTypeface(fontId)` resolving built-in presets (`builtin_sans`, `builtin_serif`, `builtin_mono`, `builtin_cursive`) and custom font files from internal storage (`context.filesDir/fonts/`).
   - Applied resolved `Typeface` directly to `TextPaint.typeface`.
@@ -621,4 +621,12 @@
 
 ### Stream Decoding Null-Safety & Resolution
 - **Status:** ✅ Resolved — All `BitmapFactory.decodeStream()` calls across `CanvasWallpaperRenderer` and `ColorSchemePreviewScreen` safely handle `null` returns via `?: return null` and `if (bitmap != null)`, preventing `NullPointerException`s when decoding corrupt or unreadable image streams.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (17/17 unit tests passed).
+
+---
+
+## Issue #11: Explicit Coroutine Dispatcher Audit for RotateWallpaperUseCase
+
+### Coroutine Threading & Resolution
+- **Status:** ✅ Resolved — Injected `CoroutineDispatcher` parameter defaulting to `Dispatchers.IO` into `RotateWallpaperUseCase` and wrapped operations in `withContext(dispatcher)` to ensure off-main-thread I/O and bitmap processing execution.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (17/17 unit tests passed).

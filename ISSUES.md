@@ -165,8 +165,9 @@ straight to `renderer.render()` and causes a `NullPointerException`.
 
 ### 11. No explicit coroutine dispatcher for heavy work in `RotateWallpaperUseCase`
 
-Bitmap decoding and rendering are CPU + I/O intensive but run on whatever dispatcher
-the caller chooses. Should explicitly use `Dispatchers.IO` / `Dispatchers.Default`.
+> **Status:** ✅ Resolved — Injected `CoroutineDispatcher` parameter defaulting to `Dispatchers.IO` into `RotateWallpaperUseCase` and wrapped work inside `withContext(dispatcher)` to ensure off-main-thread I/O and bitmap processing execution.
+
+**File:** `domain/usecase/RotateWallpaperUseCase.kt`
 
 ### 12. ProGuard rules file is empty
 
