@@ -22,7 +22,16 @@ class WallpaperWorker(
         } else {
             val exception = result.exceptionOrNull()
             exception?.printStackTrace()
-            Result.retry()
+            when (exception) {
+                is IllegalStateException -> {
+                    // Permanent error (empty asset pool, invalid configuration) -> fail without infinite retries
+                    Result.failure()
+                }
+                else -> {
+                    // Transient error -> retry according to WorkManager backoff policy
+                    Result.retry()
+                }
+            }
         }
     }
 }

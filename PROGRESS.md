@@ -598,3 +598,11 @@
 ### Memory Safety & Resolution
 - **Status:** ✅ Resolved — Implemented low-memory detection via `ActivityManager` and `Runtime.freeMemory()`, added `RGB_565` fallback, wrapped bitmap creations in `createBitmapSafely` with `OutOfMemoryError` handling, and immediately recycled intermediate background bitmaps in `CanvasWallpaperRenderer`.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).
+
+---
+
+## Issue #8: WallpaperWorker Retry Policy Audit
+
+### Background Execution & Resolution
+- **Status:** ✅ Resolved — Updated `WallpaperWorker.kt` to inspect result exceptions: returning `Result.failure()` for permanent errors (`IllegalStateException` from empty asset pools) and `Result.retry()` for transient errors.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (15/15 unit tests passed).

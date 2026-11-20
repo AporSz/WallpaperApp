@@ -124,6 +124,8 @@ alpha is unnecessary, and/or down-sample the source image.
 
 ### 8. `WallpaperWorker` retries on permanent failures
 
+> **Status:** ✅ Resolved — Updated `WallpaperWorker.kt` to inspect result exceptions: returning `Result.failure()` for permanent errors (`IllegalStateException` from empty asset pools or invalid config) and `Result.retry()` for transient errors.
+
 **File:** `worker/WallpaperWorker.kt`
 
 ```kotlin
