@@ -221,6 +221,8 @@ corrupt the state.
 
 ### 18. `ScheduleConfig.intervalMinutes` has no minimum validation
 
+> **Status:** ✅ Resolved — Added `init { require(!isEnabled || intervalMinutes >= MIN_INTERVAL_MINUTES) }` in `ScheduleConfig.kt` and added unit test coverage in `ScheduleConfigTest`.
+
 **File:** `domain/model/ScheduleConfig.kt`
 
 `intervalMinutes` can be 0 or negative. WorkManager's minimum periodic interval is 15

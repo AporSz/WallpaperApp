@@ -678,3 +678,11 @@
 ### Thread Safety & Resolution
 - **Status:** ✅ Resolved — Guarded `selectNext()` inside `synchronized(lock)` block in `ShuffleBagEngine.kt` to ensure thread-safe state evaluation across concurrent invocations.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (17/17 unit tests passed).
+
+---
+
+## Issue #18: ScheduleConfig Interval Validation Audit
+
+### Model Validation & Resolution
+- **Status:** ✅ Resolved — Added `init { require(!isEnabled || intervalMinutes >= MIN_INTERVAL_MINUTES) }` in `ScheduleConfig.kt` enforcing minimum 15-minute intervals when automated rotation is enabled, accompanied by `ScheduleConfigTest` unit tests.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).
