@@ -247,6 +247,8 @@ override suspend fun getRandom(): Quote? {
 
 ### 20. DataStore flow missing error handling
 
+> **Status:** ✅ Resolved — Created `safeDataFlow` wrapping `dataStore.data.catch { if (it is IOException) emit(emptyPreferences()) else throw it }` in `DataStoreSettingsRepository.kt` to safely catch and recover from file corruption read exceptions.
+
 **File:** `data/repository/DataStoreSettingsRepository.kt`
 
 `dataStore.data` will throw `IOException` if the file is corrupted. Add

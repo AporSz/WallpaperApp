@@ -694,3 +694,11 @@
 ### Database Query Optimization & Resolution
 - **Status:** ✅ Resolved — Added optimized SQL `@Query("SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1")` in `QuoteDao` and `ImageDao`, avoiding loading full table lists into memory.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).
+
+---
+
+## Issue #20: DataStore Preference Stream Error Recovery Audit
+
+### DataStore Error Handling & Resolution
+- **Status:** ✅ Resolved — Created `safeDataFlow` wrapping `dataStore.data.catch { if (it is IOException) emit(emptyPreferences()) else throw it }` in `DataStoreSettingsRepository.kt` to safely catch and recover from file corruption read exceptions.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).

@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -15,7 +16,9 @@ import com.example.wallpaperapp.domain.model.TextColorScheme
 import com.example.wallpaperapp.domain.model.TextOrientation
 import com.example.wallpaperapp.domain.model.WallpaperTarget
 import com.example.wallpaperapp.domain.repository.SettingsRepository
+import java.io.IOException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 
 class DataStoreSettingsRepository(
@@ -43,8 +46,17 @@ class DataStoreSettingsRepository(
         val TEXT_COLOR_SCHEME = stringPreferencesKey("key_text_color_scheme")
     }
 
+    private val safeDataFlow: Flow<Preferences> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+
     override fun observeWallpaperTarget(): Flow<WallpaperTarget> {
-        return dataStore.data.map { prefs ->
+        return safeDataFlow.map { prefs ->
             val name = prefs[PreferencesKeys.WALLPAPER_TARGET] ?: WallpaperTarget.BOTH.name
             try {
                 WallpaperTarget.valueOf(name)
@@ -61,7 +73,7 @@ class DataStoreSettingsRepository(
     }
 
     override fun observeNormalizedRect(): Flow<NormalizedRect> {
-        return dataStore.data.map { prefs ->
+        return safeDataFlow.map { prefs ->
             val left = prefs[PreferencesKeys.RECT_LEFT] ?: NormalizedRect.CENTER.left
             val top = prefs[PreferencesKeys.RECT_TOP] ?: NormalizedRect.CENTER.top
             val right = prefs[PreferencesKeys.RECT_RIGHT] ?: NormalizedRect.CENTER.right
@@ -84,10 +96,14 @@ class DataStoreSettingsRepository(
     }
 
     override fun observeScheduleConfig(): Flow<ScheduleConfig> {
-        return dataStore.data.map { prefs ->
+        return safeDataFlow.map { prefs ->
             val enabled = prefs[PreferencesKeys.SCHEDULE_ENABLED] ?: false
             val interval = prefs[PreferencesKeys.SCHEDULE_INTERVAL] ?: 60L
-            ScheduleConfig(isEnabled = enabled, intervalMinutes = interval)
+            try {
+                ScheduleConfig(isEnabled = enabled, intervalMinutes = interval)
+            } catch (e: Exception) {
+                ScheduleConfig(isEnabled = false, intervalMinutes = 60L)
+            }
         }
     }
 
@@ -99,7 +115,7 @@ class DataStoreSettingsRepository(
     }
 
     override fun observeQuoteShuffleQueue(): Flow<List<String>> {
-        return dataStore.data.map { prefs ->
+        return safeDataFlow.map { prefs ->
             val raw = prefs[PreferencesKeys.QUOTE_SHUFFLE_QUEUE] ?: ""
             parseQueue(raw)
         }
@@ -112,7 +128,7 @@ class DataStoreSettingsRepository(
     }
 
     override fun observeImageShuffleQueue(): Flow<List<String>> {
-        return dataStore.data.map { prefs ->
+        return safeDataFlow.map { prefs ->
             val raw = prefs[PreferencesKeys.IMAGE_SHUFFLE_QUEUE] ?: ""
             parseQueue(raw)
         }
@@ -125,7 +141,7 @@ class DataStoreSettingsRepository(
     }
 
     override fun observeAppThemeMode(): Flow<AppThemeMode> {
-        return dataStore.data.map { prefs ->
+        return safeDataFlow.map { prefs ->
             val name = prefs[PreferencesKeys.APP_THEME_MODE] ?: AppThemeMode.SYSTEM.name
             try {
                 AppThemeMode.valueOf(name)
@@ -142,7 +158,7 @@ class DataStoreSettingsRepository(
     }
 
     override fun observeTextOrientation(): Flow<TextOrientation> {
-        return dataStore.data.map { prefs ->
+        return safeDataFlow.map { prefs ->
             val name = prefs[PreferencesKeys.TEXT_ORIENTATION] ?: TextOrientation.HORIZONTAL.name
             try {
                 TextOrientation.valueOf(name)
@@ -159,7 +175,7 @@ class DataStoreSettingsRepository(
     }
 
     override fun observeQuoteFontId(): Flow<String> {
-        return dataStore.data.map { prefs ->
+        return safeDataFlow.map { prefs ->
             prefs[PreferencesKeys.QUOTE_FONT_ID] ?: "builtin_sans"
         }
     }
@@ -171,7 +187,7 @@ class DataStoreSettingsRepository(
     }
 
     override fun observeIsBold(): Flow<Boolean> {
-        return dataStore.data.map { prefs ->
+        return safeDataFlow.map { prefs ->
             prefs[PreferencesKeys.IS_BOLD] ?: false
         }
     }
@@ -183,7 +199,7 @@ class DataStoreSettingsRepository(
     }
 
     override fun observeIsItalic(): Flow<Boolean> {
-        return dataStore.data.map { prefs ->
+        return safeDataFlow.map { prefs ->
             prefs[PreferencesKeys.IS_ITALIC] ?: false
         }
     }
@@ -195,7 +211,7 @@ class DataStoreSettingsRepository(
     }
 
     override fun observeShuffleFonts(): Flow<Boolean> {
-        return dataStore.data.map { prefs ->
+        return safeDataFlow.map { prefs ->
             prefs[PreferencesKeys.SHUFFLE_FONTS] ?: false
         }
     }
@@ -207,7 +223,7 @@ class DataStoreSettingsRepository(
     }
 
     override fun observeFontShuffleQueue(): Flow<List<String>> {
-        return dataStore.data.map { prefs ->
+        return safeDataFlow.map { prefs ->
             val raw = prefs[PreferencesKeys.FONT_SHUFFLE_QUEUE] ?: ""
             parseQueue(raw)
         }
@@ -220,7 +236,7 @@ class DataStoreSettingsRepository(
     }
 
     override fun observeLandscapeHandlingMode(): Flow<LandscapeHandlingMode> {
-        return dataStore.data.map { prefs ->
+        return safeDataFlow.map { prefs ->
             val name = prefs[PreferencesKeys.LANDSCAPE_HANDLING_MODE] ?: LandscapeHandlingMode.ROTATE_90_CW.name
             try {
                 LandscapeHandlingMode.valueOf(name)
@@ -237,7 +253,7 @@ class DataStoreSettingsRepository(
     }
 
     override fun observeTextColorScheme(): Flow<TextColorScheme> {
-        return dataStore.data.map { prefs ->
+        return safeDataFlow.map { prefs ->
             val name = prefs[PreferencesKeys.TEXT_COLOR_SCHEME] ?: TextColorScheme.HIGH_CONTRAST.name
             try {
                 TextColorScheme.valueOf(name)
