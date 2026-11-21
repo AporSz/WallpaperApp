@@ -232,6 +232,8 @@ minutes; values below that are silently rounded up, misleading the UI.
 
 ### 19. `RoomQuoteRepository.getRandom()` loads all quotes into memory
 
+> **Status:** ✅ Resolved — Added optimized SQL `@Query("SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1")` in `QuoteDao` and `ImageDao`, avoiding loading full table lists into memory.
+
 **File:** `data/repository/RoomQuoteRepository.kt`
 
 ```kotlin

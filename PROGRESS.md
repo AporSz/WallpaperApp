@@ -686,3 +686,11 @@
 ### Model Validation & Resolution
 - **Status:** ✅ Resolved — Added `init { require(!isEnabled || intervalMinutes >= MIN_INTERVAL_MINUTES) }` in `ScheduleConfig.kt` enforcing minimum 15-minute intervals when automated rotation is enabled, accompanied by `ScheduleConfigTest` unit tests.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).
+
+---
+
+## Issue #19: Room Query Random Selection Optimization Audit
+
+### Database Query Optimization & Resolution
+- **Status:** ✅ Resolved — Added optimized SQL `@Query("SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1")` in `QuoteDao` and `ImageDao`, avoiding loading full table lists into memory.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).

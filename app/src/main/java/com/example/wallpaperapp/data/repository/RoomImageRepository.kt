@@ -19,6 +19,10 @@ class RoomImageRepository(
         return imageDao.getImageById(id)?.toDomain()
     }
 
+    override suspend fun getRandomImage(): WallpaperImage? {
+        return imageDao.getRandomImage()?.toDomain()
+    }
+
     override suspend fun addImage(image: WallpaperImage) {
         imageDao.insertImage(ImageEntity.fromDomain(image))
     }

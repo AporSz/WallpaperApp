@@ -14,6 +14,9 @@ interface QuoteDao {
     @Query("SELECT * FROM quotes WHERE id = :id LIMIT 1")
     suspend fun getQuoteById(id: String): QuoteEntity?
 
+    @Query("SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1")
+    suspend fun getRandomQuote(): QuoteEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertQuote(quote: QuoteEntity)
 

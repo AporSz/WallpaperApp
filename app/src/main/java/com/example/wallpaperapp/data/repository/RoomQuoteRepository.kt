@@ -19,6 +19,10 @@ class RoomQuoteRepository(
         return quoteDao.getQuoteById(id)?.toDomain()
     }
 
+    override suspend fun getRandomQuote(): Quote? {
+        return quoteDao.getRandomQuote()?.toDomain()
+    }
+
     override suspend fun addQuote(quote: Quote) {
         quoteDao.insertQuote(QuoteEntity.fromDomain(quote))
     }

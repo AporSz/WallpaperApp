@@ -30,6 +30,7 @@ class RotateWallpaperUseCaseTest {
         var quotes = mutableListOf<Quote>()
         override suspend fun getAllQuotes(): List<Quote> = quotes
         override suspend fun getQuoteById(id: String): Quote? = quotes.find { it.id == id }
+        override suspend fun getRandomQuote(): Quote? = quotes.randomOrNull()
         override suspend fun addQuote(quote: Quote) { quotes.add(quote) }
         override suspend fun addQuotes(quotes: List<Quote>) { this.quotes.addAll(quotes) }
         override suspend fun deleteQuote(id: String) { quotes.removeAll { it.id == id } }
@@ -40,6 +41,7 @@ class RotateWallpaperUseCaseTest {
         var images = mutableListOf<WallpaperImage>()
         override suspend fun getAllImages(): List<WallpaperImage> = images
         override suspend fun getImageById(id: String): WallpaperImage? = images.find { it.id == id }
+        override suspend fun getRandomImage(): WallpaperImage? = images.randomOrNull()
         override suspend fun addImage(image: WallpaperImage) { images.add(image) }
         override suspend fun addImages(images: List<WallpaperImage>) { this.images.addAll(images) }
         override suspend fun deleteImage(id: String) { images.removeAll { it.id == id } }

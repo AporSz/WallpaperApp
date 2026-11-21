@@ -14,6 +14,9 @@ interface ImageDao {
     @Query("SELECT * FROM wallpaper_images WHERE id = :id LIMIT 1")
     suspend fun getImageById(id: String): ImageEntity?
 
+    @Query("SELECT * FROM wallpaper_images ORDER BY RANDOM() LIMIT 1")
+    suspend fun getRandomImage(): ImageEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertImage(image: ImageEntity)
 
