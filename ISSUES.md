@@ -275,6 +275,8 @@ unless `fallbackToDestructiveMigration()` is set or migrations are written.
 
 ### 23. `FontStorageManager` doesn't validate imported fonts
 
+> **Status:** ✅ Resolved — Added magic header byte inspection (`0x00010000`, `OTTO`, `ttcf`, `wOFF`, `wOF2`) and `Typeface.createFromFile()` verification in `FontStorageManager.kt`, automatically deleting invalid font files upon import attempt.
+
 **File:** `data/local/FontStorageManager.kt`
 
 `Typeface.createFromFile()` doesn't throw on invalid files; it silently returns a
