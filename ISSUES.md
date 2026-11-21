@@ -266,6 +266,8 @@ pointing to the same file if initialization is ever duplicated (fatal crash). Pr
 
 ### 22. No Room migration strategy
 
+> **Status:** ✅ Resolved — Configured `.fallbackToDestructiveMigration()` on the Room database builder in `AppContainer.kt` to prevent migration crashes on future schema updates.
+
 **File:** `data/local/db/WallpaperDatabase.kt`
 
 The database is at version 1 with no migration plan. Future schema changes will crash

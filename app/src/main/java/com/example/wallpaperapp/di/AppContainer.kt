@@ -30,7 +30,9 @@ class AppContainer(private val context: Context) {
             context.applicationContext,
             WallpaperDatabase::class.java,
             "wallpaper_db"
-        ).build()
+        )
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     val quoteRepository: QuoteRepository by lazy {

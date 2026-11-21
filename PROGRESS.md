@@ -710,3 +710,11 @@
 ### Dependency Injection & Resolution
 - **Status:** ✅ Resolved — Verified singleton DataStore delegate `private val Context.dataStore by preferencesDataStore(name = "wallpaper_settings")` in `AppContainer.kt`.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).
+
+---
+
+## Issue #22: Room Database Fallback Migration Strategy Audit
+
+### Database Migration & Resolution
+- **Status:** ✅ Resolved — Configured `.fallbackToDestructiveMigration()` on the Room database builder in `AppContainer.kt` to prevent migration crashes on future schema updates.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).
