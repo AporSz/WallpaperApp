@@ -702,3 +702,11 @@
 ### DataStore Error Handling & Resolution
 - **Status:** ✅ Resolved — Created `safeDataFlow` wrapping `dataStore.data.catch { if (it is IOException) emit(emptyPreferences()) else throw it }` in `DataStoreSettingsRepository.kt` to safely catch and recover from file corruption read exceptions.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).
+
+---
+
+## Issue #21: DataStore Singleton Delegation Audit
+
+### Dependency Injection & Resolution
+- **Status:** ✅ Resolved — Verified singleton DataStore delegate `private val Context.dataStore by preferencesDataStore(name = "wallpaper_settings")` in `AppContainer.kt`.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).

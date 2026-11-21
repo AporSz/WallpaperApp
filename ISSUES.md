@@ -256,6 +256,8 @@ override suspend fun getRandom(): Quote? {
 
 ### 21. DataStore created via factory — risk of duplicate instances
 
+> **Status:** ✅ Resolved — Verified singleton DataStore delegate `private val Context.dataStore by preferencesDataStore(name = "wallpaper_settings")` in `AppContainer.kt`.
+
 **File:** `di/AppContainer.kt`
 
 Using `PreferenceDataStoreFactory.create` manually risks multiple `DataStore` instances
