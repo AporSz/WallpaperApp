@@ -293,7 +293,9 @@ messages may appear in the UI.
 
 ### 25. `addImage` / `removeImage` silently swallow errors
 
-**File:** `ui/dashboard/DashboardViewModel.kt`
+> **Status:** ✅ Resolved — Wrapped repository mutations (`addQuote`, `deleteQuote`, `addImages`, `deleteImage`, `setLandscapeHandlingMode`) inside `try-catch` blocks in `PoolsViewModel.kt` with error logging and `_message` emission.
+
+**File:** `ui/pools/PoolsViewModel.kt`
 
 Exceptions from repository operations inside `viewModelScope.launch {}` are uncaught.
 

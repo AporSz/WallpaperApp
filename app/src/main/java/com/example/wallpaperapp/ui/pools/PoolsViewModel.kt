@@ -1,6 +1,7 @@
 package com.example.wallpaperapp.ui.pools
 
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -12,8 +13,11 @@ import com.example.wallpaperapp.domain.model.WallpaperImage
 import com.example.wallpaperapp.domain.repository.ImageRepository
 import com.example.wallpaperapp.domain.repository.QuoteRepository
 import com.example.wallpaperapp.domain.repository.SettingsRepository
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -48,46 +52,74 @@ class PoolsViewModel(
     val isItalicState: StateFlow<Boolean> = settingsRepository.observeIsItalic()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    private val _message = MutableSharedFlow<String>()
+    val message: SharedFlow<String> = _message.asSharedFlow()
+
     fun setLandscapeHandlingMode(mode: LandscapeHandlingMode) {
         viewModelScope.launch {
-            settingsRepository.setLandscapeHandlingMode(mode)
+            try {
+                settingsRepository.setLandscapeHandlingMode(mode)
+            } catch (e: Exception) {
+                Log.e("PoolsViewModel", "Failed to update landscape handling mode", e)
+                _message.emit("Failed to update settings: ${e.message}")
+            }
         }
     }
 
     fun addQuote(text: String, author: String?) {
         if (text.isBlank()) return
         viewModelScope.launch {
-            val quote = Quote(
-                id = UUID.randomUUID().toString(),
-                text = text.trim(),
-                author = author?.trim()?.ifBlank { null }
-            )
-            quoteRepository.addQuote(quote)
+            try {
+                val quote = Quote(
+                    id = UUID.randomUUID().toString(),
+                    text = text.trim(),
+                    author = author?.trim()?.ifBlank { null }
+                )
+                quoteRepository.addQuote(quote)
+            } catch (e: Exception) {
+                Log.e("PoolsViewModel", "Failed to add quote", e)
+                _message.emit("Failed to add quote: ${e.message}")
+            }
         }
     }
 
     fun deleteQuote(id: String) {
         viewModelScope.launch {
-            quoteRepository.deleteQuote(id)
+            try {
+                quoteRepository.deleteQuote(id)
+            } catch (e: Exception) {
+                Log.e("PoolsViewModel", "Failed to delete quote", e)
+                _message.emit("Failed to delete quote: ${e.message}")
+            }
         }
     }
 
     fun addImages(uris: List<Uri>) {
         if (uris.isEmpty()) return
         viewModelScope.launch {
-            val newImages = uris.map { uri ->
-                WallpaperImage(
-                    id = UUID.randomUUID().toString(),
-                    uri = uri.toString()
-                )
+            try {
+                val newImages = uris.map { uri ->
+                    WallpaperImage(
+                        id = UUID.randomUUID().toString(),
+                        uri = uri.toString()
+                    )
+                }
+                imageRepository.addImages(newImages)
+            } catch (e: Exception) {
+                Log.e("PoolsViewModel", "Failed to add images", e)
+                _message.emit("Failed to add images: ${e.message}")
             }
-            imageRepository.addImages(newImages)
         }
     }
 
     fun deleteImage(id: String) {
         viewModelScope.launch {
-            imageRepository.deleteImage(id)
+            try {
+                imageRepository.deleteImage(id)
+            } catch (e: Exception) {
+                Log.e("PoolsViewModel", "Failed to delete image", e)
+                _message.emit("Failed to delete image: ${e.message}")
+            }
         }
     }
 

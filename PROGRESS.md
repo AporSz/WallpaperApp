@@ -734,3 +734,11 @@
 ### UI State Lifecycle & Resolution
 - **Status:** ✅ Resolved — Implemented `ApplyState` sealed interface in `DashboardViewModel.kt` with `resetApplyState()` method to reset application state back to `ApplyState.Idle` after operations complete.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).
+
+---
+
+## Issue #25: Asset Pool Mutation Exception Safety Audit
+
+### Error Handling & Resolution
+- **Status:** ✅ Resolved — Wrapped repository mutations (`addQuote`, `deleteQuote`, `addImages`, `deleteImage`, `setLandscapeHandlingMode`) inside `try-catch` blocks in `PoolsViewModel.kt` with error logging and `_message` emission.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).
