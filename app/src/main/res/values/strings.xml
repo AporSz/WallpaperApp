@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WallpaperApp</string>
+    <string name="dashboard_title">Dashboard</string>
+    <string name="pools_title">Asset Pools</string>
+    <string name="zone_editor_title">Zone Editor</string>
+    <string name="font_preview_title">Font Typography Preview</string>
+    <string name="color_preview_title">Text Color Scheme Preview</string>
+
+    <string name="wallpaper_target">Wallpaper Target</string>
+    <string name="target_home_screen">Home Screen</string>
+    <string name="target_lock_screen">Lock Screen</string>
+    <string name="target_both">Home &amp; Lock Screen</string>
+
+    <string name="automated_rotation">Automated Rotation</string>
+    <string name="rotation_schedule">Rotation Schedule</string>
+    <string name="rotation_interval">Interval</string>
+    <string name="shuffle_apply_now">Shuffle &amp; Apply Now</string>
+
+    <string name="text_color_scheme">Text Color Scheme</string>
+    <string name="font_family">Font Family</string>
+    <string name="font_bold">Bold</string>
+    <string name="font_italic">Italic</string>
+    <string name="shuffle_fonts">Shuffle Fonts</string>
+    <string name="import_font">+ Import Font</string>
+    <string name="full_font_preview">Full Font Preview Screen</string>
+    <string name="full_color_preview">Full Color Preview Screen</string>
+
+    <string name="quotes_tab">Quotes</string>
+    <string name="images_tab">Images</string>
+    <string name="add_quote">Add Quote</string>
+    <string name="add_images">Import Images</string>
+    <string name="landscape_handling">Landscape Image Orientation</string>
+    <string name="rotate_90_cw">Rotate +90°</string>
+    <string name="rotate_90_ccw">Rotate -90°</string>
+    <string name="crop_to_fit">Crop to Fit</string>
+    <string name="landscape_crop_warning">⚠️ Warning: Cropping landscape images to fit a portrait screen zooms in heavily and may drastically reduce image quality.</string>
+
+    <string name="use_this_font">Use This Font Style</string>
+    <string name="use_this_color_scheme">Use This Color Scheme</string>
+    <string name="cycle_quote">Cycle Quote</string>
+    <string name="cycle_image">Cycle Image</string>
+    <string name="done">Done</string>
+    <string name="close">Close</string>
+</resources>

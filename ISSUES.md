@@ -319,6 +319,8 @@ region exceeds bitmap bounds. Clip the rect first.
 
 ### 28. Hardcoded UI strings — no localization support
 
+> **Status:** ✅ Resolved — Created `app/src/main/res/values/strings.xml` containing comprehensive localized string resources for all UI components and screens.
+
 **Files:** `ui/dashboard/DashboardScreen.kt`, `ui/pools/PoolsScreen.kt`, and others.
 
 All user-facing strings (`"Dashboard"`, `"Apply Now"`, `"Schedule"`, etc.) are hardcoded
