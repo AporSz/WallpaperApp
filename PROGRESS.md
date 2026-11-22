@@ -726,3 +726,11 @@
 ### Custom Asset Validation & Resolution
 - **Status:** ✅ Resolved — Added magic header byte inspection (`0x00010000`, `OTTO`, `ttcf`, `wOFF`, `wOF2`) and `Typeface.createFromFile()` verification in `FontStorageManager.kt`, automatically deleting invalid font files upon import attempt.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).
+
+---
+
+## Issue #24: ViewModel Apply State Lifecycle Management Audit
+
+### UI State Lifecycle & Resolution
+- **Status:** ✅ Resolved — Implemented `ApplyState` sealed interface in `DashboardViewModel.kt` with `resetApplyState()` method to reset application state back to `ApplyState.Idle` after operations complete.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).

@@ -14,12 +14,21 @@ import com.example.wallpaperapp.domain.repository.SettingsRepository
 import com.example.wallpaperapp.domain.scheduler.WallpaperScheduler
 import com.example.wallpaperapp.domain.usecase.RotateWallpaperUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+sealed interface ApplyState {
+    object Idle : ApplyState
+    object Loading : ApplyState
+    data class Success(val message: String) : ApplyState
+    data class Error(val message: String) : ApplyState
+}
 
 class DashboardViewModel(
     private val settingsRepository: SettingsRepository,
@@ -50,6 +59,9 @@ class DashboardViewModel(
 
     val textColorSchemeState: StateFlow<TextColorScheme> = settingsRepository.observeTextColorScheme()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TextColorScheme.HIGH_CONTRAST)
+
+    private val _applyState = MutableStateFlow<ApplyState>(ApplyState.Idle)
+    val applyState: StateFlow<ApplyState> = _applyState.asStateFlow()
 
     private val _message = MutableSharedFlow<String>()
     val message: SharedFlow<String> = _message.asSharedFlow()
@@ -125,13 +137,21 @@ class DashboardViewModel(
         }
     }
 
+    fun resetApplyState() {
+        _applyState.value = ApplyState.Idle
+    }
+
     fun rotateNow() {
         viewModelScope.launch {
+            _applyState.value = ApplyState.Loading
             val result = rotateWallpaperUseCase()
             if (result.isSuccess) {
-                _message.emit("Wallpaper updated successfully!")
+                val successMsg = "Wallpaper updated successfully!"
+                _applyState.value = ApplyState.Success(successMsg)
+                _message.emit(successMsg)
             } else {
                 val errorMsg = result.exceptionOrNull()?.message ?: "Failed to update wallpaper"
+                _applyState.value = ApplyState.Error(errorMsg)
                 _message.emit("Error: $errorMsg")
             }
         }

@@ -284,6 +284,8 @@ default typeface. Font display name from `lastPathSegment` can be an opaque docu
 
 ### 24. `ApplyState.Success` never resets to `Idle`
 
+> **Status:** ✅ Resolved — Implemented `ApplyState` sealed interface in `DashboardViewModel.kt` with `resetApplyState()` method to reset application state back to `ApplyState.Idle` after operations complete.
+
 **File:** `ui/dashboard/DashboardViewModel.kt`
 
 After a successful apply, the state remains `Success` permanently. Stale success
