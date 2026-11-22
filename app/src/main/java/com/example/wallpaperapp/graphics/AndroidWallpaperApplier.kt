@@ -3,6 +3,7 @@ package com.example.wallpaperapp.graphics
 import android.app.WallpaperManager
 import android.content.Context
 import android.graphics.Bitmap
+import android.util.Log
 import com.example.wallpaperapp.domain.applier.WallpaperApplier
 import com.example.wallpaperapp.domain.model.WallpaperTarget
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +25,7 @@ class AndroidWallpaperApplier(
                 wallpaperManager.setBitmap(bitmap, null, true, flags)
                 true
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("AndroidWallpaperApplier", "Failed to set bitmap wallpaper to target: $target", e)
                 false
             }
         }

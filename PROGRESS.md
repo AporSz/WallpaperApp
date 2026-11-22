@@ -742,3 +742,11 @@
 ### Error Handling & Resolution
 - **Status:** ✅ Resolved — Wrapped repository mutations (`addQuote`, `deleteQuote`, `addImages`, `deleteImage`, `setLandscapeHandlingMode`) inside `try-catch` blocks in `PoolsViewModel.kt` with error logging and `_message` emission.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).
+
+---
+
+## Issue #26: WallpaperManager System Exception Safety Audit
+
+### System Service Integration & Resolution
+- **Status:** ✅ Resolved — Wrapped `wallpaperManager.setBitmap(...)` inside `withContext(Dispatchers.IO)` try-catch block in `AndroidWallpaperApplier.kt` with structured `Log.e` error logging.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).

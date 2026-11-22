@@ -301,6 +301,8 @@ Exceptions from repository operations inside `viewModelScope.launch {}` are unca
 
 ### 26. `WallpaperManager.setBitmap()` not wrapped in try-catch
 
+> **Status:** ✅ Resolved — Wrapped `wallpaperManager.setBitmap(...)` inside `withContext(Dispatchers.IO)` try-catch block in `AndroidWallpaperApplier.kt` with structured `Log.e` error logging.
+
 **File:** `graphics/AndroidWallpaperApplier.kt`
 
 Can throw `IOException` if the system wallpaper service is unavailable or the bitmap is
