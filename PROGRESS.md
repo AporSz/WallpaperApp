@@ -750,3 +750,11 @@
 ### System Service Integration & Resolution
 - **Status:** ✅ Resolved — Wrapped `wallpaperManager.setBitmap(...)` inside `withContext(Dispatchers.IO)` try-catch block in `AndroidWallpaperApplier.kt` with structured `Log.e` error logging.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).
+
+---
+
+## Issue #27: PaletteContrastAnalyzer Bitmap Region Bounds Clamping Audit
+
+### Bitmap Analysis Safety & Resolution
+- **Status:** ✅ Resolved — Clamped sub-region bounds safely before calling `Bitmap.createBitmap()` in `PaletteContrastAnalyzer.kt` and ensured intermediate cropped bitmaps are recycled to prevent memory leaks.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).

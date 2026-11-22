@@ -24,18 +24,31 @@ class PaletteContrastAnalyzer : ContrastAnalyzer<Bitmap> {
             )
         }
 
-        val cropLeft = (rect.left * image.width).toInt().coerceIn(0, image.width - 1)
-        val cropTop = (rect.top * image.height).toInt().coerceIn(0, image.height - 1)
+        val cropLeft = (rect.left * image.width).toInt().coerceIn(0, (image.width - 1).coerceAtLeast(0))
+        val cropTop = (rect.top * image.height).toInt().coerceIn(0, (image.height - 1).coerceAtLeast(0))
         val cropRight = (rect.right * image.width).toInt().coerceIn(cropLeft + 1, image.width)
         val cropBottom = (rect.bottom * image.height).toInt().coerceIn(cropTop + 1, image.height)
 
-        val width = cropRight - cropLeft
-        val height = cropBottom - cropTop
+        val width = (cropRight - cropLeft).coerceIn(1, image.width - cropLeft)
+        val height = (cropBottom - cropTop).coerceIn(1, image.height - cropTop)
 
-        val cropped = Bitmap.createBitmap(image, cropLeft, cropTop, width, height)
+        val cropped = try {
+            Bitmap.createBitmap(image, cropLeft, cropTop, width, height)
+        } catch (e: Exception) {
+            image
+        }
+
         val palette = Palette.from(cropped).generate()
-
         val luminance = calculateAverageLuminance(cropped, palette)
+
+        if (cropped != image) {
+            try {
+                cropped.recycle()
+            } catch (e: Exception) {
+                // Ignore
+            }
+        }
+
         val isDark = luminance < 0.5f
 
         return when (scheme) {
@@ -100,6 +113,10 @@ class PaletteContrastAnalyzer : ContrastAnalyzer<Bitmap> {
             return ColorUtils.calculateLuminance(color).toFloat()
         }
 
+        if (bitmap.isRecycled || bitmap.width <= 0 || bitmap.height <= 0) {
+            return 0.5f
+        }
+
         var totalLuminance = 0.0
         val sampleStepX = (bitmap.width / 10).coerceAtLeast(1)
         val sampleStepY = (bitmap.height / 10).coerceAtLeast(1)
@@ -107,9 +124,13 @@ class PaletteContrastAnalyzer : ContrastAnalyzer<Bitmap> {
 
         for (x in 0 until bitmap.width step sampleStepX) {
             for (y in 0 until bitmap.height step sampleStepY) {
-                val pixel = bitmap.getPixel(x, y)
-                totalLuminance += ColorUtils.calculateLuminance(pixel)
-                count++
+                try {
+                    val pixel = bitmap.getPixel(x, y)
+                    totalLuminance += ColorUtils.calculateLuminance(pixel)
+                    count++
+                } catch (e: Exception) {
+                    // Ignore
+                }
             }
         }
 

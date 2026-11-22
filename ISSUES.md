@@ -310,6 +310,8 @@ too large.
 
 ### 27. `PaletteContrastAnalyzer` — region bounds not validated
 
+> **Status:** ✅ Resolved — Clamped sub-region bounds safely before calling `Bitmap.createBitmap()` in `PaletteContrastAnalyzer.kt` and ensured intermediate cropped bitmaps are recycled to prevent memory leaks.
+
 **File:** `graphics/PaletteContrastAnalyzer.kt`
 
 `Bitmap.createBitmap(bitmap, region.left, ...)` throws `IllegalArgumentException` if the
