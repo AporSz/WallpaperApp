@@ -774,3 +774,11 @@
 ### Accessibility & Resolution
 - **Status:** ✅ Resolved — Verified all interactive `Icon` and `IconButton` composables across screens have non-null, descriptive `contentDescription` attributes for TalkBack accessibility.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).
+
+---
+
+## Issue #30: Destructive Action Confirmation Audit
+
+### User Safety & Resolution
+- **Status:** ✅ Resolved — Added Material 3 confirmation `AlertDialog`s before deleting quotes or wallpaper images in `PoolsScreen.kt`.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).

@@ -337,6 +337,8 @@ to screen readers (TalkBack).
 
 ### 30. No confirmation dialog for destructive actions
 
+> **Status:** ✅ Resolved — Added Material 3 confirmation `AlertDialog`s before deleting quotes or wallpaper images in `PoolsScreen.kt`.
+
 **File:** `ui/pools/PoolsScreen.kt`
 
 Images and quotes can be deleted with a single tap — no undo or confirmation.

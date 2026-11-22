@@ -89,6 +89,9 @@ fun PoolsScreen(
     var previewingQuote by remember { mutableStateOf<Quote?>(null) }
     var previewingImage by remember { mutableStateOf<WallpaperImage?>(null) }
 
+    var quoteToDelete by remember { mutableStateOf<Quote?>(null) }
+    var imageToDelete by remember { mutableStateOf<WallpaperImage?>(null) }
+
     val quotes by viewModel.quotesState.collectAsState()
     val images by viewModel.imagesState.collectAsState()
 
@@ -208,7 +211,7 @@ fun PoolsScreen(
                                                 )
                                             }
                                         }
-                                        IconButton(onClick = { viewModel.deleteQuote(quote.id) }) {
+                                        IconButton(onClick = { quoteToDelete = quote }) {
                                             Icon(
                                                 imageVector = Icons.Default.Delete,
                                                 contentDescription = "Delete Quote",
@@ -347,7 +350,7 @@ fun PoolsScreen(
                                         )
 
                                         IconButton(
-                                            onClick = { viewModel.deleteImage(image.id) },
+                                            onClick = { imageToDelete = image },
                                             modifier = Modifier
                                                 .align(Alignment.TopEnd)
                                                 .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(bottomStart = 8.dp))
@@ -379,6 +382,52 @@ fun PoolsScreen(
                 }
             }
         }
+    }
+
+    if (quoteToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { quoteToDelete = null },
+            title = { Text("Delete Quote") },
+            text = { Text("Are you sure you want to delete this quote?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        quoteToDelete?.let { viewModel.deleteQuote(it.id) }
+                        quoteToDelete = null
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { quoteToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (imageToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { imageToDelete = null },
+            title = { Text("Delete Image") },
+            text = { Text("Are you sure you want to delete this wallpaper image?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        imageToDelete?.let { viewModel.deleteImage(it.id) }
+                        imageToDelete = null
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { imageToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     if (showAddQuoteDialog) {
