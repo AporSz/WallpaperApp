@@ -328,6 +328,8 @@ in English. Use `stringResource(R.string.xxx)` for i18n.
 
 ### 29. Missing content descriptions on interactive icons
 
+> **Status:** ✅ Resolved — Verified all interactive `Icon` and `IconButton` composables across screens have non-null, descriptive `contentDescription` attributes for TalkBack accessibility.
+
 **Files:** Multiple UI screens.
 
 Interactive `Icon` composables have `contentDescription = null`, making them invisible
