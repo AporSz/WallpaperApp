@@ -354,6 +354,8 @@ system settings.
 
 ### 32. Zone editor flickers on load
 
+> **Status:** ✅ Resolved — Updated state flows in `ZoneEditorViewModel.kt` to use `SharingStarted.Eagerly` so preferences are pre-filled eagerly on ViewModel creation, eliminating initial layout rendering flicker.
+
 **File:** `ui/zone/ZoneEditorViewModel.kt`
 
 The initial zone defaults to a hardcoded value, then a coroutine fetches the real value.

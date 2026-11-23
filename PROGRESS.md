@@ -790,3 +790,11 @@
 ### Permission Handling & Resolution
 - **Status:** ✅ Resolved — Handled permission denial flow in `DashboardScreen.kt`, prompting users with an `AlertDialog` guiding them to App Settings (`Settings.ACTION_APPLICATION_DETAILS_SETTINGS`) when permissions are denied.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).
+
+---
+
+## Issue #32: Zone Editor Eager Preference Initialization Audit
+
+### UI Rendering Optimization & Resolution
+- **Status:** ✅ Resolved — Updated state flows in `ZoneEditorViewModel.kt` to use `SharingStarted.Eagerly` so preferences are pre-filled eagerly on ViewModel creation, eliminating initial layout rendering flicker.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).
