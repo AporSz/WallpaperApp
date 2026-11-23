@@ -1,5 +1,6 @@
 package com.example.wallpaperapp.ui.font
 
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
@@ -57,6 +58,10 @@ fun FontPreviewScreen(
     zoneEditorViewModel: ZoneEditorViewModel,
     onConfirmFont: () -> Unit
 ) {
+    BackHandler(enabled = true) {
+        onConfirmFont()
+    }
+
     val context = LocalContext.current
     val currentSavedFontId by dashboardViewModel.quoteFontId.collectAsState()
     val savedIsBold by dashboardViewModel.isBoldState.collectAsState()
@@ -97,24 +102,21 @@ fun FontPreviewScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(12.dp)
+            .padding(16.dp)
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Full Typography Preview",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.align(Alignment.Start)
+            text = "Font Typography Preview",
+            style = MaterialTheme.typography.headlineMedium
         )
 
-        // Built-in Font Chips Row
+        // Built-in Font Presets Selector
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             QuoteFont.BUILTIN_FONTS.forEach { font ->
                 FilterChip(
@@ -161,25 +163,16 @@ fun FontPreviewScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(screenAspectRatio),
-            colors = CardDefaults.cardColors(containerColor = Color.Black)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            shape = RoundedCornerShape(12.dp)
         ) {
-            BoxWithConstraints(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(8.dp))
-            ) {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val containerWidthPx = this.constraints.maxWidth.toFloat()
                 val containerHeightPx = this.constraints.maxHeight.toFloat()
-
-                val leftPx = rect.left * containerWidthPx
-                val topPx = rect.top * containerHeightPx
-                val rightPx = rect.right * containerWidthPx
-                val bottomPx = rect.bottom * containerHeightPx
-
                 val density = LocalDensity.current
 
-                // Background
-                if (imageUri != null) {
+                // Background Image
+                if (!imageUri.isNullInEmpty()) {
                     AsyncImage(
                         model = imageUri,
                         contentDescription = "Preview Background",
@@ -190,13 +183,18 @@ fun FontPreviewScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color(0xFF222222))
+                            .background(Color(0xFF2C3E50))
                     )
                 }
 
-                // Dimmed Outer Scrim & 1:1 Bounding Box Canvas Text Render
+                // Semi-translucent Overlay Canvas + Quote Render
                 Canvas(modifier = Modifier.fillMaxSize()) {
-                    val scrimColor = Color.Black.copy(alpha = 0.50f)
+                    val leftPx = rect.left * containerWidthPx
+                    val topPx = rect.top * containerHeightPx
+                    val rightPx = rect.right * containerWidthPx
+                    val bottomPx = rect.bottom * containerHeightPx
+
+                    val scrimColor = Color.Black.copy(alpha = 0.45f)
                     drawRect(scrimColor, Offset(0f, 0f), Size(containerWidthPx, topPx))
                     drawRect(scrimColor, Offset(0f, bottomPx), Size(containerWidthPx, containerHeightPx - bottomPx))
                     drawRect(scrimColor, Offset(0f, topPx), Size(leftPx, bottomPx - topPx))
@@ -250,3 +248,5 @@ fun FontPreviewScreen(
         }
     }
 }
+
+private fun String?.isNullInEmpty(): Boolean = this == null || this.isEmpty()

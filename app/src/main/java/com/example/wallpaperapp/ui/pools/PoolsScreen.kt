@@ -3,6 +3,7 @@ package com.example.wallpaperapp.ui.pools
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -455,6 +456,10 @@ fun PoolItemFullScreenPreview(
     landscapeMode: LandscapeHandlingMode,
     onDismiss: () -> Unit
 ) {
+    BackHandler(enabled = true) {
+        onDismiss()
+    }
+
     val context = LocalContext.current
 
     var selectedQuoteIndex by remember {

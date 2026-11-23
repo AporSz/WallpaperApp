@@ -165,3 +165,19 @@
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (20/20 unit tests passed).
+
+---
+
+## Step 2: Implement Back Stack & System Back Button Support
+
+### Implementation Summary
+- **Full-Screen Preview Overlay Back Navigation:**
+  - Added `BackHandler(enabled = true)` inside [`FontPreviewScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/font/FontPreviewScreen.kt) to pop back to the Dashboard upon tapping Back or performing system edge swipe.
+  - Added `BackHandler(enabled = true)` inside [`ColorSchemePreviewScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/color/ColorSchemePreviewScreen.kt) to pop back to the Dashboard upon system back.
+  - Added `BackHandler(enabled = true)` inside [`PoolItemFullScreenPreview`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt) to close 1:1 wallpaper full-screen preview and return to asset pools grid.
+- **Tab Navigation History Back Stack ([`MainActivity.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/MainActivity.kt)):**
+  - Introduced `val backStack = remember { mutableStateListOf<Int>(0) }` tracking tab navigation history.
+  - Configured `BackHandler(enabled = backStack.size > 1 && !showFontPreviewScreen && !showColorSchemePreviewScreen)` to pop previous tabs until returning to root Dashboard (`index 0`), where system back is disabled to allow standard app exit.
+
+### Verification Status
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (20/20 unit tests passed).

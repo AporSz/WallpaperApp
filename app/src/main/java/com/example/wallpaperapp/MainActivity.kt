@@ -2,6 +2,7 @@ package com.example.wallpaperapp
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -24,6 +25,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -107,6 +109,7 @@ fun MainAppScreen(
     poolsViewModel: PoolsViewModel
 ) {
     var selectedScreenIndex by remember { mutableIntStateOf(0) }
+    val backStack = remember { mutableStateListOf<Int>(0) }
     var showFontPreviewScreen by remember { mutableStateOf(false) }
     var showColorSchemePreviewScreen by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -116,6 +119,15 @@ fun MainAppScreen(
         Screen.ZoneEditor,
         Screen.Pools
     )
+
+    BackHandler(
+        enabled = backStack.size > 1 && !showFontPreviewScreen && !showColorSchemePreviewScreen
+    ) {
+        if (backStack.size > 1) {
+            backStack.removeAt(backStack.lastIndex)
+            selectedScreenIndex = backStack.last()
+        }
+    }
 
     if (showFontPreviewScreen) {
         FontPreviewScreen(
@@ -137,7 +149,14 @@ fun MainAppScreen(
                     screens.forEachIndexed { index, screen ->
                         NavigationBarItem(
                             selected = selectedScreenIndex == index,
-                            onClick = { selectedScreenIndex = index },
+                            onClick = {
+                                if (selectedScreenIndex != index) {
+                                    selectedScreenIndex = index
+                                    if (backStack.lastOrNull() != index) {
+                                        backStack.add(index)
+                                    }
+                                }
+                            },
                             icon = { Icon(imageVector = screen.icon, contentDescription = screen.title) },
                             label = { Text(screen.title) }
                         )

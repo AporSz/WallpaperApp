@@ -2,6 +2,7 @@ package com.example.wallpaperapp.ui.color
 
 import android.graphics.BitmapFactory
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -48,16 +49,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import com.example.wallpaperapp.domain.engine.ContrastResult
-import com.example.wallpaperapp.domain.model.LandscapeHandlingMode
+import com.example.wallpaperapp.domain.model.NormalizedRect
 import com.example.wallpaperapp.domain.model.Quote
 import com.example.wallpaperapp.domain.model.TextColorScheme
-import com.example.wallpaperapp.graphics.LandscapeOrientationTransformation
+import com.example.wallpaperapp.domain.model.TextOrientation
 import com.example.wallpaperapp.graphics.PaletteContrastAnalyzer
 import com.example.wallpaperapp.graphics.QuoteTextCanvasDrawer
 import com.example.wallpaperapp.ui.dashboard.DashboardViewModel
 import com.example.wallpaperapp.ui.zone.ZoneEditorViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun ColorSchemePreviewScreen(
@@ -65,91 +67,87 @@ fun ColorSchemePreviewScreen(
     zoneEditorViewModel: ZoneEditorViewModel,
     onConfirmScheme: () -> Unit
 ) {
-    val context = LocalContext.current
-    val savedScheme by dashboardViewModel.textColorSchemeState.collectAsState()
-    var previewScheme by remember(savedScheme) { mutableStateOf(savedScheme) }
+    BackHandler(enabled = true) {
+        onConfirmScheme()
+    }
 
-    val activeFontId by dashboardViewModel.quoteFontId.collectAsState()
-    val isBold by dashboardViewModel.isBoldState.collectAsState()
-    val isItalic by dashboardViewModel.isItalicState.collectAsState()
+    val context = LocalContext.current
+
+    val currentSavedScheme by dashboardViewModel.textColorSchemeState.collectAsState()
+    var previewScheme by remember(currentSavedScheme) { mutableStateOf(currentSavedScheme) }
 
     val rect by zoneEditorViewModel.normalizedRect.collectAsState()
     val orientation by zoneEditorViewModel.textOrientation.collectAsState()
+    val fontId by dashboardViewModel.quoteFontId.collectAsState()
+    val isBold by dashboardViewModel.isBoldState.collectAsState()
+    val isItalic by dashboardViewModel.isItalicState.collectAsState()
+
     val sampleQuote by zoneEditorViewModel.sampleQuote.collectAsState()
-    val sampleImageUri by zoneEditorViewModel.sampleImageUri.collectAsState()
+    val imageUriString by zoneEditorViewModel.sampleImageUri.collectAsState()
 
-    var useLongQuotePreview by remember { mutableStateOf(false) }
-
-    val longQuote = remember {
-        Quote(
-            id = "long_preview",
-            text = "The unexamined life is not worth living. Human behavior flows from three main sources: desire, emotion, and knowledge. Wise men speak because they have something to say; Fools because they have to say something.",
-            author = "Plato"
+    var contrastResult by remember {
+        mutableStateOf(
+            ContrastResult(
+                textColorArgb = android.graphics.Color.WHITE,
+                shadowColorArgb = android.graphics.Color.BLACK,
+                isDarkBackground = true
+            )
         )
     }
 
-    val activeQuote = if (useLongQuotePreview) longQuote else sampleQuote
-
-    val displayMetrics = context.resources.displayMetrics
-    val screenAspectRatio = displayMetrics.widthPixels.toFloat() / displayMetrics.heightPixels.toFloat().coerceAtLeast(1f)
-
-    var contrastResult by remember { mutableStateOf<ContrastResult?>(null) }
-
-    val analyzer = remember { PaletteContrastAnalyzer() }
-
-    LaunchedEffect(sampleImageUri, rect, previewScheme) {
-        if (sampleImageUri != null) {
-            try {
-                val uri = Uri.parse(sampleImageUri)
-                val options = BitmapFactory.Options().apply { inSampleSize = 4 }
-                context.contentResolver.openInputStream(uri)?.use { stream ->
-                    val bitmap = BitmapFactory.decodeStream(stream, null, options)
-                    if (bitmap != null) {
-                        contrastResult = analyzer.analyzeContrast(bitmap, rect, previewScheme)
+    // Recalculate dynamic text color and drop shadow on IO thread
+    LaunchedEffect(imageUriString, rect, previewScheme) {
+        withContext(Dispatchers.IO) {
+            val analyzer = PaletteContrastAnalyzer()
+            val bitmap = if (!imageUriString.isNullOrEmpty()) {
+                try {
+                    val uri = Uri.parse(imageUriString)
+                    context.contentResolver.openInputStream(uri)?.use { stream ->
+                        BitmapFactory.decodeStream(stream)
                     }
+                } catch (e: Exception) {
+                    null
                 }
-            } catch (_: Exception) {
-                // Ignore fallback
+            } else {
+                null
+            }
+
+            if (bitmap != null) {
+                val computed = analyzer.analyzeContrast(bitmap, rect, previewScheme)
+                withContext(Dispatchers.Main) {
+                    contrastResult = computed
+                }
+                bitmap.recycle()
+            } else {
+                withContext(Dispatchers.Main) {
+                    contrastResult = ContrastResult(
+                        textColorArgb = android.graphics.Color.WHITE,
+                        shadowColorArgb = android.graphics.Color.BLACK,
+                        isDarkBackground = true
+                    )
+                }
             }
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
-        // Edge-to-Edge Full-Screen 1:1 Wallpaper Render
+    val displayMetrics = context.resources.displayMetrics
+    val screenAspectRatio = displayMetrics.widthPixels.toFloat() / displayMetrics.heightPixels.toFloat().coerceAtLeast(1f)
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Full-screen Wallpaper Canvas Container
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .align(Alignment.Center)
-                .aspectRatio(screenAspectRatio)
+                .background(Color.Black)
         ) {
             val containerWidthPx = this.constraints.maxWidth.toFloat()
             val containerHeightPx = this.constraints.maxHeight.toFloat()
-
-            val leftPx = rect.left * containerWidthPx
-            val topPx = rect.top * containerHeightPx
-            val rightPx = rect.right * containerWidthPx
-            val bottomPx = rect.bottom * containerHeightPx
-
             val density = LocalDensity.current
 
-            val imageRequest = remember(sampleImageUri) {
-                if (sampleImageUri != null) {
-                    ImageRequest.Builder(context)
-                        .data(sampleImageUri)
-                        .transformations(LandscapeOrientationTransformation(LandscapeHandlingMode.ROTATE_90_CW))
-                        .crossfade(true)
-                        .build()
-                } else null
-            }
-
             // Background Image
-            if (imageRequest != null) {
+            if (!imageUriString.isNullOrEmpty()) {
                 AsyncImage(
-                    model = imageRequest,
+                    model = imageUriString,
                     contentDescription = "Color Preview Background",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
@@ -158,18 +156,24 @@ fun ColorSchemePreviewScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color(0xFF222222))
+                        .background(Color(0xFF1E293B))
                 )
             }
 
-            // Dimmed Scrim & 1:1 Color-Resolved Canvas Text Render
+            // Semi-translucent Overlay Canvas + Dynamic Contrast Quote Render
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val scrimColor = Color.Black.copy(alpha = 0.45f)
+                val leftPx = rect.left * containerWidthPx
+                val topPx = rect.top * containerHeightPx
+                val rightPx = rect.right * containerWidthPx
+                val bottomPx = rect.bottom * containerHeightPx
+
+                val scrimColor = Color.Black.copy(alpha = 0.40f)
                 drawRect(scrimColor, Offset(0f, 0f), Size(containerWidthPx, topPx))
                 drawRect(scrimColor, Offset(0f, bottomPx), Size(containerWidthPx, containerHeightPx - bottomPx))
                 drawRect(scrimColor, Offset(0f, topPx), Size(leftPx, bottomPx - topPx))
                 drawRect(scrimColor, Offset(rightPx, topPx), Size(containerWidthPx - rightPx, bottomPx - topPx))
 
+                // Border overlay around bounding box
                 drawRect(
                     color = Color(0x8800E5FF),
                     topLeft = Offset(leftPx, topPx),
@@ -177,12 +181,10 @@ fun ColorSchemePreviewScreen(
                     style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
                 )
 
-                val textColor = contrastResult?.textColorArgb ?: android.graphics.Color.WHITE
-                val shadowColor = contrastResult?.shadowColorArgb ?: android.graphics.Color.BLACK
-
+                // 1:1 Native Canvas Render with Dynamic Contrast Color
                 drawIntoCanvas { composeCanvas ->
                     val nativeCanvas = composeCanvas.nativeCanvas
-                    val activeQuoteObj = activeQuote ?: Quote("preview", "The unexamined life is not worth living.", "Socrates")
+                    val activeQuoteObj = sampleQuote ?: Quote("preview", "The unexamined life is not worth living.", "Socrates")
                     QuoteTextCanvasDrawer.drawQuoteOnCanvas(
                         canvas = nativeCanvas,
                         quote = activeQuoteObj,
@@ -191,11 +193,11 @@ fun ColorSchemePreviewScreen(
                         rightPx = rightPx,
                         bottomPx = bottomPx,
                         orientation = orientation,
-                        fontId = activeFontId,
+                        fontId = fontId,
                         isBold = isBold,
                         isItalic = isItalic,
-                        textColorArgb = textColor,
-                        shadowColorArgb = shadowColor,
+                        textColorArgb = contrastResult.textColorArgb,
+                        shadowColorArgb = contrastResult.shadowColorArgb,
                         scaledDensity = density.density
                     )
                 }
@@ -223,20 +225,19 @@ fun ColorSchemePreviewScreen(
                 .align(Alignment.BottomCenter)
                 .padding(20.dp)
                 .fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.88f)),
-            shape = RoundedCornerShape(24.dp)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.92f)),
+            shape = RoundedCornerShape(16.dp)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Select Text Color Scheme",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White
+                    text = "Text Color Scheme Preview",
+                    style = MaterialTheme.typography.titleMedium
                 )
 
-                // 5 Color Schemes Chips
+                // Horizontal Scheme Selector Chips
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -252,26 +253,23 @@ fun ColorSchemePreviewScreen(
                     }
                 }
 
-                // Controls & Confirm Button
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    FilterChip(
-                        selected = useLongQuotePreview,
-                        onClick = { useLongQuotePreview = !useLongQuotePreview },
-                        label = { Text("Long Quote") }
-                    )
+                Text(
+                    text = previewScheme.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
-                    Button(
-                        onClick = {
-                            dashboardViewModel.setTextColorScheme(previewScheme)
-                            onConfirmScheme()
-                        }
-                    ) {
-                        Text("Use This Color Scheme")
-                    }
+                // Use This Color Scheme Button
+                Button(
+                    onClick = {
+                        dashboardViewModel.setTextColorScheme(previewScheme)
+                        onConfirmScheme()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    Text("Use This Color Scheme", style = MaterialTheme.typography.titleMedium)
                 }
             }
         }
