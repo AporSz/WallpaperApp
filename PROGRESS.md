@@ -142,56 +142,26 @@
 
 ---
 
-## Feature Extensions: Codebase Inspection & Integration Plan (Back Stack & Delete Confirmation)
+## Feature Extensions: Codebase Inspection & Integration Plan (Edit Quotes & Per-Quote Quotation Marks)
 
-### Inspection Summary
-1. **System Back Button Navigation Gaps (`MainActivity.kt`, `FontPreviewScreen.kt`, `ColorSchemePreviewScreen.kt`, `PoolsScreen.kt`):**
-   - **Full-Screen Overlays:** `FontPreviewScreen`, `ColorSchemePreviewScreen`, and `PoolItemFullScreenPreview` currently render conditional composable overlays without `BackHandler` hooks. Pressing system back or back gesture on these previews exits the app rather than popping back to the previous screen.
-   - **Tab Navigation History:** Bottom bar tab navigation (`Dashboard`, `Zone Editor`, `Pools`) uses a single `selectedScreenIndex` integer. Switching tabs and pressing system back exits the app immediately instead of popping back through tab history to root Dashboard.
-2. **Delete Confirmation Dialog Architecture (`PoolsScreen.kt`):**
-   - Quote and image deletion currently uses two separate `AlertDialog` blocks.
-   - Refactoring to a clean, reusable `DeleteConfirmationDialog` composable with distinct quote snippet preview text (`Are you sure you want to delete “...”`) and image pool removal notice (`This image will be removed from your wallpaper rotation pool...`) improves SOLID/KISS adherence.
+### Inspection & Architectural Analysis Summary
+1. **Domain & Data Layer Schema Updates:**
+   - **`Quote` Domain Model:** Add `val showQuotationMarks: Boolean = true` (default `true`).
+   - **`QuoteEntity` Room Entity:** Add `val showQuotationMarks: Boolean = true` and update `toDomain()` / `fromDomain()`.
+   - **Room Database Migration (`MIGRATION_1_2`):** Increment `WallpaperDatabase` version from `1` to `2`. Add migration `ALTER TABLE quotes ADD COLUMN showQuotationMarks INTEGER NOT NULL DEFAULT 1` to preserve user quotes with quotation marks enabled by default.
+   - **Repository Interfaces & Implementations:** Add `@Update` / `insertQuote(onConflict = REPLACE)` in `QuoteDao`, and `updateQuote(quote: Quote)` in `QuoteRepository` and `RoomQuoteRepository`.
+2. **Graphics & Rendering Pipeline (`QuoteTextCanvasDrawer.kt`):**
+   - Make quotation mark wrapping conditional: `val mainText = if (quote.showQuotationMarks) "“${quote.text}”" else quote.text`.
+   - Applies automatically to background `WorkManager` rendering and all full-screen / live previews.
+3. **UI Layer (`PoolsScreen.kt` & `PoolsViewModel.kt`):**
+   - Update `PoolsViewModel` with `updateQuote(id, text, author, showQuotationMarks)`.
+   - Add an **Edit** icon button (`Icons.Default.Edit`) to quote items on the Pools screen.
+   - Upgrade `AddQuoteDialog` into a unified `AddEditQuoteDialog` supporting quote text, author, and a **"Show quotation marks"** toggle switch/checkbox (`default = true`).
 
-### Concrete Integration Plan
-- **Step 2 (Back Stack & System Back Button Support):**
-  - In `MainActivity.kt`, introduce a navigation back-stack list (`mutableStateListOf<Int>(0)`).
-  - Wire `BackHandler` in `MainAppScreen` to pop back through tab history when `backStack.size > 1` (returning to root Dashboard before app exit).
-  - Add `BackHandler` in `FontPreviewScreen.kt` and `ColorSchemePreviewScreen.kt` to pop back to Dashboard on system back.
-  - Add `BackHandler` in `PoolItemFullScreenPreview` (`PoolsScreen.kt`) to close item preview on system back.
-- **Step 3 (Delete Confirmation Dialogs for Quotes & Images):**
-  - Create reusable `DeleteConfirmationDialog` in `PoolsScreen.kt`.
-  - Format quote preview snippet text and image removal notice with explicit **Cancel** and **Delete / Remove** action buttons.
-  - Verify debug build (`./gradlew assembleDebug`) and unit test suite.
-
-### Verification Status
-- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (20/20 unit tests passed).
-
----
-
-## Step 2: Implement Back Stack & System Back Button Support
-
-### Implementation Summary
-- **Full-Screen Preview Overlay Back Navigation:**
-  - Added `BackHandler(enabled = true)` inside [`FontPreviewScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/font/FontPreviewScreen.kt) to pop back to the Dashboard upon tapping Back or performing system edge swipe.
-  - Added `BackHandler(enabled = true)` inside [`ColorSchemePreviewScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/color/ColorSchemePreviewScreen.kt) to pop back to the Dashboard upon system back.
-  - Added `BackHandler(enabled = true)` inside [`PoolItemFullScreenPreview`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt) to close 1:1 wallpaper full-screen preview and return to asset pools grid.
-- **Tab Navigation History Back Stack ([`MainActivity.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/MainActivity.kt)):**
-  - Introduced `val backStack = remember { mutableStateListOf<Int>(0) }` tracking tab navigation history.
-  - Configured `BackHandler(enabled = backStack.size > 1 && !showFontPreviewScreen && !showColorSchemePreviewScreen)` to pop previous tabs until returning to root Dashboard (`index 0`), where system back is disabled to allow standard app exit.
-
-### Verification Status
-- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (20/20 unit tests passed).
-
----
-
-## Step 3: Implement Delete Confirmation Dialogs for Quotes & Images
-
-### Implementation Summary
-- **Reusable Delete Confirmation Dialog ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
-  - Created reusable `DeleteConfirmationDialog` composable wrapping Material 3 `AlertDialog` with custom title, message, and confirm button styling (`MaterialTheme.colorScheme.error`).
-  - **Quote Deletion:** Formatted preview snippet text (*"Are you sure you want to delete “...”?"*) with **Cancel** and **Delete** action buttons.
-  - **Image Deletion:** Formatted device storage safety notice (*"This image will be removed from your wallpaper rotation pool. The photo will remain safe on your device storage."*) with **Cancel** and **Remove** action buttons.
+### Concrete Implementation Steps
+- **Step 2 (Domain, Room Migration & Repository Update):** Update `Quote`, `QuoteEntity`, `QuoteDao`, `WallpaperDatabase` version 2 with `MIGRATION_1_2`, `AppContainer.kt`, `QuoteRepository`, and `RoomQuoteRepository`. Write unit tests.
+- **Step 3 (Graphics Renderer Conditional Quotation Marks):** Update `QuoteTextCanvasDrawer.kt` formatting and write unit tests for both `showQuotationMarks = true` and `showQuotationMarks = false`.
+- **Step 4 (Pools Screen Edit Quote UI & Quotation Marks Toggle):** Add `updateQuote` to `PoolsViewModel`, add Edit button and unified `AddEditQuoteDialog` with quotation marks toggle to `PoolsScreen.kt`. Build debug APK (`./gradlew assembleDebug`).
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (20/20 unit tests passed).
-- Built Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
