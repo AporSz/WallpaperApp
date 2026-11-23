@@ -8,15 +8,22 @@ import com.example.wallpaperapp.domain.model.Quote
 data class QuoteEntity(
     @PrimaryKey val id: String,
     val text: String,
-    val author: String?
+    val author: String?,
+    val showQuotationMarks: Boolean = true
 ) {
-    fun toDomain(): Quote = Quote(id = id, text = text, author = author)
+    fun toDomain(): Quote = Quote(
+        id = id,
+        text = text,
+        author = author,
+        showQuotationMarks = showQuotationMarks
+    )
 
     companion object {
         fun fromDomain(quote: Quote): QuoteEntity = QuoteEntity(
             id = quote.id,
             text = quote.text,
-            author = quote.author
+            author = quote.author,
+            showQuotationMarks = quote.showQuotationMarks
         )
     }
 }

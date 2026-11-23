@@ -9,6 +9,7 @@ interface QuoteRepository {
     suspend fun getRandomQuote(): Quote?
     suspend fun addQuote(quote: Quote)
     suspend fun addQuotes(quotes: List<Quote>)
+    suspend fun updateQuote(quote: Quote)
     suspend fun deleteQuote(id: String)
     fun observeAllQuotes(): Flow<List<Quote>>
 }

@@ -33,6 +33,10 @@ class RotateWallpaperUseCaseTest {
         override suspend fun getRandomQuote(): Quote? = quotes.randomOrNull()
         override suspend fun addQuote(quote: Quote) { quotes.add(quote) }
         override suspend fun addQuotes(quotes: List<Quote>) { this.quotes.addAll(quotes) }
+        override suspend fun updateQuote(quote: Quote) {
+            val index = quotes.indexOfFirst { it.id == quote.id }
+            if (index != -1) quotes[index] = quote
+        }
         override suspend fun deleteQuote(id: String) { quotes.removeAll { it.id == id } }
         override fun observeAllQuotes(): Flow<List<Quote>> = MutableStateFlow(quotes)
     }

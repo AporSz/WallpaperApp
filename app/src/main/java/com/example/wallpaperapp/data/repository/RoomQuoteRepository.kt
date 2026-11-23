@@ -31,6 +31,10 @@ class RoomQuoteRepository(
         quoteDao.insertQuotes(quotes.map { QuoteEntity.fromDomain(it) })
     }
 
+    override suspend fun updateQuote(quote: Quote) {
+        quoteDao.updateQuote(QuoteEntity.fromDomain(quote))
+    }
+
     override suspend fun deleteQuote(id: String) {
         quoteDao.deleteQuoteById(id)
     }

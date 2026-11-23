@@ -165,3 +165,25 @@
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (20/20 unit tests passed).
+
+---
+
+## Step 2: Domain, Room Migration & Repository Update
+
+### Implementation Summary
+- **Domain & Data Model Extension:**
+  - Extended [`Quote.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/model/Quote.kt) with `val showQuotationMarks: Boolean = true`.
+  - Extended [`QuoteEntity.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/data/local/db/QuoteEntity.kt) with `val showQuotationMarks: Boolean = true` and updated `toDomain()` / `fromDomain()` mappings.
+- **Room Database Migration (`MIGRATION_1_2`):**
+  - Incremented [`WallpaperDatabase`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/data/local/db/WallpaperDatabase.kt) version to `2`.
+  - Defined `MIGRATION_1_2`: `ALTER TABLE quotes ADD COLUMN showQuotationMarks INTEGER NOT NULL DEFAULT 1` preserving existing user quotes with quotation marks enabled by default.
+  - Registered `.addMigrations(WallpaperDatabase.MIGRATION_1_2)` in [`AppContainer.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/di/AppContainer.kt).
+- **Dao & Repository Updates:**
+  - Added `@Update suspend fun updateQuote(quote: QuoteEntity)` to [`QuoteDao.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/data/local/db/QuoteDao.kt).
+  - Added `suspend fun updateQuote(quote: Quote)` to [`QuoteRepository.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/repository/QuoteRepository.kt) and [`RoomQuoteRepository.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/data/repository/RoomQuoteRepository.kt).
+- **Unit Tests:**
+  - Created [`QuoteTest.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/test/java/com/example/wallpaperapp/domain/model/QuoteTest.kt) testing `Quote` defaults and `showQuotationMarks` behavior.
+  - Updated `FakeQuoteRepository` in [`RotateWallpaperUseCaseTest.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/test/java/com/example/wallpaperapp/domain/usecase/RotateWallpaperUseCaseTest.kt).
+
+### Verification Status
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (23/23 unit tests passed).

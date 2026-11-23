@@ -31,6 +31,7 @@ class AppContainer(private val context: Context) {
             WallpaperDatabase::class.java,
             "wallpaper_db"
         )
+            .addMigrations(WallpaperDatabase.MIGRATION_1_2)
             .fallbackToDestructiveMigration()
             .build()
     }
