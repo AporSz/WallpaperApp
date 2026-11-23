@@ -35,6 +35,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -46,6 +47,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -91,6 +93,7 @@ fun PoolsScreen(
     var previewingImage by remember { mutableStateOf<WallpaperImage?>(null) }
 
     var quoteToDelete by remember { mutableStateOf<Quote?>(null) }
+    var quoteToEdit by remember { mutableStateOf<Quote?>(null) }
     var imageToDelete by remember { mutableStateOf<WallpaperImage?>(null) }
 
     val quotes by viewModel.quotesState.collectAsState()
@@ -200,7 +203,7 @@ fun PoolsScreen(
                                     ) {
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
-                                                text = "“${quote.text}”",
+                                                text = if (quote.showQuotationMarks) "“${quote.text}”" else quote.text,
                                                 style = MaterialTheme.typography.bodyLarge
                                             )
                                             if (!quote.author.isNullOrBlank()) {
@@ -212,12 +215,21 @@ fun PoolsScreen(
                                                 )
                                             }
                                         }
-                                        IconButton(onClick = { quoteToDelete = quote }) {
-                                            Icon(
-                                                imageVector = Icons.Default.Delete,
-                                                contentDescription = "Delete Quote",
-                                                tint = MaterialTheme.colorScheme.error
-                                            )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            IconButton(onClick = { quoteToEdit = quote }) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Edit,
+                                                    contentDescription = "Edit Quote",
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                            IconButton(onClick = { quoteToDelete = quote }) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Delete,
+                                                    contentDescription = "Delete Quote",
+                                                    tint = MaterialTheme.colorScheme.error
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -409,11 +421,24 @@ fun PoolsScreen(
     }
 
     if (showAddQuoteDialog) {
-        AddQuoteDialog(
+        AddEditQuoteDialog(
+            quoteToEdit = null,
             onDismiss = { showAddQuoteDialog = false },
-            onConfirm = { text, author ->
-                viewModel.addQuote(text, author)
+            onConfirm = { text, author, showQuotes ->
+                viewModel.addQuote(text, author, showQuotes)
                 showAddQuoteDialog = false
+            }
+        )
+    }
+
+    val currentQuoteToEdit = quoteToEdit
+    if (currentQuoteToEdit != null) {
+        AddEditQuoteDialog(
+            quoteToEdit = currentQuoteToEdit,
+            onDismiss = { quoteToEdit = null },
+            onConfirm = { text, author, showQuotes ->
+                viewModel.updateQuote(currentQuoteToEdit.id, text, author, showQuotes)
+                quoteToEdit = null
             }
         )
     }
@@ -653,18 +678,20 @@ fun DeleteConfirmationDialog(
 }
 
 @Composable
-fun AddQuoteDialog(
+fun AddEditQuoteDialog(
+    quoteToEdit: Quote? = null,
     onDismiss: () -> Unit,
-    onConfirm: (String, String?) -> Unit
+    onConfirm: (text: String, author: String?, showQuotationMarks: Boolean) -> Unit
 ) {
-    var quoteText by remember { mutableStateOf("") }
-    var authorText by remember { mutableStateOf("") }
+    var quoteText by remember(quoteToEdit) { mutableStateOf(quoteToEdit?.text ?: "") }
+    var authorText by remember(quoteToEdit) { mutableStateOf(quoteToEdit?.author ?: "") }
+    var showQuotationMarks by remember(quoteToEdit) { mutableStateOf(quoteToEdit?.showQuotationMarks ?: true) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add New Quote") },
+        title = { Text(if (quoteToEdit != null) "Edit Quote" else "Add New Quote") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = quoteText,
                     onValueChange = { quoteText = it },
@@ -677,14 +704,31 @@ fun AddQuoteDialog(
                     label = { Text("Author (Optional)") },
                     modifier = Modifier.fillMaxWidth()
                 )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showQuotationMarks = !showQuotationMarks }
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Show quotation marks",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Switch(
+                        checked = showQuotationMarks,
+                        onCheckedChange = { showQuotationMarks = it }
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
-                onClick = { onConfirm(quoteText, authorText) },
+                onClick = { onConfirm(quoteText, authorText, showQuotationMarks) },
                 enabled = quoteText.isNotBlank()
             ) {
-                Text("Add")
+                Text(if (quoteToEdit != null) "Save" else "Add")
             }
         },
         dismissButton = {

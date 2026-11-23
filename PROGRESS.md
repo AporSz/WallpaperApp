@@ -201,3 +201,21 @@
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (23/23 unit tests passed).
+
+---
+
+## Step 4: Pools Screen Edit Quote UI & Quotation Marks Toggle
+
+### Implementation Summary
+- **Pools ViewModel Update ([`PoolsViewModel.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsViewModel.kt)):**
+  - Updated `addQuote` to accept `showQuotationMarks: Boolean = true`.
+  - Added `updateQuote(id: String, text: String, author: String?, showQuotationMarks: Boolean)` for persisting quote edits.
+- **Pools Screen UI Extensions ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
+  - Added an **Edit** icon button (`Icons.Default.Edit`, `contentDescription = "Edit Quote"`) on each quote card next to the Delete button.
+  - Upgraded `AddQuoteDialog` into a unified `AddEditQuoteDialog(quoteToEdit: Quote?, onDismiss: () -> Unit, onConfirm: (String, String?, Boolean) -> Unit)`.
+  - Added **"Show quotation marks"** toggle switch inside the dialog (defaulting to `true` when adding new quotes, and reflecting the quote's saved state when editing).
+  - Configured quote cards to display quotes conditionally (`“${quote.text}”` vs `quote.text`) according to `quote.showQuotationMarks`.
+
+### Verification Status
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (23/23 unit tests passed).
+- Built Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).

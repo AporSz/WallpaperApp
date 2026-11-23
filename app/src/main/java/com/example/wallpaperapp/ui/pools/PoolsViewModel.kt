@@ -66,19 +66,38 @@ class PoolsViewModel(
         }
     }
 
-    fun addQuote(text: String, author: String?) {
+    fun addQuote(text: String, author: String?, showQuotationMarks: Boolean = true) {
         if (text.isBlank()) return
         viewModelScope.launch {
             try {
                 val quote = Quote(
                     id = UUID.randomUUID().toString(),
                     text = text.trim(),
-                    author = author?.trim()?.ifBlank { null }
+                    author = author?.trim()?.ifBlank { null },
+                    showQuotationMarks = showQuotationMarks
                 )
                 quoteRepository.addQuote(quote)
             } catch (e: Exception) {
                 Log.e("PoolsViewModel", "Failed to add quote", e)
                 _message.emit("Failed to add quote: ${e.message}")
+            }
+        }
+    }
+
+    fun updateQuote(id: String, text: String, author: String?, showQuotationMarks: Boolean) {
+        if (text.isBlank()) return
+        viewModelScope.launch {
+            try {
+                val quote = Quote(
+                    id = id,
+                    text = text.trim(),
+                    author = author?.trim()?.ifBlank { null },
+                    showQuotationMarks = showQuotationMarks
+                )
+                quoteRepository.updateQuote(quote)
+            } catch (e: Exception) {
+                Log.e("PoolsViewModel", "Failed to update quote", e)
+                _message.emit("Failed to update quote: ${e.message}")
             }
         }
     }
