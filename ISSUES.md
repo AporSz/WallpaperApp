@@ -365,6 +365,8 @@ The UI briefly shows the default zone.
 
 ### 33. Theme flow collected without lifecycle awareness
 
+> **Status:** ✅ Resolved — Replaced `collectAsState()` with `collectAsStateWithLifecycle()` in `MainActivity.kt` for lifecycle-aware StateFlow collection.
+
 **File:** `MainActivity.kt`
 
 `collectAsState(initial = ...)` is used directly in the composable instead of

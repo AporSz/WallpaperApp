@@ -798,3 +798,11 @@
 ### UI Rendering Optimization & Resolution
 - **Status:** ✅ Resolved — Updated state flows in `ZoneEditorViewModel.kt` to use `SharingStarted.Eagerly` so preferences are pre-filled eagerly on ViewModel creation, eliminating initial layout rendering flicker.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).
+
+---
+
+## Issue #33: Lifecycle-Aware Flow Collection Audit
+
+### Lifecycle & State Observation & Resolution
+- **Status:** ✅ Resolved — Replaced `collectAsState()` with `collectAsStateWithLifecycle()` in `MainActivity.kt` for lifecycle-aware StateFlow collection.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).

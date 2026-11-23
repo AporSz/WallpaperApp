@@ -22,7 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.wallpaperapp.domain.model.AppThemeMode
 import com.example.wallpaperapp.ui.color.ColorSchemePreviewScreen
 import com.example.wallpaperapp.ui.dashboard.DashboardScreen
@@ -79,7 +79,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            val themeMode by dashboardViewModel.themeModeState.collectAsState()
+            val themeMode by dashboardViewModel.themeModeState.collectAsStateWithLifecycle()
             val systemInDark = isSystemInDarkTheme()
             val useDarkTheme = when (themeMode) {
                 AppThemeMode.SYSTEM -> systemInDark
