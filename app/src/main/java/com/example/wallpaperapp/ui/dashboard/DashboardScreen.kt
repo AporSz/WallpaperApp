@@ -1,5 +1,12 @@
 package com.example.wallpaperapp.ui.dashboard
 
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -14,6 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -29,6 +37,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -40,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import com.example.wallpaperapp.domain.model.AppThemeMode
 import com.example.wallpaperapp.domain.model.QuoteFont
 import com.example.wallpaperapp.domain.model.TextColorScheme
@@ -67,6 +77,15 @@ fun DashboardScreen(
     var isScheduleExpanded by remember { mutableStateOf(false) }
     var isFontDropdownExpanded by remember { mutableStateOf(false) }
     var isColorSchemeExpanded by remember { mutableStateOf(false) }
+    var showPermissionSettingsDialog by remember { mutableStateOf(false) }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (!isGranted) {
+            showPermissionSettingsDialog = true
+        }
+    }
 
     val fontPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -102,6 +121,15 @@ fun DashboardScreen(
     }
 
     val selectedFont = remember(activeFontId) { QuoteFont.findById(activeFontId) }
+
+    fun checkAndRequestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val permission = android.Manifest.permission.POST_NOTIFICATIONS
+            if (ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
+                notificationPermissionLauncher.launch(permission)
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -176,7 +204,12 @@ fun DashboardScreen(
                     }
                     Switch(
                         checked = schedule.isEnabled,
-                        onCheckedChange = { viewModel.setScheduleEnabled(it) }
+                        onCheckedChange = { enabled ->
+                            if (enabled) {
+                                checkAndRequestNotificationPermission()
+                            }
+                            viewModel.setScheduleEnabled(enabled)
+                        }
                     )
                 }
 
@@ -199,7 +232,7 @@ fun DashboardScreen(
                                     selected = schedule.intervalMinutes == mins,
                                     onClick = {
                                         viewModel.setScheduleInterval(mins)
-                                        isScheduleExpanded = false // Auto-collapse upon selection!
+                                        isScheduleExpanded = false
                                     }
                                 )
                                 Text(text = label, style = MaterialTheme.typography.bodyMedium)
@@ -210,74 +243,58 @@ fun DashboardScreen(
             }
         }
 
-        // 3. Compact Dropdown Typography & Styling Section
+        // 3. Compact Dropdown Font Selector & Style Controls Panel
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Quote Typography & Styling",
+                    text = "Font Selection & Style",
                     style = MaterialTheme.typography.titleMedium
                 )
 
-                // Compact Material 3 Exposed Dropdown Menu Box
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                // Material 3 Dropdown Menu for 12 Built-in + Custom Fonts
+                ExposedDropdownMenuBox(
+                    expanded = isFontDropdownExpanded,
+                    onExpandedChange = { isFontDropdownExpanded = !isFontDropdownExpanded },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    ExposedDropdownMenuBox(
+                    OutlinedTextField(
+                        value = selectedFont.name,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Active Font Family") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isFontDropdownExpanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                    )
+
+                    ExposedDropdownMenu(
                         expanded = isFontDropdownExpanded,
-                        onExpandedChange = { isFontDropdownExpanded = !isFontDropdownExpanded },
-                        modifier = Modifier.weight(1f)
+                        onDismissRequest = { isFontDropdownExpanded = false }
                     ) {
-                        OutlinedTextField(
-                            value = selectedFont.name,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Active Font Family") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isFontDropdownExpanded) },
-                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                            modifier = Modifier
-                                .menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true)
-                                .fillMaxWidth()
-                        )
-
-                        ExposedDropdownMenu(
-                            expanded = isFontDropdownExpanded,
-                            onDismissRequest = { isFontDropdownExpanded = false }
-                        ) {
-                            QuoteFont.BUILTIN_FONTS.forEach { font ->
-                                DropdownMenuItem(
-                                    text = { Text(font.name) },
-                                    onClick = {
-                                        viewModel.setQuoteFontId(font.id)
-                                        isFontDropdownExpanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            fontPickerLauncher.launch(
-                                arrayOf("font/ttf", "font/otf", "application/x-font-ttf", "application/octet-stream")
+                        QuoteFont.BUILTIN_FONTS.forEach { font ->
+                            DropdownMenuItem(
+                                text = { Text(font.name) },
+                                onClick = {
+                                    viewModel.setQuoteFontId(font.id)
+                                    isFontDropdownExpanded = false
+                                }
                             )
                         }
-                    ) {
-                        Text("+ Import")
                     }
                 }
 
-                // Bold, Italic & Shuffle Fonts Toggles
+                // Style Controls Row (Bold, Italic, Shuffle Fonts, + Import)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     FilterChip(
                         selected = isBold,
@@ -292,11 +309,19 @@ fun DashboardScreen(
                     FilterChip(
                         selected = shuffleFonts,
                         onClick = { viewModel.setShuffleFonts(!shuffleFonts) },
-                        label = { Text("Shuffle Fonts") }
+                        label = { Text("Shuffle") }
                     )
+                    OutlinedButton(
+                        onClick = {
+                            fontPickerLauncher.launch(
+                                arrayOf("font/ttf", "font/otf", "application/x-font-ttf", "application/octet-stream")
+                            )
+                        }
+                    ) {
+                        Text("+ Import")
+                    }
                 }
 
-                // Preview Fonts Full-Aspect Button
                 OutlinedButton(
                     onClick = onNavigateToFontPreview,
                     modifier = Modifier.fillMaxWidth()
@@ -306,7 +331,7 @@ fun DashboardScreen(
             }
         }
 
-        // 4. Text Color Scheme Accordion Card
+        // 4. Collapsible Text Color Scheme Accordion Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -325,11 +350,15 @@ fun DashboardScreen(
                             style = MaterialTheme.typography.titleMedium
                         )
                         Text(
-                            text = "${activeColorScheme.displayName} (Tap to change)",
+                            text = activeColorScheme.displayName,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                    Text(
+                        text = if (isColorSchemeExpanded) "▲" else "▼",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
                 }
 
                 AnimatedVisibility(visible = isColorSchemeExpanded) {
@@ -337,8 +366,6 @@ fun DashboardScreen(
                         modifier = Modifier.padding(top = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(text = "Select Color Strategy", style = MaterialTheme.typography.labelLarge)
-
                         TextColorScheme.entries.forEach { scheme ->
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -346,29 +373,24 @@ fun DashboardScreen(
                                     .fillMaxWidth()
                                     .clickable {
                                         viewModel.setTextColorScheme(scheme)
-                                        isColorSchemeExpanded = false // Auto-collapse upon selection!
+                                        isColorSchemeExpanded = false
                                     }
                             ) {
                                 RadioButton(
                                     selected = activeColorScheme == scheme,
                                     onClick = {
                                         viewModel.setTextColorScheme(scheme)
-                                        isColorSchemeExpanded = false // Auto-collapse upon selection!
+                                        isColorSchemeExpanded = false
                                     }
                                 )
                                 Column {
                                     Text(text = scheme.displayName, style = MaterialTheme.typography.bodyMedium)
-                                    Text(
-                                        text = scheme.description,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Text(text = scheme.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
 
                         Spacer(modifier = Modifier.height(4.dp))
-
                         OutlinedButton(
                             onClick = onNavigateToColorPreview,
                             modifier = Modifier.fillMaxWidth()
@@ -427,5 +449,42 @@ fun DashboardScreen(
                 style = MaterialTheme.typography.titleMedium
             )
         }
+    }
+
+    if (showPermissionSettingsDialog) {
+        AlertDialog(
+            onDismissRequest = { showPermissionSettingsDialog = false },
+            title = { Text("Permission Required") },
+            text = { Text("Notification and storage permissions were denied. Please open App Settings to grant permissions for automated wallpaper updates.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showPermissionSettingsDialog = false
+                        launchAppSettings(context)
+                    }
+                ) {
+                    Text("Open Settings")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPermissionSettingsDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+private fun launchAppSettings(context: Context) {
+    try {
+        val intent = Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.fromParts("package", context.packageName, null)
+        ).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        Log.e("DashboardScreen", "Failed to launch app settings", e)
     }
 }

@@ -345,6 +345,8 @@ Images and quotes can be deleted with a single tap — no undo or confirmation.
 
 ### 31. Permission denial "don't ask again" not handled
 
+> **Status:** ✅ Resolved — Handled permission denial flow in `DashboardScreen.kt`, prompting users with an `AlertDialog` guiding them to App Settings (`Settings.ACTION_APPLICATION_DETAILS_SETTINGS`) when permissions are denied.
+
 **File:** `ui/dashboard/DashboardScreen.kt`
 
 If the user permanently denies `READ_MEDIA_IMAGES`, the app doesn't guide them to

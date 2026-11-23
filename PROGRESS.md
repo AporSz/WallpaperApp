@@ -782,3 +782,11 @@
 ### User Safety & Resolution
 - **Status:** ✅ Resolved — Added Material 3 confirmation `AlertDialog`s before deleting quotes or wallpaper images in `PoolsScreen.kt`.
 - **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).
+
+---
+
+## Issue #31: Permission Denial Rationale & Settings Guidance Audit
+
+### Permission Handling & Resolution
+- **Status:** ✅ Resolved — Handled permission denial flow in `DashboardScreen.kt`, prompting users with an `AlertDialog` guiding them to App Settings (`Settings.ACTION_APPLICATION_DETAILS_SETTINGS`) when permissions are denied.
+- **Verification:** Built and ran unit tests (`./gradlew testDebugUnitTest`) — **SUCCESS** (20/20 unit tests passed).
