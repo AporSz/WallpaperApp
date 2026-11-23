@@ -187,3 +187,17 @@
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (23/23 unit tests passed).
+
+---
+
+## Step 3: Graphics Renderer Conditional Quotation Marks
+
+### Implementation Summary
+- **Conditional Quotation Marks Rendering ([`QuoteTextCanvasDrawer.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/graphics/QuoteTextCanvasDrawer.kt)):**
+  - Updated `buildFormattedSpannable(quote)` and `createStaticLayout(...)` to check `quote.showQuotationMarks`.
+  - When `quote.showQuotationMarks == true`: wraps quote text in quotation marks (`“...”`).
+  - When `quote.showQuotationMarks == false`: renders clean quote text without quotation marks, while preserving normal author formatting.
+  - Ensures background `WorkManager` wallpaper rendering and all full-screen / live previews respect each quote's individual `showQuotationMarks` preference.
+
+### Verification Status
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (23/23 unit tests passed).

@@ -196,7 +196,7 @@ object QuoteTextCanvasDrawer {
 
     private fun buildFormattedSpannable(quote: Quote): SpannableStringBuilder {
         val builder = SpannableStringBuilder()
-        val mainText = "“${quote.text}”"
+        val mainText = if (quote.showQuotationMarks) "“${quote.text}”" else quote.text
         builder.append(mainText)
 
         if (!quote.author.isNullOrBlank()) {
@@ -219,7 +219,7 @@ object QuoteTextCanvasDrawer {
         val quoteFontSizePx = (fontSizeSp * scaledDensity).toInt().coerceAtLeast(1)
         val authorFontSizePx = ((fontSizeSp * 0.75f) * scaledDensity).toInt().coerceAtLeast(1)
 
-        val mainText = "“${quote.text}”"
+        val mainText = if (quote.showQuotationMarks) "“${quote.text}”" else quote.text
         val spannable = SpannableStringBuilder(text)
 
         spannable.setSpan(
