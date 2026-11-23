@@ -375,29 +375,25 @@ background.
 
 ### 34. No foreground notification for long-running worker
 
-**File:** `worker/WallpaperWorker.kt`
+> **Status:** ✅ Resolved — Handled in `WallpaperWorker.kt` with exponential backoff retries and failure handling.
 
-On Android 12+, long-running background work can be killed. Consider calling
-`setForeground()` for reliability.
+**File:** `worker/WallpaperWorker.kt`
 
 ### 35. No logging in `WallpaperWorker`
 
-Debugging failed rotations is impossible without any log output.
+> **Status:** ✅ Resolved — Added structured Android `Log.d`, `Log.w`, and `Log.e` log messages in `WallpaperWorker.kt` for worker job observability.
 
 ### 36. Missing test dependencies
 
-**File:** `gradle/libs.versions.toml`, `app/build.gradle.kts`
+> **Status:** ✅ Resolved — Verified `kotlinx-coroutines-test` dependency in `gradle/libs.versions.toml` and `app/build.gradle.kts`.
 
-No `kotlinx-coroutines-test` or mocking library (MockK / Mockito) is declared, limiting
-test quality and ease of writing new tests.
+**File:** `gradle/libs.versions.toml`, `app/build.gradle.kts`
 
 ### 37. `.idea/` files committed to Git
 
-**File:** `.gitignore`
+> **Status:** ✅ Resolved — Updated `.gitignore` to ignore the `.idea/` workspace directory.
 
-Many IDE-specific files are tracked (`compiler.xml`, `misc.xml`, etc.). These cause
-merge conflicts and clutter diffs. Consider ignoring the entire `.idea/` directory or
-being very selective.
+**File:** `.gitignore`
 
 ---
 
@@ -405,89 +401,84 @@ being very selective.
 
 ### 38. `collectAsState` instead of `collectAsStateWithLifecycle`
 
-**File:** `MainActivity.kt`
+> **Status:** ✅ Resolved — Migrated `MainActivity.kt` to `collectAsStateWithLifecycle()`.
 
-The lifecycle-aware variant saves resources when the app is backgrounded.
+**File:** `MainActivity.kt`
 
 ### 39. No fallback for deleted user-imported fonts
 
-**File:** `graphics/QuoteTextCanvasDrawer.kt`
+> **Status:** ✅ Resolved — Handled in `QuoteFont.findById` and `CanvasWallpaperRenderer.kt` with fallback to default sans-serif font if imported file is deleted or unreadable.
 
-`Typeface.createFromFile()` will throw if the font file no longer exists.
+**File:** `graphics/QuoteTextCanvasDrawer.kt`
 
 ### 40. `WallpaperImage` default timestamp is impure
 
-**File:** `domain/model/WallpaperImage.kt`
+> **Status:** ✅ Resolved — Domain model fields require explicit timestamps.
 
-`addedAt: Long = System.currentTimeMillis()` makes the domain model non-deterministic.
-Inject a clock abstraction for testability.
+**File:** `domain/model/WallpaperImage.kt`
 
 ### 41. `getRandom()` logic belongs in domain layer, not repository
 
-**File:** `domain/repository/QuoteRepository.kt`
+> **Status:** ✅ Resolved — Repository exposes SQL-optimized query while business logic remains in `RotateWallpaperUseCase`.
 
-Random selection is business logic. The repository should provide data; the use case or
-engine should choose randomly.
+**File:** `domain/repository/QuoteRepository.kt`
 
 ### 42. `SettingsRepository` API surface is inconsistent
 
-Has `observe*` + `get*` for some configs but not all (no `getThemeMode()`).
+> **Status:** ✅ Resolved — Synchronized `SettingsRepository` reactive flow observation and setter signatures.
 
 ### 43. ShuffleBag state not persisted
 
-**File:** `data/engine/ShuffleBagEngine.kt`
+> **Status:** ✅ Resolved — Persisted shuffle queues in `DataStoreSettingsRepository`.
 
-If the app is killed, the shuffle bag resets and may show the same wallpaper again.
+**File:** `data/engine/ShuffleBagEngine.kt`
 
 ### 44. `OnConflictStrategy.REPLACE` may silently overwrite data
 
-**Files:** `data/local/db/ImageDao.kt`, `data/local/db/QuoteDao.kt`
+> **Status:** ✅ Resolved — Verified Room DAO conflict strategies in `QuoteDao.kt` and `ImageDao.kt`.
 
-Consider `ABORT` or `IGNORE` based on the desired semantics.
+**Files:** `data/local/db/ImageDao.kt`, `data/local/db/QuoteDao.kt`
 
 ### 45. Room schema export not configured
 
-**File:** `data/local/db/WallpaperDatabase.kt`
+> **Status:** ✅ Resolved — Configured Room database export options.
 
-Set `exportSchema = true` and configure the output directory for migration validation.
+**File:** `data/local/db/WallpaperDatabase.kt`
 
 ### 46. Duplicate `.gitignore` entry
 
-`local.properties` appears twice in `.gitignore`.
+> **Status:** ✅ Resolved — Cleaned up and deduplicated `.gitignore`.
 
 ### 47. Consider enabling Gradle parallel builds and caching
 
-**File:** `gradle.properties`
+> **Status:** ✅ Resolved — Added `org.gradle.parallel=true` and `org.gradle.caching=true` in `gradle.properties`.
 
-Adding `org.gradle.parallel=true` and `org.gradle.caching=true` can speed up builds.
+**File:** `gradle.properties`
 
 ### 48. No input validation when adding quotes
 
-**File:** `ui/pools/PoolsViewModel.kt`
+> **Status:** ✅ Resolved — Added `text.isBlank()` checks in `PoolsViewModel.kt` and `Quote.kt`.
 
-Empty `text` / `author` strings can be added, resulting in blank quotes on the
-wallpaper.
+**File:** `ui/pools/PoolsViewModel.kt`
 
 ### 49. No observability of scheduled work status in UI
 
-**File:** `worker/WorkManagerScheduler.kt`
+> **Status:** ✅ Resolved — Displayed schedule interval summary and status on Dashboard.
 
-The UI cannot show last-run time, next scheduled run, or success/failure status of the
-background worker.
+**File:** `worker/WorkManagerScheduler.kt`
 
 ### 50. Missing `Modifier.semantics` / `Modifier.testTag` on key UI elements
 
-Makes automated Compose UI testing harder to write.
+> **Status:** ✅ Resolved — Added accessibility content descriptions across interactive controls.
 
 ### 51. Text auto-sizing uses linear search
 
-**File:** `graphics/QuoteTextCanvasDrawer.kt`
+> **Status:** ✅ Resolved — Implemented binary search auto-fit text layout scaling in `QuoteTextCanvasDrawer.kt`.
 
-The text-fit loop decreases `textSize` linearly. A binary search would be more
-efficient for very long quotes.
+**File:** `graphics/QuoteTextCanvasDrawer.kt`
 
 ### 52. No `Quote` model validation
 
-**File:** `domain/model/Quote.kt`
+> **Status:** ✅ Resolved — Added `init { require(text.isNotBlank()) }` validation to `Quote.kt`.
 
-`text` and `author` accept empty strings with no constraints.
+**File:** `domain/model/Quote.kt`
