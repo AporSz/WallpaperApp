@@ -385,49 +385,26 @@ fun PoolsScreen(
         }
     }
 
-    if (quoteToDelete != null) {
-        AlertDialog(
-            onDismissRequest = { quoteToDelete = null },
-            title = { Text("Delete Quote") },
-            text = { Text("Are you sure you want to delete this quote?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        quoteToDelete?.let { viewModel.deleteQuote(it.id) }
-                        quoteToDelete = null
-                    }
-                ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { quoteToDelete = null }) {
-                    Text("Cancel")
-                }
-            }
+    val targetQuote = quoteToDelete
+    if (targetQuote != null) {
+        val snippet = if (targetQuote.text.length > 60) "${targetQuote.text.take(60)}…" else targetQuote.text
+        DeleteConfirmationDialog(
+            title = "Delete Quote?",
+            message = "Are you sure you want to delete “$snippet”?",
+            confirmButtonText = "Delete",
+            onDismiss = { quoteToDelete = null },
+            onConfirm = { viewModel.deleteQuote(targetQuote.id) }
         )
     }
 
-    if (imageToDelete != null) {
-        AlertDialog(
-            onDismissRequest = { imageToDelete = null },
-            title = { Text("Delete Image") },
-            text = { Text("Are you sure you want to delete this wallpaper image?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        imageToDelete?.let { viewModel.deleteImage(it.id) }
-                        imageToDelete = null
-                    }
-                ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { imageToDelete = null }) {
-                    Text("Cancel")
-                }
-            }
+    val targetImage = imageToDelete
+    if (targetImage != null) {
+        DeleteConfirmationDialog(
+            title = "Remove Image?",
+            message = "This image will be removed from your wallpaper rotation pool. The photo will remain safe on your device storage.",
+            confirmButtonText = "Remove",
+            onDismiss = { imageToDelete = null },
+            onConfirm = { viewModel.deleteImage(targetImage.id) }
         )
     }
 
@@ -640,6 +617,39 @@ fun PoolItemFullScreenPreview(
             }
         }
     }
+}
+
+@Composable
+fun DeleteConfirmationDialog(
+    title: String,
+    message: String,
+    confirmButtonText: String = "Delete",
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = title) },
+        text = { Text(text = message) },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onConfirm()
+                    onDismiss()
+                }
+            ) {
+                Text(
+                    text = confirmButtonText,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "Cancel")
+            }
+        }
+    )
 }
 
 @Composable

@@ -181,3 +181,17 @@
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (20/20 unit tests passed).
+
+---
+
+## Step 3: Implement Delete Confirmation Dialogs for Quotes & Images
+
+### Implementation Summary
+- **Reusable Delete Confirmation Dialog ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
+  - Created reusable `DeleteConfirmationDialog` composable wrapping Material 3 `AlertDialog` with custom title, message, and confirm button styling (`MaterialTheme.colorScheme.error`).
+  - **Quote Deletion:** Formatted preview snippet text (*"Are you sure you want to delete “...”?"*) with **Cancel** and **Delete** action buttons.
+  - **Image Deletion:** Formatted device storage safety notice (*"This image will be removed from your wallpaper rotation pool. The photo will remain safe on your device storage."*) with **Cancel** and **Remove** action buttons.
+
+### Verification Status
+- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (20/20 unit tests passed).
+- Built Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
