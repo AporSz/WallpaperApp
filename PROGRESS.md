@@ -296,9 +296,49 @@
   - Passed `libraryBackupRepository = container.libraryBackupRepository` to `DashboardViewModel.Factory`.
 - **Dashboard UI Extensions ([`DashboardScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/dashboard/DashboardScreen.kt)):**
   - Added **Library Backup & Restore** card featuring **Export** and **Import** action buttons with loading progress indicators.
-  - Configured `ActivityResultContracts.CreateDocument("application/zip")` for export destination selection and `ActivityResultContracts.OpenDocument()` for backup archive selection.
+  - Configured `ActivityResultContracts.CreateDocument("application/zip")` for file creation and `ActivityResultContracts.OpenDocument()` for backup archive selection.
   - Created **Export Dialog** and **Import Dialog** with scope selection radio/chip controls (**Both**, **Quotes Only**, **Images Only**).
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
 - Built Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
+
+---
+
+## Feature Extensions: Settings Screen Refactoring, Expanded Color Schemes, Text Glow & Full Preview Parity
+
+### Inspection & Architectural Analysis Summary
+1. **Domain Layer Extensions (`domain`):**
+   - **`TextColorScheme` Enum Expansion:** Rename `PALETTE_HARMONY` to `SUBTLE_PALETTE_HARMONY` (*"Subtle Palette Harmony"*) and add `VIBRANT_PALETTE_HARMONY` (*"Vibrant Palette Harmony"*) and `BLEND_IN` (*"Blend In"*), resulting in 7 total options (`HIGH_CONTRAST`, `SOFT_CONTRAST`, `WARM_AMBER`, `COOL_FROST`, `SUBTLE_PALETTE_HARMONY`, `VIBRANT_PALETTE_HARMONY`, `BLEND_IN`).
+   - **`RenderConfig`:** Add `val textGlowEnabled: Boolean = false`.
+   - **`SettingsRepository` Interface:** Add `observeTextGlowEnabled(): Flow<Boolean>` and `suspend fun setTextGlowEnabled(enabled: Boolean)`.
+
+2. **Data Layer (`DataStoreSettingsRepository.kt`):**
+   - Persist `textGlowEnabled` via boolean DataStore key `key_text_glow_enabled`.
+   - Implement backward-compatible `observeTextColorScheme()`: map legacy saved string `"PALETTE_HARMONY"` to `TextColorScheme.SUBTLE_PALETTE_HARMONY`.
+
+3. **Graphics Engine Pipeline (`PaletteContrastAnalyzer.kt` & `QuoteTextCanvasDrawer.kt`):**
+   - **`PaletteContrastAnalyzer.kt`:**
+     - `SUBTLE_PALETTE_HARMONY`: Muted/dominant swatches with subtle HSL lightness shift.
+     - `VIBRANT_PALETTE_HARMONY`: Richer vibrant swatches (`vibrantSwatch`, `lightVibrantSwatch`, `darkVibrantSwatch`) with noticeable color presence while maintaining contrast and legibility.
+     - `BLEND_IN`: Dominant tone behind crop rect with slight ~10-15% tonal shift for soft camouflage effect into background image.
+   - **`QuoteTextCanvasDrawer.kt`:** When `textGlowEnabled == true`, render soft luminous highlight glow (`setShadowLayer(20f, 0f, 0f, glowColorArgb)`).
+
+4. **Full Preview Parity across UI:**
+   - Unify `ZoneEditorScreen.kt`, `FontPreviewScreen.kt`, and `PoolsScreen.kt` full-screen preview to pass the user's active `TextColorScheme` and `textGlowEnabled` setting into `PaletteContrastAnalyzer` and `QuoteTextCanvasDrawer` instead of hardcoding White/Black text.
+   - Add **Highlight Glow** toggle switch to Dashboard's Text Color Scheme card and `ColorSchemePreviewScreen.kt`.
+
+5. **Settings Screen Refactoring & Navigation:**
+   - Create `SettingsScreen.kt` & `SettingsViewModel.kt` (or route in `MainActivity.kt`).
+   - Move **App Theme Mode** and **Library Backup (Export / Import buttons + dialogs)** from Dashboard onto `SettingsScreen`.
+   - Add Settings top bar icon button on Dashboard.
+   - Configure clean back-stack navigation so Back button and system back gesture pop to Dashboard.
+
+### Concrete Implementation Steps
+- **Step 2 (Domain & Data Layer Updates):** Update `TextColorScheme.kt`, `RenderConfig.kt`, `SettingsRepository.kt`, `DataStoreSettingsRepository.kt` (with `"PALETTE_HARMONY"` migration handling). Write unit tests.
+- **Step 3 (Graphics Engine Update):** Implement 7 color schemes in `PaletteContrastAnalyzer.kt` and highlight glow rendering in `QuoteTextCanvasDrawer.kt`. Write unit tests.
+- **Step 4 (Unify Active Color Scheme & Glow Across All Previews + Glow Toggle UI):** Update preview composables to resolve dynamic color contrast and glow. Add Highlight Glow toggle switch to Dashboard and `ColorSchemePreviewScreen.kt`.
+- **Step 5 (New Settings Screen, Dashboard Refactor & Back Stack Verification):** Build `SettingsScreen.kt`, refactor `DashboardScreen.kt`, register Settings route in `MainActivity.kt`. Build debug APK (`./gradlew assembleDebug`).
+
+### Verification Status
+- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
