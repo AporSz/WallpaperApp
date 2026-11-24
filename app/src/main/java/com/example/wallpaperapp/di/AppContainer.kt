@@ -8,10 +8,12 @@ import com.example.wallpaperapp.data.local.db.WallpaperDatabase
 import com.example.wallpaperapp.data.repository.DataStoreSettingsRepository
 import com.example.wallpaperapp.data.repository.RoomImageRepository
 import com.example.wallpaperapp.data.repository.RoomQuoteRepository
+import com.example.wallpaperapp.data.repository.ZipLibraryBackupRepository
 import com.example.wallpaperapp.domain.model.Quote
 import com.example.wallpaperapp.domain.model.QuoteFont
 import com.example.wallpaperapp.domain.model.WallpaperImage
 import com.example.wallpaperapp.domain.repository.ImageRepository
+import com.example.wallpaperapp.domain.repository.LibraryBackupRepository
 import com.example.wallpaperapp.domain.repository.QuoteRepository
 import com.example.wallpaperapp.domain.repository.SettingsRepository
 import com.example.wallpaperapp.domain.scheduler.WallpaperScheduler
@@ -46,6 +48,14 @@ class AppContainer(private val context: Context) {
 
     val settingsRepository: SettingsRepository by lazy {
         DataStoreSettingsRepository(context.applicationContext.dataStore)
+    }
+
+    val libraryBackupRepository: LibraryBackupRepository by lazy {
+        ZipLibraryBackupRepository(
+            context = context.applicationContext,
+            quoteRepository = quoteRepository,
+            imageRepository = imageRepository
+        )
     }
 
     val quoteShuffleEngine = ShuffleBagEngine<Quote>()

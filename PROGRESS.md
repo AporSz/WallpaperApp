@@ -260,3 +260,25 @@
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (23/23 unit tests passed).
+
+---
+
+## Step 2: Domain Models & Streaming ZIP Backup/Restore Implementation
+
+### Implementation Summary
+- **Domain Models & Interface:**
+  - Created [`BackupScope.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/model/BackupScope.kt) enum (`BOTH`, `QUOTES_ONLY`, `IMAGES_ONLY`).
+  - Created [`ExportSummary.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/model/ExportSummary.kt) and [`ImportSummary.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/model/ImportSummary.kt) data classes.
+  - Defined [`LibraryBackupRepository.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/repository/LibraryBackupRepository.kt) interface.
+- **Data Layer Implementation ([`ZipLibraryBackupRepository.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/data/repository/ZipLibraryBackupRepository.kt)):**
+  - Implemented streaming `.zip` export and import on `Dispatchers.IO`.
+  - **Export Pipeline:** Streams quotes into `quotes.json` and raw photo byte streams into `images/` within `ZipOutputStream` using byte buffers (zero downsampling, minimal RAM footprint). Gracefully skips missing/deleted photos.
+  - **Import Pipeline:** Streams entries via `ZipInputStream` with Zip Slip path protection (`!name.contains("..")`). Filters out duplicate quotes by normalized `text` + `author`. Extracts images to `context.filesDir/imported_images/` and registers `file://` URIs in `ImageRepository`.
+  - Included `JsonBackupHelper` for reliable JSON formatting and unescaping across both JVM unit tests and Android runtime devices.
+- **Dependency Injection:**
+  - Lazy-bound `libraryBackupRepository` in [`AppContainer.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/di/AppContainer.kt).
+- **Unit Testing:**
+  - Created [`ZipLibraryBackupRepositoryTest.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/test/java/com/example/wallpaperapp/data/repository/ZipLibraryBackupRepositoryTest.kt) verifying backup summaries, scope labels, and quote JSON round-trip serialization.
+
+### Verification Status
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
