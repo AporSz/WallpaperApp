@@ -342,3 +342,41 @@
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
+
+---
+
+## Step 2: Domain & Data Layer Updates (Color Schemes + Text Glow)
+
+### Implementation Summary
+- **Domain Extensions:**
+  - Renamed `PALETTE_HARMONY` to `SUBTLE_PALETTE_HARMONY` and added `VIBRANT_PALETTE_HARMONY` and `BLEND_IN` to [`TextColorScheme.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/model/TextColorScheme.kt) (7 options total).
+  - Added `val textGlowEnabled: Boolean = false` to [`RenderConfig.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/model/RenderConfig.kt).
+  - Extended [`SettingsRepository.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/repository/SettingsRepository.kt) with `observeTextGlowEnabled()` and `setTextGlowEnabled(enabled: Boolean)`.
+- **Data Layer Persistence & Legacy Migration ([`DataStoreSettingsRepository.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/data/repository/DataStoreSettingsRepository.kt)):**
+  - Added `TEXT_GLOW_ENABLED` preference key.
+  - Handled backward compatibility in `observeTextColorScheme()`: automatically maps legacy saved preference string `"PALETTE_HARMONY"` to `TextColorScheme.SUBTLE_PALETTE_HARMONY`.
+- **Use Case & Test Updates:**
+  - Collected `textGlowEnabled` in [`RotateWallpaperUseCase.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/domain/usecase/RotateWallpaperUseCase.kt).
+  - Updated `FakeSettingsRepository` in [`RotateWallpaperUseCaseTest.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/test/java/com/example/wallpaperapp/domain/usecase/RotateWallpaperUseCaseTest.kt).
+  - Updated [`TextColorSchemeTest.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/test/java/com/example/wallpaperapp/domain/model/TextColorSchemeTest.kt) verifying all 7 options.
+
+### Verification Status
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
+
+---
+
+## Step 3: Graphics Engine Update (PaletteContrastAnalyzer & Highlight Glow Rendering)
+
+### Implementation Summary
+- **7 Text Color Schemes in `PaletteContrastAnalyzer.kt`:**
+  - `SUBTLE_PALETTE_HARMONY`: Muted photo swatches with gentle HSL lightness adjustment.
+  - `VIBRANT_PALETTE_HARMONY`: Richer vibrant photo swatches (`vibrantSwatch`, `lightVibrantSwatch`, `darkVibrantSwatch`) with Noticeable color presence while remaining legible and tasteful.
+  - `BLEND_IN`: Dominant tone behind crop rect with slight ~10-15% tonal shift for soft camouflage effect into background image.
+- **Highlight Glow Rendering in `QuoteTextCanvasDrawer.kt`:**
+  - Added `textGlowEnabled: Boolean = false` parameter to `drawQuoteOnCanvas(...)`.
+  - When `textGlowEnabled == true`: applies luminous soft outer glow (`setShadowLayer(22f, 0f, 0f, textColorArgb)`).
+- **Wallpaper Renderer Integration:**
+  - Updated [`CanvasWallpaperRenderer.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/graphics/CanvasWallpaperRenderer.kt) to pass `config.textGlowEnabled` to `drawQuoteOnCanvas`.
+
+### Verification Status
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).

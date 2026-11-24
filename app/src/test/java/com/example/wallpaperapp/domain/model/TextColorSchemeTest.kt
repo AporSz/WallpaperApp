@@ -24,4 +24,15 @@ class TextColorSchemeTest {
         assertEquals("Vibrant Palette Harmony", TextColorScheme.VIBRANT_PALETTE_HARMONY.displayName)
         assertEquals("Blend In", TextColorScheme.BLEND_IN.displayName)
     }
+
+    @Test
+    fun `legacy PALETTE_HARMONY string maps to SUBTLE_PALETTE_HARMONY`() {
+        val legacyName = "PALETTE_HARMONY"
+        val mappedScheme = if (legacyName == "PALETTE_HARMONY") {
+            TextColorScheme.SUBTLE_PALETTE_HARMONY
+        } else {
+            TextColorScheme.valueOf(legacyName)
+        }
+        assertEquals(TextColorScheme.SUBTLE_PALETTE_HARMONY, mappedScheme)
+    }
 }
