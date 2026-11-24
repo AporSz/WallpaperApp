@@ -282,3 +282,23 @@
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
+
+---
+
+## Step 3: Dashboard Export & Import Buttons + Selection Dialogs
+
+### Implementation Summary
+- **Dashboard ViewModel Updates ([`DashboardViewModel.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/dashboard/DashboardViewModel.kt)):**
+  - Injected `libraryBackupRepository: LibraryBackupRepository`.
+  - Exposed UI states: `showExportDialog`, `showImportDialog`, `exportScopeState`, `importScopeState`, and `isBackupInProgress`.
+  - Added methods for opening/dismissing backup dialogs, toggling scope, and launching `exportLibrary(destinationUri)` and `importLibrary(sourceUri)`.
+- **Activity Container Setup ([`MainActivity.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/MainActivity.kt)):**
+  - Passed `libraryBackupRepository = container.libraryBackupRepository` to `DashboardViewModel.Factory`.
+- **Dashboard UI Extensions ([`DashboardScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/dashboard/DashboardScreen.kt)):**
+  - Added **Library Backup & Restore** card featuring **Export** and **Import** action buttons with loading progress indicators.
+  - Configured `ActivityResultContracts.CreateDocument("application/zip")` for export destination selection and `ActivityResultContracts.OpenDocument()` for backup archive selection.
+  - Created **Export Dialog** and **Import Dialog** with scope selection radio/chip controls (**Both**, **Quotes Only**, **Images Only**).
+
+### Verification Status
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
+- Built Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).

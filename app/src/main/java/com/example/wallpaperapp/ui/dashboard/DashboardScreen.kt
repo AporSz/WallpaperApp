@@ -19,12 +19,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -51,6 +53,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.wallpaperapp.domain.model.AppThemeMode
+import com.example.wallpaperapp.domain.model.BackupScope
 import com.example.wallpaperapp.domain.model.QuoteFont
 import com.example.wallpaperapp.domain.model.TextColorScheme
 import com.example.wallpaperapp.domain.model.WallpaperTarget
@@ -74,6 +77,12 @@ fun DashboardScreen(
     val shuffleFonts by viewModel.shuffleFontsState.collectAsState()
     val activeColorScheme by viewModel.textColorSchemeState.collectAsState()
 
+    val showExportDialog by viewModel.showExportDialog.collectAsState()
+    val showImportDialog by viewModel.showImportDialog.collectAsState()
+    val exportScope by viewModel.exportScopeState.collectAsState()
+    val importScope by viewModel.importScopeState.collectAsState()
+    val isBackupInProgress by viewModel.isBackupInProgress.collectAsState()
+
     var isScheduleExpanded by remember { mutableStateOf(false) }
     var isFontDropdownExpanded by remember { mutableStateOf(false) }
     var isColorSchemeExpanded by remember { mutableStateOf(false) }
@@ -92,6 +101,22 @@ fun DashboardScreen(
     ) { uri ->
         if (uri != null) {
             viewModel.importCustomFont(context, uri)
+        }
+    }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/zip")
+    ) { uri ->
+        if (uri != null) {
+            viewModel.exportLibrary(uri)
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.importLibrary(uri)
         }
     }
 
@@ -437,7 +462,62 @@ fun DashboardScreen(
             }
         }
 
-        // 6. Manual Shuffle & Apply Now
+        // 6. Library Backup & Restore (Export & Import) Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "Library Backup & Restore",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "Export or import your quotes and wallpaper images as a portable zip backup archive.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { viewModel.openExportDialog() },
+                        modifier = Modifier.weight(1f),
+                        enabled = !isBackupInProgress
+                    ) {
+                        Text("Export")
+                    }
+
+                    OutlinedButton(
+                        onClick = { viewModel.openImportDialog() },
+                        modifier = Modifier.weight(1f),
+                        enabled = !isBackupInProgress
+                    ) {
+                        Text("Import")
+                    }
+                }
+
+                if (isBackupInProgress) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Text("Processing backup...", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+
+        // 7. Manual Shuffle & Apply Now
         Button(
             onClick = { viewModel.rotateNow() },
             modifier = Modifier
@@ -449,6 +529,89 @@ fun DashboardScreen(
                 style = MaterialTheme.typography.titleMedium
             )
         }
+    }
+
+    if (showExportDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissExportDialog() },
+            title = { Text("Export Library Backup") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Select the data scope you want to export into a zip file:")
+                    BackupScope.entries.forEach { scope ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { viewModel.setExportScope(scope) }
+                        ) {
+                            RadioButton(
+                                selected = exportScope == scope,
+                                onClick = { viewModel.setExportScope(scope) }
+                            )
+                            Text(text = scope.displayName, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.dismissExportDialog()
+                        val fileName = "wallpaper_backup_${System.currentTimeMillis()}.zip"
+                        exportLauncher.launch(fileName)
+                    }
+                ) {
+                    Text("Choose Destination & Export")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissExportDialog() }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showImportDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissImportDialog() },
+            title = { Text("Import Library Backup") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Select the data scope you want to restore from a backup zip file:")
+                    BackupScope.entries.forEach { scope ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { viewModel.setImportScope(scope) }
+                        ) {
+                            RadioButton(
+                                selected = importScope == scope,
+                                onClick = { viewModel.setImportScope(scope) }
+                            )
+                            Text(text = scope.displayName, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.dismissImportDialog()
+                        importLauncher.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream"))
+                    }
+                ) {
+                    Text("Select Backup File")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissImportDialog() }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     if (showPermissionSettingsDialog) {

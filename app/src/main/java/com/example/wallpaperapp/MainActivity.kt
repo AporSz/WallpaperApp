@@ -60,7 +60,8 @@ class MainActivity : ComponentActivity() {
             DashboardViewModel.Factory(
                 settingsRepository = container.settingsRepository,
                 wallpaperScheduler = container.wallpaperScheduler,
-                rotateWallpaperUseCase = container.rotateWallpaperUseCase
+                rotateWallpaperUseCase = container.rotateWallpaperUseCase,
+                libraryBackupRepository = container.libraryBackupRepository
             )
         }
 
