@@ -9,5 +9,6 @@ data class RenderConfig(
     val isBold: Boolean = false,
     val isItalic: Boolean = false,
     val landscapeHandlingMode: LandscapeHandlingMode = LandscapeHandlingMode.ROTATE_90_CW,
-    val textColorScheme: TextColorScheme = TextColorScheme.HIGH_CONTRAST
+    val textColorScheme: TextColorScheme = TextColorScheme.HIGH_CONTRAST,
+    val textGlowEnabled: Boolean = false
 )

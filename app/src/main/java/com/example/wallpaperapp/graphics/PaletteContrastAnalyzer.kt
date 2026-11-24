@@ -84,10 +84,10 @@ class PaletteContrastAnalyzer : ContrastAnalyzer<Bitmap> {
                 }
             }
 
-            TextColorScheme.PALETTE_HARMONY -> {
-                val accentSwatch = palette.vibrantSwatch
+            TextColorScheme.SUBTLE_PALETTE_HARMONY -> {
+                val accentSwatch = palette.mutedSwatch
                     ?: palette.dominantSwatch
-                    ?: palette.mutedSwatch
+                    ?: palette.vibrantSwatch
 
                 val baseColor = accentSwatch?.rgb ?: if (isDark) Color.WHITE else Color.BLACK
                 val hsl = FloatArray(3)
@@ -101,6 +101,44 @@ class PaletteContrastAnalyzer : ContrastAnalyzer<Bitmap> {
                     hsl[2] = 0.18f
                     val harmonizedText = ColorUtils.HSLToColor(hsl)
                     ContrastResult(harmonizedText, Color.argb(200, 255, 255, 255), false)
+                }
+            }
+
+            TextColorScheme.VIBRANT_PALETTE_HARMONY -> {
+                val accentSwatch = palette.vibrantSwatch
+                    ?: palette.lightVibrantSwatch
+                    ?: palette.darkVibrantSwatch
+                    ?: palette.dominantSwatch
+
+                val baseColor = accentSwatch?.rgb ?: if (isDark) Color.WHITE else Color.BLACK
+                val hsl = FloatArray(3)
+                ColorUtils.colorToHSL(baseColor, hsl)
+
+                if (isDark) {
+                    hsl[2] = 0.85f
+                    val harmonizedText = ColorUtils.HSLToColor(hsl)
+                    ContrastResult(harmonizedText, Color.argb(220, 0, 0, 0), true)
+                } else {
+                    hsl[2] = 0.20f
+                    val harmonizedText = ColorUtils.HSLToColor(hsl)
+                    ContrastResult(harmonizedText, Color.argb(200, 255, 255, 255), false)
+                }
+            }
+
+            TextColorScheme.BLEND_IN -> {
+                val dominantSwatch = palette.dominantSwatch
+                val baseColor = dominantSwatch?.rgb ?: if (isDark) Color.BLACK else Color.WHITE
+                val hsl = FloatArray(3)
+                ColorUtils.colorToHSL(baseColor, hsl)
+
+                if (isDark) {
+                    hsl[2] = (hsl[2] + 0.15f).coerceAtMost(0.95f)
+                    val blendText = ColorUtils.HSLToColor(hsl)
+                    ContrastResult(blendText, Color.argb(120, 0, 0, 0), true)
+                } else {
+                    hsl[2] = (hsl[2] - 0.15f).coerceAtLeast(0.05f)
+                    val blendText = ColorUtils.HSLToColor(hsl)
+                    ContrastResult(blendText, Color.argb(120, 255, 255, 255), false)
                 }
             }
         }

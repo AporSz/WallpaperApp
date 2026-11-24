@@ -6,13 +6,22 @@ import org.junit.Test
 class TextColorSchemeTest {
 
     @Test
-    fun `text color scheme entries contain 5 distinct options`() {
+    fun `text color scheme entries contain 7 distinct options`() {
         val entries = TextColorScheme.entries
-        assertEquals(5, entries.size)
+        assertEquals(7, entries.size)
         assertEquals(TextColorScheme.HIGH_CONTRAST, entries[0])
         assertEquals(TextColorScheme.SOFT_CONTRAST, entries[1])
         assertEquals(TextColorScheme.WARM_AMBER, entries[2])
         assertEquals(TextColorScheme.COOL_FROST, entries[3])
-        assertEquals(TextColorScheme.PALETTE_HARMONY, entries[4])
+        assertEquals(TextColorScheme.SUBTLE_PALETTE_HARMONY, entries[4])
+        assertEquals(TextColorScheme.VIBRANT_PALETTE_HARMONY, entries[5])
+        assertEquals(TextColorScheme.BLEND_IN, entries[6])
+    }
+
+    @Test
+    fun `text color scheme display names and descriptions are correct`() {
+        assertEquals("Subtle Palette Harmony", TextColorScheme.SUBTLE_PALETTE_HARMONY.displayName)
+        assertEquals("Vibrant Palette Harmony", TextColorScheme.VIBRANT_PALETTE_HARMONY.displayName)
+        assertEquals("Blend In", TextColorScheme.BLEND_IN.displayName)
     }
 }

@@ -49,6 +49,7 @@ class RotateWallpaperUseCase(
             val shuffleFonts = settingsRepository.observeShuffleFonts().first()
             val landscapeHandlingMode = settingsRepository.observeLandscapeHandlingMode().first()
             val textColorScheme = settingsRepository.observeTextColorScheme().first()
+            val textGlowEnabled = settingsRepository.observeTextGlowEnabled().first()
 
             val activeFontId = if (shuffleFonts) {
                 val fontQueue = settingsRepository.observeFontShuffleQueue().first()
@@ -93,7 +94,8 @@ class RotateWallpaperUseCase(
                     isBold = isBold,
                     isItalic = isItalic,
                     landscapeHandlingMode = landscapeHandlingMode,
-                    textColorScheme = textColorScheme
+                    textColorScheme = textColorScheme,
+                    textGlowEnabled = textGlowEnabled
                 )
                 renderedBitmap = wallpaperRenderer.renderWallpaper(candidateImage.uri, selectedQuote, renderConfig)
 

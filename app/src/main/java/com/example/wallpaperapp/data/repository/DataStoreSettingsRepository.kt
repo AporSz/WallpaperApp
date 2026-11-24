@@ -44,6 +44,7 @@ class DataStoreSettingsRepository(
         val FONT_SHUFFLE_QUEUE = stringPreferencesKey("key_font_shuffle_queue")
         val LANDSCAPE_HANDLING_MODE = stringPreferencesKey("key_landscape_handling_mode")
         val TEXT_COLOR_SCHEME = stringPreferencesKey("key_text_color_scheme")
+        val TEXT_GLOW_ENABLED = booleanPreferencesKey("key_text_glow_enabled")
     }
 
     private val safeDataFlow: Flow<Preferences> = dataStore.data
@@ -256,7 +257,11 @@ class DataStoreSettingsRepository(
         return safeDataFlow.map { prefs ->
             val name = prefs[PreferencesKeys.TEXT_COLOR_SCHEME] ?: TextColorScheme.HIGH_CONTRAST.name
             try {
-                TextColorScheme.valueOf(name)
+                if (name == "PALETTE_HARMONY") {
+                    TextColorScheme.SUBTLE_PALETTE_HARMONY
+                } else {
+                    TextColorScheme.valueOf(name)
+                }
             } catch (e: Exception) {
                 TextColorScheme.HIGH_CONTRAST
             }
@@ -266,6 +271,18 @@ class DataStoreSettingsRepository(
     override suspend fun setTextColorScheme(scheme: TextColorScheme) {
         dataStore.edit { prefs ->
             prefs[PreferencesKeys.TEXT_COLOR_SCHEME] = scheme.name
+        }
+    }
+
+    override fun observeTextGlowEnabled(): Flow<Boolean> {
+        return safeDataFlow.map { prefs ->
+            prefs[PreferencesKeys.TEXT_GLOW_ENABLED] ?: false
+        }
+    }
+
+    override suspend fun setTextGlowEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[PreferencesKeys.TEXT_GLOW_ENABLED] = enabled
         }
     }
 

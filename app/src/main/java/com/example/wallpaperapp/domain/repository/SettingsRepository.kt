@@ -51,4 +51,7 @@ interface SettingsRepository {
 
     fun observeTextColorScheme(): Flow<TextColorScheme>
     suspend fun setTextColorScheme(scheme: TextColorScheme)
+
+    fun observeTextGlowEnabled(): Flow<Boolean>
+    suspend fun setTextGlowEnabled(enabled: Boolean)
 }
