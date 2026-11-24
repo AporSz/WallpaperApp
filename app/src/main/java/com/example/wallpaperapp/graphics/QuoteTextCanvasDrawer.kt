@@ -80,7 +80,8 @@ object QuoteTextCanvasDrawer {
         isItalic: Boolean,
         textColorArgb: Int,
         shadowColorArgb: Int,
-        scaledDensity: Float
+        scaledDensity: Float,
+        textGlowEnabled: Boolean = false
     ) {
         val boxWidthPx = (rightPx - leftPx).toInt().coerceAtLeast(50)
         val boxHeightPx = (bottomPx - topPx).toInt().coerceAtLeast(50)
@@ -88,7 +89,11 @@ object QuoteTextCanvasDrawer {
         val resolvedTypeface = resolveTypeface(fontId, isBold, isItalic)
         val textPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = textColorArgb
-            setShadowLayer(8f, 3f, 3f, shadowColorArgb)
+            if (textGlowEnabled) {
+                setShadowLayer(22f, 0f, 0f, textColorArgb)
+            } else {
+                setShadowLayer(8f, 3f, 3f, shadowColorArgb)
+            }
             typeface = resolvedTypeface
         }
 

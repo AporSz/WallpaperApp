@@ -75,7 +75,8 @@ class CanvasWallpaperRenderer(
             isItalic = config.isItalic,
             textColorArgb = contrastResult.textColorArgb,
             shadowColorArgb = contrastResult.shadowColorArgb,
-            scaledDensity = displayMetrics.scaledDensity
+            scaledDensity = displayMetrics.scaledDensity,
+            textGlowEnabled = config.textGlowEnabled
         )
 
         return compositeBitmap
