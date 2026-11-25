@@ -345,7 +345,7 @@
 
 ---
 
-## Step 2: Domain & Data Layer Updates (Color Schemes + Text Glow)
+## Step 2: Domain, Room Migration & Repository Update
 
 ### Implementation Summary
 - **Domain Extensions:**
@@ -454,3 +454,18 @@
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
+
+---
+
+## Step 3: Implement Long-Press Clean Preview Mode & Final Build Verification
+
+### Implementation Summary
+- **Long-Press Clean Preview Mode ([`ZoneEditorScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/ZoneEditorScreen.kt)):**
+  - Added `isCleanPreviewMode` state variable.
+  - Configured `detectTapGestures` on the preview card background: long-pressing toggles `isCleanPreviewMode = true`, and single-tapping anywhere when clean preview is active exits Clean Preview mode (`isCleanPreviewMode = false`). Single-tapping when clean preview is inactive toggles the bottom navigation bar (`onToggleBottomNav()`).
+  - When `isCleanPreviewMode == true`: hides header title, orientation chips, long text chip, cyan bounding box border, corner/edge handles, dimmed outer scrim, and guiding lines.
+  - Only the pure rendered background image and composited quote text remain visible on screen.
+
+### Verification Status
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
+- Built Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
