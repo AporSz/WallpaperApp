@@ -395,3 +395,21 @@
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
+
+---
+
+## Step 5: New Settings Screen, Dashboard Refactor & Back Stack Verification
+
+### Implementation Summary
+- **Created Dedicated Settings Screen ([`SettingsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/settings/SettingsScreen.kt)):**
+  - Houses **App Theme Mode** (`System`, `Light`, `Dark`) and **Library Backup & Restore (Export & Import buttons + scope selection dialogs)** cleanly with a top app bar and Back navigation icon button.
+- **Dashboard Screen Cleanup ([`DashboardScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/dashboard/DashboardScreen.kt)):**
+  - Added a Settings icon button (`Icons.Default.Settings`) in the top bar header calling `onNavigateToSettings()`.
+  - Removed App Theme Mode and Library Backup cards/dialogs from `DashboardScreen.kt` to keep the Dashboard focused and uncluttered.
+- **Navigation & Back Stack Wiring ([`MainActivity.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/MainActivity.kt)):**
+  - Wired `SettingsScreen` route into `MainActivity.kt`.
+  - Handled back navigation with `BackHandler` in `SettingsScreen` and `MainAppScreen` so tapping top-bar Back or performing Android system back gesture pops back to the Dashboard cleanly.
+
+### Verification Status
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
+- Built Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).

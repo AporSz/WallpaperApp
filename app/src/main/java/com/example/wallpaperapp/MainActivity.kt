@@ -39,6 +39,7 @@ import com.example.wallpaperapp.ui.dashboard.DashboardViewModel
 import com.example.wallpaperapp.ui.font.FontPreviewScreen
 import com.example.wallpaperapp.ui.pools.PoolsScreen
 import com.example.wallpaperapp.ui.pools.PoolsViewModel
+import com.example.wallpaperapp.ui.settings.SettingsScreen
 import com.example.wallpaperapp.ui.zone.ZoneEditorScreen
 import com.example.wallpaperapp.ui.zone.ZoneEditorViewModel
 
@@ -111,6 +112,7 @@ fun MainAppScreen(
 ) {
     var selectedScreenIndex by remember { mutableIntStateOf(0) }
     val backStack = remember { mutableStateListOf<Int>(0) }
+    var showSettingsScreen by remember { mutableStateOf(false) }
     var showFontPreviewScreen by remember { mutableStateOf(false) }
     var showColorSchemePreviewScreen by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -122,7 +124,7 @@ fun MainAppScreen(
     )
 
     BackHandler(
-        enabled = backStack.size > 1 && !showFontPreviewScreen && !showColorSchemePreviewScreen
+        enabled = backStack.size > 1 && !showFontPreviewScreen && !showColorSchemePreviewScreen && !showSettingsScreen
     ) {
         if (backStack.size > 1) {
             backStack.removeAt(backStack.lastIndex)
@@ -130,7 +132,12 @@ fun MainAppScreen(
         }
     }
 
-    if (showFontPreviewScreen) {
+    if (showSettingsScreen) {
+        SettingsScreen(
+            viewModel = dashboardViewModel,
+            onNavigateBack = { showSettingsScreen = false }
+        )
+    } else if (showFontPreviewScreen) {
         FontPreviewScreen(
             dashboardViewModel = dashboardViewModel,
             zoneEditorViewModel = zoneEditorViewModel,
@@ -171,7 +178,8 @@ fun MainAppScreen(
                         viewModel = dashboardViewModel,
                         snackbarHostState = snackbarHostState,
                         onNavigateToFontPreview = { showFontPreviewScreen = true },
-                        onNavigateToColorPreview = { showColorSchemePreviewScreen = true }
+                        onNavigateToColorPreview = { showColorSchemePreviewScreen = true },
+                        onNavigateToSettings = { showSettingsScreen = true }
                     )
                     1 -> ZoneEditorScreen(
                         viewModel = zoneEditorViewModel
