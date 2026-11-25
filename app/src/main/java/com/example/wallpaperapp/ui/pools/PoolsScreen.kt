@@ -53,6 +53,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -73,13 +74,18 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.wallpaperapp.domain.engine.ContrastResult
 import com.example.wallpaperapp.domain.model.LandscapeHandlingMode
 import com.example.wallpaperapp.domain.model.NormalizedRect
 import com.example.wallpaperapp.domain.model.Quote
+import com.example.wallpaperapp.domain.model.TextColorScheme
 import com.example.wallpaperapp.domain.model.TextOrientation
 import com.example.wallpaperapp.domain.model.WallpaperImage
 import com.example.wallpaperapp.graphics.LandscapeOrientationTransformation
+import com.example.wallpaperapp.graphics.PaletteContrastAnalyzer
 import com.example.wallpaperapp.graphics.QuoteTextCanvasDrawer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun PoolsScreen(
@@ -105,6 +111,8 @@ fun PoolsScreen(
     val fontId by viewModel.fontIdState.collectAsState()
     val isBold by viewModel.isBoldState.collectAsState()
     val isItalic by viewModel.isItalicState.collectAsState()
+    val textColorScheme by viewModel.textColorSchemeState.collectAsState()
+    val textGlowEnabled by viewModel.textGlowEnabledState.collectAsState()
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia()
@@ -135,6 +143,8 @@ fun PoolsScreen(
             isBold = isBold,
             isItalic = isItalic,
             landscapeMode = landscapeMode,
+            textColorScheme = textColorScheme,
+            textGlowEnabled = textGlowEnabled,
             onDismiss = {
                 previewingQuote = null
                 previewingImage = null
@@ -253,14 +263,13 @@ fun PoolsScreen(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
                                 Text(
-                                    text = "Landscape Image Handling Mode",
-                                    style = MaterialTheme.typography.titleSmall
+                                    text = "Landscape Image Orientation",
+                                    style = MaterialTheme.typography.titleMedium
                                 )
+                                Spacer(modifier = Modifier.height(6.dp))
+
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -278,23 +287,17 @@ fun PoolsScreen(
                                     FilterChip(
                                         selected = landscapeMode == LandscapeHandlingMode.CROP,
                                         onClick = { viewModel.setLandscapeHandlingMode(LandscapeHandlingMode.CROP) },
-                                        label = { Text("Crop") }
+                                        label = { Text("Crop to Fit") }
                                     )
                                 }
 
                                 if (landscapeMode == LandscapeHandlingMode.CROP) {
-                                    Card(
-                                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3CD)),
-                                        shape = RoundedCornerShape(6.dp),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text(
-                                            text = "⚠️ Warning: Cropping landscape images to fit a portrait screen zooms in heavily and may drastically reduce image quality.",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = Color(0xFF856404),
-                                            modifier = Modifier.padding(8.dp)
-                                        )
-                                    }
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = "⚠️ Warning: Cropping landscape images to fit a portrait screen zooms in heavily and may drastically reduce image quality.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color(0xFFFF9800)
+                                    )
                                 }
                             }
                         }
@@ -303,7 +306,7 @@ fun PoolsScreen(
                         if (images.isEmpty()) {
                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Text(
-                                    text = "No images added yet. Tap + to pick images!",
+                                    text = "No images imported yet. Tap + to import photos!",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -313,66 +316,65 @@ fun PoolsScreen(
                                 columns = GridCells.Fixed(2),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                                contentPadding = PaddingValues(bottom = 80.dp)
+                                contentPadding = PaddingValues(bottom = 80.dp),
+                                modifier = Modifier.fillMaxSize()
                             ) {
                                 items(
                                     items = images,
                                     key = { it.id },
                                     contentType = { "pool_image" }
                                 ) { image ->
-                                    val imageRequest = remember(image.uri, landscapeMode) {
-                                        ImageRequest.Builder(context)
-                                            .data(image.uri)
-                                            .transformations(LandscapeOrientationTransformation(landscapeMode))
-                                            .crossfade(true)
-                                            .build()
-                                    }
-
-                                    val badgeText = remember(landscapeMode) {
-                                        when (landscapeMode) {
-                                            LandscapeHandlingMode.ROTATE_90_CW -> "+90° Mode"
-                                            LandscapeHandlingMode.ROTATE_90_CCW -> "-90° Mode"
-                                            LandscapeHandlingMode.CROP -> "Crop Mode"
-                                        }
-                                    }
-
-                                    Box(
+                                    Card(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .aspectRatio(0.75f)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(Color.DarkGray)
-                                            .clickable { previewingImage = image }
+                                            .clickable { previewingImage = image },
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                                     ) {
-                                        AsyncImage(
-                                            model = imageRequest,
-                                            contentDescription = "Wallpaper Image",
-                                            contentScale = ContentScale.Crop,
-                                            modifier = Modifier.fillMaxSize()
-                                        )
+                                        Box(modifier = Modifier.fillMaxSize()) {
+                                            val imageRequest = remember(image.uri, landscapeMode) {
+                                                ImageRequest.Builder(context)
+                                                    .data(image.uri)
+                                                    .transformations(LandscapeOrientationTransformation(landscapeMode))
+                                                    .crossfade(true)
+                                                    .build()
+                                            }
 
-                                        // Orientation Badge Indicator
-                                        Text(
-                                            text = badgeText,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = Color.White,
-                                            modifier = Modifier
-                                                .align(Alignment.BottomStart)
-                                                .background(Color.Black.copy(alpha = 0.65f), RoundedCornerShape(topEnd = 6.dp))
-                                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
-
-                                        IconButton(
-                                            onClick = { imageToDelete = image },
-                                            modifier = Modifier
-                                                .align(Alignment.TopEnd)
-                                                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(bottomStart = 8.dp))
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Delete,
-                                                contentDescription = "Delete Image",
-                                                tint = Color.White
+                                            AsyncImage(
+                                                model = imageRequest,
+                                                contentDescription = "Wallpaper Image",
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize()
                                             )
+
+                                            val badgeText = when (landscapeMode) {
+                                                LandscapeHandlingMode.ROTATE_90_CW -> "Landscape • +90°"
+                                                LandscapeHandlingMode.ROTATE_90_CCW -> "Landscape • -90°"
+                                                LandscapeHandlingMode.CROP -> "Landscape • Cropped"
+                                            }
+
+                                            Text(
+                                                text = badgeText,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = Color.White,
+                                                modifier = Modifier
+                                                    .align(Alignment.BottomStart)
+                                                    .background(Color.Black.copy(alpha = 0.65f), RoundedCornerShape(topEnd = 6.dp))
+                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+
+                                            IconButton(
+                                                onClick = { imageToDelete = image },
+                                                modifier = Modifier
+                                                    .align(Alignment.TopEnd)
+                                                    .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(bottomStart = 8.dp))
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Delete,
+                                                    contentDescription = "Delete Image",
+                                                    tint = Color.White
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -456,6 +458,8 @@ fun PoolItemFullScreenPreview(
     isBold: Boolean,
     isItalic: Boolean,
     landscapeMode: LandscapeHandlingMode,
+    textColorScheme: TextColorScheme,
+    textGlowEnabled: Boolean,
     onDismiss: () -> Unit
 ) {
     BackHandler(enabled = true) {
@@ -497,6 +501,50 @@ fun PoolItemFullScreenPreview(
             allImages[selectedImageIndex % allImages.size].uri
         } else {
             initialImage?.uri
+        }
+    }
+
+    var contrastResult by remember {
+        mutableStateOf(
+            ContrastResult(
+                textColorArgb = android.graphics.Color.WHITE,
+                shadowColorArgb = android.graphics.Color.BLACK,
+                isDarkBackground = true
+            )
+        )
+    }
+
+    LaunchedEffect(activeImageUri, rect, textColorScheme) {
+        withContext(Dispatchers.IO) {
+            val analyzer = PaletteContrastAnalyzer()
+            val bitmap = if (!activeImageUri.isNullOrEmpty()) {
+                try {
+                    val uri = Uri.parse(activeImageUri)
+                    context.contentResolver.openInputStream(uri)?.use { stream ->
+                        BitmapFactory.decodeStream(stream)
+                    }
+                } catch (_: Exception) {
+                    null
+                }
+            } else {
+                null
+            }
+
+            if (bitmap != null) {
+                val computed = analyzer.analyzeContrast(bitmap, rect, textColorScheme)
+                withContext(Dispatchers.Main) {
+                    contrastResult = computed
+                }
+                bitmap.recycle()
+            } else {
+                withContext(Dispatchers.Main) {
+                    contrastResult = ContrastResult(
+                        textColorArgb = android.graphics.Color.WHITE,
+                        shadowColorArgb = android.graphics.Color.BLACK,
+                        isDarkBackground = true
+                    )
+                }
+            }
         }
     }
 
@@ -567,7 +615,7 @@ fun PoolItemFullScreenPreview(
                     style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
                 )
 
-                // 1:1 Bounding-Box-Filling Native Canvas Render
+                // 1:1 Bounding-Box-Filling Native Canvas Render with Dynamic Contrast & Glow
                 drawIntoCanvas { composeCanvas ->
                     val nativeCanvas = composeCanvas.nativeCanvas
                     QuoteTextCanvasDrawer.drawQuoteOnCanvas(
@@ -581,9 +629,10 @@ fun PoolItemFullScreenPreview(
                         fontId = fontId,
                         isBold = isBold,
                         isItalic = isItalic,
-                        textColorArgb = android.graphics.Color.WHITE,
-                        shadowColorArgb = android.graphics.Color.BLACK,
-                        scaledDensity = density.density
+                        textColorArgb = contrastResult.textColorArgb,
+                        shadowColorArgb = contrastResult.shadowColorArgb,
+                        scaledDensity = density.density,
+                        textGlowEnabled = textGlowEnabled
                     )
                 }
             }
@@ -604,20 +653,17 @@ fun PoolItemFullScreenPreview(
             )
         }
 
-        // Bottom Floating Action Controls
+        // Bottom Floating Action Bar
         Card(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(24.dp)
-                .fillMaxWidth(0.9f),
-            colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.85f)),
-            shape = RoundedCornerShape(24.dp)
+                .padding(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.75f)),
+            shape = RoundedCornerShape(28.dp)
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (initialQuote != null && allImages.size > 1) {

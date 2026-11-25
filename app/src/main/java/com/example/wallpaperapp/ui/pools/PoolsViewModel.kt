@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.wallpaperapp.domain.model.LandscapeHandlingMode
 import com.example.wallpaperapp.domain.model.NormalizedRect
 import com.example.wallpaperapp.domain.model.Quote
+import com.example.wallpaperapp.domain.model.TextColorScheme
 import com.example.wallpaperapp.domain.model.TextOrientation
 import com.example.wallpaperapp.domain.model.WallpaperImage
 import com.example.wallpaperapp.domain.repository.ImageRepository
@@ -50,6 +51,12 @@ class PoolsViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     val isItalicState: StateFlow<Boolean> = settingsRepository.observeIsItalic()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val textColorSchemeState: StateFlow<TextColorScheme> = settingsRepository.observeTextColorScheme()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TextColorScheme.HIGH_CONTRAST)
+
+    val textGlowEnabledState: StateFlow<Boolean> = settingsRepository.observeTextGlowEnabled()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     private val _message = MutableSharedFlow<String>()

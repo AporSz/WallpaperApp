@@ -1,5 +1,7 @@
 package com.example.wallpaperapp.ui.zone
 
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,6 +25,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,7 +34,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -45,10 +47,16 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.wallpaperapp.domain.engine.ContrastResult
+import com.example.wallpaperapp.domain.model.NormalizedRect
 import com.example.wallpaperapp.domain.model.Quote
+import com.example.wallpaperapp.domain.model.TextColorScheme
 import com.example.wallpaperapp.domain.model.TextOrientation
+import com.example.wallpaperapp.graphics.PaletteContrastAnalyzer
 import com.example.wallpaperapp.graphics.QuoteTextCanvasDrawer
 import com.example.wallpaperapp.ui.zone.CropBoxGeometry.resizeOrMove
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -65,9 +73,55 @@ fun ZoneEditorScreen(
     val activeFontId by viewModel.quoteFontId.collectAsState()
     val isBold by viewModel.isBoldState.collectAsState()
     val isItalic by viewModel.isItalicState.collectAsState()
+    val activeColorScheme by viewModel.textColorSchemeState.collectAsState()
+    val textGlowEnabled by viewModel.textGlowEnabledState.collectAsState()
 
     val sampleQuote by viewModel.sampleQuote.collectAsState()
     val imageUri by viewModel.sampleImageUri.collectAsState()
+
+    var contrastResult by remember {
+        mutableStateOf(
+            ContrastResult(
+                textColorArgb = android.graphics.Color.WHITE,
+                shadowColorArgb = android.graphics.Color.BLACK,
+                isDarkBackground = true
+            )
+        )
+    }
+
+    LaunchedEffect(imageUri, localRect, activeColorScheme) {
+        withContext(Dispatchers.IO) {
+            val analyzer = PaletteContrastAnalyzer()
+            val bitmap = if (!imageUri.isNullOrEmpty()) {
+                try {
+                    val uri = Uri.parse(imageUri)
+                    context.contentResolver.openInputStream(uri)?.use { stream ->
+                        BitmapFactory.decodeStream(stream)
+                    }
+                } catch (_: Exception) {
+                    null
+                }
+            } else {
+                null
+            }
+
+            if (bitmap != null) {
+                val computed = analyzer.analyzeContrast(bitmap, localRect, activeColorScheme)
+                withContext(Dispatchers.Main) {
+                    contrastResult = computed
+                }
+                bitmap.recycle()
+            } else {
+                withContext(Dispatchers.Main) {
+                    contrastResult = ContrastResult(
+                        textColorArgb = android.graphics.Color.WHITE,
+                        shadowColorArgb = android.graphics.Color.BLACK,
+                        isDarkBackground = true
+                    )
+                }
+            }
+        }
+    }
 
     var isDragging by remember { mutableStateOf(false) }
     var useLongQuotePreview by remember { mutableStateOf(false) }
@@ -98,26 +152,30 @@ fun ZoneEditorScreen(
             modifier = Modifier.align(Alignment.Start)
         )
 
-        // Text Orientation Selector & Long Quote Toggle row
+        // Secondary Controls Row (Orientation + Quote Length Preview)
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            FilterChip(
-                selected = orientation == TextOrientation.HORIZONTAL,
-                onClick = { viewModel.setTextOrientation(TextOrientation.HORIZONTAL) },
-                label = { Text("Horizontal") }
-            )
-            FilterChip(
-                selected = orientation == TextOrientation.VERTICAL_UP,
-                onClick = { viewModel.setTextOrientation(TextOrientation.VERTICAL_UP) },
-                label = { Text("Vert (-90°)") }
-            )
-            FilterChip(
-                selected = orientation == TextOrientation.VERTICAL_DOWN,
-                onClick = { viewModel.setTextOrientation(TextOrientation.VERTICAL_DOWN) },
-                label = { Text("Vert (+90°)") }
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FilterChip(
+                    selected = orientation == TextOrientation.HORIZONTAL,
+                    onClick = { viewModel.setTextOrientation(TextOrientation.HORIZONTAL) },
+                    label = { Text("Horizontal") }
+                )
+                FilterChip(
+                    selected = orientation == TextOrientation.VERTICAL_UP,
+                    onClick = { viewModel.setTextOrientation(TextOrientation.VERTICAL_UP) },
+                    label = { Text("Vert Up") }
+                )
+                FilterChip(
+                    selected = orientation == TextOrientation.VERTICAL_DOWN,
+                    onClick = { viewModel.setTextOrientation(TextOrientation.VERTICAL_DOWN) },
+                    label = { Text("Vert Down") }
+                )
+            }
+
             FilterChip(
                 selected = useLongQuotePreview,
                 onClick = { useLongQuotePreview = !useLongQuotePreview },
@@ -125,28 +183,34 @@ fun ZoneEditorScreen(
             )
         }
 
-        // Aspect-Ratio-Locked Screenshot-Style Bounding Box Editor
+        // Live Dynamic Preview Box locked to Device Display Aspect Ratio
         Card(
             modifier = Modifier
-                .weight(1f)
+                .fillMaxWidth()
                 .aspectRatio(screenAspectRatio),
-            colors = CardDefaults.cardColors(containerColor = Color.Black)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            shape = RoundedCornerShape(12.dp)
         ) {
-            BoxWithConstraints(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(8.dp))
-            ) {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val containerWidthPx = this.constraints.maxWidth.toFloat()
                 val containerHeightPx = this.constraints.maxHeight.toFloat()
+                val density = LocalDensity.current
 
-                // Remember updated states for drag callbacks to prevent pointerInput re-keying interruptions
-                val currentLocalRect by rememberUpdatedState(localRect)
-                val currentContainerW by rememberUpdatedState(containerWidthPx)
-                val currentContainerH by rememberUpdatedState(containerHeightPx)
+                val leftPx = localRect.left * containerWidthPx
+                val topPx = localRect.top * containerHeightPx
+                val widthPx = localRect.width * containerWidthPx
+                val heightPx = localRect.height * containerHeightPx
 
-                // 1. Background preview image
-                if (imageUri != null) {
+                val widthDp = with(density) { widthPx.toDp() }
+                val heightDp = with(density) { heightPx.toDp() }
+
+                // Magnetic snap thresholds
+                val centerSnapThreshold = 0.015f
+                val isNearVerticalCenter = abs(localRect.left + localRect.width / 2f - 0.5f) < centerSnapThreshold
+                val isNearHorizontalCenter = abs(localRect.top + localRect.height / 2f - 0.5f) < centerSnapThreshold
+
+                // 1. Background Image
+                if (!imageUri.isNullOrEmpty()) {
                     AsyncImage(
                         model = imageUri,
                         contentDescription = "Sample Background",
@@ -157,46 +221,26 @@ fun ZoneEditorScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color(0xFF222222))
+                            .background(Color(0xFF2C3E50))
                     )
                 }
 
-                // Pixel bounds of localRect
-                val leftPx = localRect.left * containerWidthPx
-                val topPx = localRect.top * containerHeightPx
-                val widthPx = localRect.width * containerWidthPx
-                val heightPx = localRect.height * containerHeightPx
-
-                val density = LocalDensity.current
-                val widthDp = with(density) { widthPx.toDp() }
-                val heightDp = with(density) { heightPx.toDp() }
-
-                val boxCenterX = localRect.left + localRect.width / 2f
-                val boxCenterY = localRect.top + localRect.height / 2f
-
-                val isNearVerticalCenter = abs(boxCenterX - 0.5f) < 0.015f
-                val isNearHorizontalCenter = abs(boxCenterY - 0.5f) < 0.015f
-
-                // 2. Dimmed Outer Scrim Canvas & 1:1 Bounding Box Canvas Text Render
+                // 2. Dimmed Scrim Outside Selection Zone
                 Canvas(modifier = Modifier.fillMaxSize()) {
-                    val scrimColor = Color.Black.copy(alpha = 0.55f)
-                    // Outer Scrim
+                    val scrimColor = Color.Black.copy(alpha = 0.45f)
                     drawRect(scrimColor, Offset(0f, 0f), Size(containerWidthPx, topPx))
                     drawRect(scrimColor, Offset(0f, topPx + heightPx), Size(containerWidthPx, containerHeightPx - (topPx + heightPx)))
                     drawRect(scrimColor, Offset(0f, topPx), Size(leftPx, heightPx))
                     drawRect(scrimColor, Offset(leftPx + widthPx, topPx), Size(containerWidthPx - (leftPx + widthPx), heightPx))
 
-                    // 3. Visual Guiding Lines with High Contrast Highlight during alignment
+                    // Dynamic Alignment Guiding Lines
                     if (isDragging) {
                         val strokeW = 1.dp.toPx()
-
-                        // Vertical Center Line (x = 0.5f)
-                        val vertCenterColor = if (isNearVerticalCenter) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.35f)
+                        val vertCenterColor = if (isNearVerticalCenter) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.5f)
                         val vertStrokeW = if (isNearVerticalCenter) 2.dp.toPx() else strokeW
                         drawLine(vertCenterColor, Offset(containerWidthPx * 0.5f, 0f), Offset(containerWidthPx * 0.5f, containerHeightPx), strokeWidth = vertStrokeW)
 
-                        // Horizontal Center Line (y = 0.5f)
-                        val horizCenterColor = if (isNearHorizontalCenter) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.35f)
+                        val horizCenterColor = if (isNearHorizontalCenter) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.5f)
                         val horizStrokeW = if (isNearHorizontalCenter) 2.dp.toPx() else strokeW
                         drawLine(horizCenterColor, Offset(0f, containerHeightPx * 0.5f), Offset(containerWidthPx, containerHeightPx * 0.5f), strokeWidth = horizStrokeW)
 
@@ -208,7 +252,7 @@ fun ZoneEditorScreen(
                         drawLine(thirdColor, Offset(0f, containerHeightPx * 0.666f), Offset(containerWidthPx, containerHeightPx * 0.666f), strokeWidth = strokeW)
                     }
 
-                    // 1:1 Bounding-Box-Filling Native Canvas Render
+                    // 1:1 Bounding-Box-Filling Native Canvas Render with Dynamic Contrast & Glow
                     drawIntoCanvas { composeCanvas ->
                         val nativeCanvas = composeCanvas.nativeCanvas
                         val activeQuoteObj = activeQuote ?: Quote("preview", "The journey of a thousand miles begins with a single step.", "Lao Tzu")
@@ -223,9 +267,10 @@ fun ZoneEditorScreen(
                             fontId = activeFontId,
                             isBold = isBold,
                             isItalic = isItalic,
-                            textColorArgb = android.graphics.Color.WHITE,
-                            shadowColorArgb = android.graphics.Color.BLACK,
-                            scaledDensity = density.density
+                            textColorArgb = contrastResult.textColorArgb,
+                            shadowColorArgb = contrastResult.shadowColorArgb,
+                            scaledDensity = density.density,
+                            textGlowEnabled = textGlowEnabled
                         )
                     }
                 }
@@ -238,140 +283,85 @@ fun ZoneEditorScreen(
                         .background(Color(0x2200E5FF))
                         .border(2.dp, Color(0xFF00E5FF), RoundedCornerShape(4.dp))
                         .clipToBounds()
+                )
+
+                // 5. Center Ephemeral Drag Gesture Lock
+                val currentLocalRectState = rememberUpdatedState(localRect)
+                Box(
+                    modifier = Modifier
+                        .offset { IntOffset(leftPx.roundToInt(), topPx.roundToInt()) }
+                        .size(widthDp, heightDp)
                         .pointerInput(Unit) {
                             detectDragGestures(
                                 onDragStart = { isDragging = true },
                                 onDragEnd = {
                                     isDragging = false
-                                    viewModel.updateRect(currentLocalRect)
+                                    viewModel.updateRect(currentLocalRectState.value)
                                 },
                                 onDragCancel = {
                                     isDragging = false
-                                    viewModel.updateRect(currentLocalRect)
+                                    viewModel.updateRect(currentLocalRectState.value)
                                 }
                             ) { change, dragAmount ->
                                 change.consume()
-                                val dxNorm = dragAmount.x / currentContainerW
-                                val dyNorm = dragAmount.y / currentContainerH
-                                val newRect = currentLocalRect.resizeOrMove(HandleType.CENTER, dxNorm, dyNorm)
-
-                                // Apply magnetic snap near center axes
-                                val snapThresh = 0.015f
-                                val cX = newRect.left + newRect.width / 2f
-                                val cY = newRect.top + newRect.height / 2f
-                                var sLeft = newRect.left
-                                var sTop = newRect.top
-
-                                if (abs(cX - 0.5f) < snapThresh) {
-                                    sLeft = 0.5f - newRect.width / 2f
+                                localRect = with(CropBoxGeometry) {
+                                    currentLocalRectState.value.resizeOrMove(
+                                        handle = HandleType.CENTER,
+                                        dxNorm = dragAmount.x / containerWidthPx,
+                                        dyNorm = dragAmount.y / containerHeightPx
+                                    )
                                 }
-                                if (abs(cY - 0.5f) < snapThresh) {
-                                    sTop = 0.5f - newRect.height / 2f
-                                }
-
-                                localRect = newRect.copy(left = sLeft, top = sTop, right = sLeft + newRect.width, bottom = sTop + newRect.height)
                             }
                         }
                 )
 
-                // 5. 8 Grab Handles (4 Corners + 4 Edges)
-                val handles = listOf(
-                    HandleType.TOP_LEFT to Offset(leftPx, topPx),
-                    HandleType.TOP to Offset(leftPx + widthPx / 2f, topPx),
-                    HandleType.TOP_RIGHT to Offset(leftPx + widthPx, topPx),
-                    HandleType.RIGHT to Offset(leftPx + widthPx, topPx + heightPx / 2f),
-                    HandleType.BOTTOM_RIGHT to Offset(leftPx + widthPx, topPx + heightPx),
-                    HandleType.BOTTOM to Offset(leftPx + widthPx / 2f, topPx + heightPx),
-                    HandleType.BOTTOM_LEFT to Offset(leftPx, topPx + heightPx),
-                    HandleType.LEFT to Offset(leftPx, topPx + heightPx / 2f)
+                // 6. Corner & Edge Handles
+                val handleSizeDp = 24.dp
+                val handleOffsetDp = 12.dp
+
+                val handlePositions = listOf(
+                    HandleType.TOP_LEFT to IntOffset((leftPx - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx - with(density) { handleOffsetDp.toPx() }).roundToInt()),
+                    HandleType.TOP_RIGHT to IntOffset((leftPx + widthPx - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx - with(density) { handleOffsetDp.toPx() }).roundToInt()),
+                    HandleType.BOTTOM_LEFT to IntOffset((leftPx - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx + heightPx - with(density) { handleOffsetDp.toPx() }).roundToInt()),
+                    HandleType.BOTTOM_RIGHT to IntOffset((leftPx + widthPx - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx + heightPx - with(density) { handleOffsetDp.toPx() }).roundToInt()),
+                    HandleType.TOP to IntOffset((leftPx + widthPx / 2f - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx - with(density) { handleOffsetDp.toPx() }).roundToInt()),
+                    HandleType.BOTTOM to IntOffset((leftPx + widthPx / 2f - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx + heightPx - with(density) { handleOffsetDp.toPx() }).roundToInt()),
+                    HandleType.LEFT to IntOffset((leftPx - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx + heightPx / 2f - with(density) { handleOffsetDp.toPx() }).roundToInt()),
+                    HandleType.RIGHT to IntOffset((leftPx + widthPx - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx + heightPx / 2f - with(density) { handleOffsetDp.toPx() }).roundToInt())
                 )
 
-                handles.forEach { (handleType, pos) ->
-                    GrabHandleOverlay(
-                        handleType = handleType,
-                        centerX = pos.x,
-                        centerY = pos.y,
-                        onDragStart = { isDragging = true },
-                        onDragEnd = {
-                            isDragging = false
-                            viewModel.updateRect(currentLocalRect)
-                        },
-                        onDrag = { dxPx, dyPx ->
-                            val dxNorm = dxPx / currentContainerW
-                            val dyNorm = dyPx / currentContainerH
-                            val newRect = currentLocalRect.resizeOrMove(handleType, dxNorm, dyNorm)
-                            localRect = newRect
-                        }
+                handlePositions.forEach { (handle, offset) ->
+                    Box(
+                        modifier = Modifier
+                            .offset { offset }
+                            .size(handleSizeDp)
+                            .background(Color(0xFF00E5FF), CircleShape)
+                            .border(2.dp, Color.White, CircleShape)
+                            .pointerInput(handle) {
+                                detectDragGestures(
+                                    onDragStart = { isDragging = true },
+                                    onDragEnd = {
+                                        isDragging = false
+                                        viewModel.updateRect(currentLocalRectState.value)
+                                    },
+                                    onDragCancel = {
+                                        isDragging = false
+                                        viewModel.updateRect(currentLocalRectState.value)
+                                    }
+                                ) { change, dragAmount ->
+                                    change.consume()
+                                    localRect = with(CropBoxGeometry) {
+                                        currentLocalRectState.value.resizeOrMove(
+                                            handle = handle,
+                                            dxNorm = dragAmount.x / containerWidthPx,
+                                            dyNorm = dragAmount.y / containerHeightPx
+                                        )
+                                    }
+                                }
+                            }
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun GrabHandleOverlay(
-    handleType: HandleType,
-    centerX: Float,
-    centerY: Float,
-    onDragStart: () -> Unit,
-    onDragEnd: () -> Unit,
-    onDrag: (dxPx: Float, dyPx: Float) -> Unit
-) {
-    val touchSizeDp = 38.dp
-    val density = LocalDensity.current
-    val touchSizePx = with(density) { touchSizeDp.toPx() }
-
-    val currentOnDrag by rememberUpdatedState(onDrag)
-    val currentOnDragStart by rememberUpdatedState(onDragStart)
-    val currentOnDragEnd by rememberUpdatedState(onDragEnd)
-
-    val isCorner = handleType in listOf(
-        HandleType.TOP_LEFT, HandleType.TOP_RIGHT,
-        HandleType.BOTTOM_LEFT, HandleType.BOTTOM_RIGHT
-    )
-
-    Box(
-        modifier = Modifier
-            .offset {
-                IntOffset(
-                    (centerX - touchSizePx / 2f).roundToInt(),
-                    (centerY - touchSizePx / 2f).roundToInt()
-                )
-            }
-            .size(touchSizeDp)
-            .pointerInput(handleType) {
-                detectDragGestures(
-                    onDragStart = { currentOnDragStart() },
-                    onDragEnd = { currentOnDragEnd() },
-                    onDragCancel = { currentOnDragEnd() }
-                ) { change, dragAmount ->
-                    change.consume()
-                    currentOnDrag(dragAmount.x, dragAmount.y)
-                }
-            },
-        contentAlignment = Alignment.Center
-    ) {
-        if (isCorner) {
-            // Circle handle for corners
-            Box(
-                modifier = Modifier
-                    .size(16.dp)
-                    .background(Color.White, CircleShape)
-                    .border(2.dp, Color(0xFF00E5FF), CircleShape)
-            )
-        } else {
-            // Pill handle for edges
-            val isHorizontalEdge = handleType == HandleType.TOP || handleType == HandleType.BOTTOM
-            val pillW = if (isHorizontalEdge) 24.dp else 8.dp
-            val pillH = if (isHorizontalEdge) 8.dp else 24.dp
-
-            Box(
-                modifier = Modifier
-                    .size(pillW, pillH)
-                    .background(Color.White, RoundedCornerShape(4.dp))
-                    .border(1.5.dp, Color(0xFF00E5FF), RoundedCornerShape(4.dp))
-            )
         }
     }
 }

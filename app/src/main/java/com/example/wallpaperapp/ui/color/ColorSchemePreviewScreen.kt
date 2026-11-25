@@ -5,13 +5,13 @@ import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,6 +28,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,7 +39,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -50,10 +50,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.wallpaperapp.domain.engine.ContrastResult
-import com.example.wallpaperapp.domain.model.NormalizedRect
 import com.example.wallpaperapp.domain.model.Quote
 import com.example.wallpaperapp.domain.model.TextColorScheme
-import com.example.wallpaperapp.domain.model.TextOrientation
 import com.example.wallpaperapp.graphics.PaletteContrastAnalyzer
 import com.example.wallpaperapp.graphics.QuoteTextCanvasDrawer
 import com.example.wallpaperapp.ui.dashboard.DashboardViewModel
@@ -74,7 +72,10 @@ fun ColorSchemePreviewScreen(
     val context = LocalContext.current
 
     val currentSavedScheme by dashboardViewModel.textColorSchemeState.collectAsState()
+    val currentSavedGlow by dashboardViewModel.textGlowEnabledState.collectAsState()
+
     var previewScheme by remember(currentSavedScheme) { mutableStateOf(currentSavedScheme) }
+    var previewTextGlow by remember(currentSavedGlow) { mutableStateOf(currentSavedGlow) }
 
     val rect by zoneEditorViewModel.normalizedRect.collectAsState()
     val orientation by zoneEditorViewModel.textOrientation.collectAsState()
@@ -105,7 +106,7 @@ fun ColorSchemePreviewScreen(
                     context.contentResolver.openInputStream(uri)?.use { stream ->
                         BitmapFactory.decodeStream(stream)
                     }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     null
                 }
             } else {
@@ -129,9 +130,6 @@ fun ColorSchemePreviewScreen(
             }
         }
     }
-
-    val displayMetrics = context.resources.displayMetrics
-    val screenAspectRatio = displayMetrics.widthPixels.toFloat() / displayMetrics.heightPixels.toFloat().coerceAtLeast(1f)
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Full-screen Wallpaper Canvas Container
@@ -181,7 +179,7 @@ fun ColorSchemePreviewScreen(
                     style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
                 )
 
-                // 1:1 Native Canvas Render with Dynamic Contrast Color
+                // 1:1 Native Canvas Render with Dynamic Contrast Color & Highlight Glow
                 drawIntoCanvas { composeCanvas ->
                     val nativeCanvas = composeCanvas.nativeCanvas
                     val activeQuoteObj = sampleQuote ?: Quote("preview", "The unexamined life is not worth living.", "Socrates")
@@ -198,7 +196,8 @@ fun ColorSchemePreviewScreen(
                         isItalic = isItalic,
                         textColorArgb = contrastResult.textColorArgb,
                         shadowColorArgb = contrastResult.shadowColorArgb,
-                        scaledDensity = density.density
+                        scaledDensity = density.density,
+                        textGlowEnabled = previewTextGlow
                     )
                 }
             }
@@ -232,10 +231,29 @@ fun ColorSchemePreviewScreen(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(
-                    text = "Text Color Scheme Preview",
-                    style = MaterialTheme.typography.titleMedium
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Text Color Scheme Preview",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .clickable { previewTextGlow = !previewTextGlow },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text("Glow", style = MaterialTheme.typography.labelLarge)
+                        Switch(
+                            checked = previewTextGlow,
+                            onCheckedChange = { previewTextGlow = it }
+                        )
+                    }
+                }
 
                 // Horizontal Scheme Selector Chips
                 Row(
@@ -263,6 +281,7 @@ fun ColorSchemePreviewScreen(
                 Button(
                     onClick = {
                         dashboardViewModel.setTextColorScheme(previewScheme)
+                        dashboardViewModel.setTextGlowEnabled(previewTextGlow)
                         onConfirmScheme()
                     },
                     modifier = Modifier

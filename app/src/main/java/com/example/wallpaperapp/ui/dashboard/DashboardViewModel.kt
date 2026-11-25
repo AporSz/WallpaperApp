@@ -64,6 +64,9 @@ class DashboardViewModel(
     val textColorSchemeState: StateFlow<TextColorScheme> = settingsRepository.observeTextColorScheme()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TextColorScheme.HIGH_CONTRAST)
 
+    val textGlowEnabledState: StateFlow<Boolean> = settingsRepository.observeTextGlowEnabled()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     private val _applyState = MutableStateFlow<ApplyState>(ApplyState.Idle)
     val applyState: StateFlow<ApplyState> = _applyState.asStateFlow()
 
@@ -200,6 +203,12 @@ class DashboardViewModel(
     fun setTextColorScheme(scheme: TextColorScheme) {
         viewModelScope.launch {
             settingsRepository.setTextColorScheme(scheme)
+        }
+    }
+
+    fun setTextGlowEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setTextGlowEnabled(enabled)
         }
     }
 

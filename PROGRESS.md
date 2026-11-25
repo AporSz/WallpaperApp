@@ -380,3 +380,18 @@
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
+
+---
+
+## Step 4: Unify Active Color Scheme & Glow Across All Previews + Glow Toggle UI
+
+### Implementation Summary
+- **Dynamic Preview Color Contrast & Glow Parity:**
+  - Updated [`ZoneEditorScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/ZoneEditorScreen.kt), [`FontPreviewScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/font/FontPreviewScreen.kt), and [`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt) to collect active `textColorScheme` and `textGlowEnabled` preferences, computing dynamic contrast on `Dispatchers.IO` via `PaletteContrastAnalyzer` and rendering exact matching text color and glow in real-time.
+  - Added `textColorSchemeState` and `textGlowEnabledState` to [`ZoneEditorViewModel.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/ZoneEditorViewModel.kt) and [`PoolsViewModel.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsViewModel.kt).
+- **Highlight Glow Toggle Controls:**
+  - Added **Highlight Glow** toggle switch to Dashboard's Text Color Scheme card in [`DashboardScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/dashboard/DashboardScreen.kt).
+  - Added real-time **Glow** toggle switch to the control bar in [`ColorSchemePreviewScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/color/ColorSchemePreviewScreen.kt).
+
+### Verification Status
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).

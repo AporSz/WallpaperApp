@@ -1,5 +1,7 @@
 package com.example.wallpaperapp.ui.font
 
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,7 +37,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -45,12 +47,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.wallpaperapp.domain.engine.ContrastResult
 import com.example.wallpaperapp.domain.model.Quote
 import com.example.wallpaperapp.domain.model.QuoteFont
 import com.example.wallpaperapp.domain.model.TextOrientation
+import com.example.wallpaperapp.graphics.PaletteContrastAnalyzer
 import com.example.wallpaperapp.graphics.QuoteTextCanvasDrawer
 import com.example.wallpaperapp.ui.dashboard.DashboardViewModel
 import com.example.wallpaperapp.ui.zone.ZoneEditorViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun FontPreviewScreen(
@@ -66,6 +72,8 @@ fun FontPreviewScreen(
     val currentSavedFontId by dashboardViewModel.quoteFontId.collectAsState()
     val savedIsBold by dashboardViewModel.isBoldState.collectAsState()
     val savedIsItalic by dashboardViewModel.isItalicState.collectAsState()
+    val activeColorScheme by dashboardViewModel.textColorSchemeState.collectAsState()
+    val textGlowEnabled by dashboardViewModel.textGlowEnabledState.collectAsState()
 
     var previewFontId by remember(currentSavedFontId) { mutableStateOf(currentSavedFontId) }
     var previewIsBold by remember(savedIsBold) { mutableStateOf(savedIsBold) }
@@ -75,6 +83,50 @@ fun FontPreviewScreen(
     val orientation by zoneEditorViewModel.textOrientation.collectAsState()
     val sampleQuote by zoneEditorViewModel.sampleQuote.collectAsState()
     val imageUri by zoneEditorViewModel.sampleImageUri.collectAsState()
+
+    var contrastResult by remember {
+        mutableStateOf(
+            ContrastResult(
+                textColorArgb = android.graphics.Color.WHITE,
+                shadowColorArgb = android.graphics.Color.BLACK,
+                isDarkBackground = true
+            )
+        )
+    }
+
+    LaunchedEffect(imageUri, rect, activeColorScheme) {
+        withContext(Dispatchers.IO) {
+            val analyzer = PaletteContrastAnalyzer()
+            val bitmap = if (!imageUri.isNullOrEmpty()) {
+                try {
+                    val uri = Uri.parse(imageUri)
+                    context.contentResolver.openInputStream(uri)?.use { stream ->
+                        BitmapFactory.decodeStream(stream)
+                    }
+                } catch (_: Exception) {
+                    null
+                }
+            } else {
+                null
+            }
+
+            if (bitmap != null) {
+                val computed = analyzer.analyzeContrast(bitmap, rect, activeColorScheme)
+                withContext(Dispatchers.Main) {
+                    contrastResult = computed
+                }
+                bitmap.recycle()
+            } else {
+                withContext(Dispatchers.Main) {
+                    contrastResult = ContrastResult(
+                        textColorArgb = android.graphics.Color.WHITE,
+                        shadowColorArgb = android.graphics.Color.BLACK,
+                        isDarkBackground = true
+                    )
+                }
+            }
+        }
+    }
 
     var useLongQuotePreview by remember { mutableStateOf(false) }
 
@@ -208,7 +260,7 @@ fun FontPreviewScreen(
                         style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
                     )
 
-                    // 1:1 Bounding-Box-Filling Native Canvas Render
+                    // 1:1 Bounding-Box-Filling Native Canvas Render with Dynamic Contrast & Glow
                     drawIntoCanvas { composeCanvas ->
                         val nativeCanvas = composeCanvas.nativeCanvas
                         val activeQuoteObj = activeQuote ?: Quote("preview", "The unexamined life is not worth living.", "Socrates")
@@ -223,9 +275,10 @@ fun FontPreviewScreen(
                             fontId = previewFontId,
                             isBold = previewIsBold,
                             isItalic = previewIsItalic,
-                            textColorArgb = android.graphics.Color.WHITE,
-                            shadowColorArgb = android.graphics.Color.BLACK,
-                            scaledDensity = density.density
+                            textColorArgb = contrastResult.textColorArgb,
+                            shadowColorArgb = contrastResult.shadowColorArgb,
+                            scaledDensity = density.density,
+                            textGlowEnabled = textGlowEnabled
                         )
                     }
                 }

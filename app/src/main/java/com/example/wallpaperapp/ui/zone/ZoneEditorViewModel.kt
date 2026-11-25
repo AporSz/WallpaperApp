@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.wallpaperapp.data.local.FontStorageManager
 import com.example.wallpaperapp.domain.model.NormalizedRect
 import com.example.wallpaperapp.domain.model.Quote
+import com.example.wallpaperapp.domain.model.TextColorScheme
 import com.example.wallpaperapp.domain.model.TextOrientation
 import com.example.wallpaperapp.domain.repository.ImageRepository
 import com.example.wallpaperapp.domain.repository.QuoteRepository
@@ -38,6 +39,12 @@ class ZoneEditorViewModel(
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     val isItalicState: StateFlow<Boolean> = settingsRepository.observeIsItalic()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    val textColorSchemeState: StateFlow<TextColorScheme> = settingsRepository.observeTextColorScheme()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, TextColorScheme.HIGH_CONTRAST)
+
+    val textGlowEnabledState: StateFlow<Boolean> = settingsRepository.observeTextGlowEnabled()
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     private val _sampleQuote = MutableStateFlow<Quote?>(null)

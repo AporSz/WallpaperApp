@@ -76,6 +76,7 @@ fun DashboardScreen(
     val isItalic by viewModel.isItalicState.collectAsState()
     val shuffleFonts by viewModel.shuffleFontsState.collectAsState()
     val activeColorScheme by viewModel.textColorSchemeState.collectAsState()
+    val textGlowEnabled by viewModel.textGlowEnabledState.collectAsState()
 
     val showExportDialog by viewModel.showExportDialog.collectAsState()
     val showImportDialog by viewModel.showImportDialog.collectAsState()
@@ -413,6 +414,26 @@ fun DashboardScreen(
                                     Text(text = scheme.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { viewModel.setTextGlowEnabled(!textGlowEnabled) }
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Highlight Glow",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Switch(
+                                checked = textGlowEnabled,
+                                onCheckedChange = { viewModel.setTextGlowEnabled(it) }
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(4.dp))
