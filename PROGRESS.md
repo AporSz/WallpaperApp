@@ -469,3 +469,28 @@
 ### Verification Status
 - Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
 - Built Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
+
+---
+
+## Feature Extensions: Codebase Inspection & Integration Plan (Zone Editor Header Removal, Symmetrical Rendering & Unified Preview Scaffold)
+
+### Inspection & Architectural Analysis Summary
+1. **Remove "Quote Zone Editor" Header & Fix Symmetrical Full-Image Rendering:**
+   - In [`ZoneEditorScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/ZoneEditorScreen.kt), remove the `Text("Quote Zone Editor")` header composable.
+   - Symmetrical layout diagnosis: When `Card(modifier = Modifier.fillMaxWidth().aspectRatio(screenAspectRatio))` is placed inside a `Column` below controls, `.fillMaxWidth()` computes height as `screenWidth / aspect = screenHeight`. Adding top controls forces the card's bottom portion below the screen boundary!
+   - To achieve 100% complete, perfectly centered, symmetrical image rendering without clipping: Create a reusable `CleanWallpaperPreviewScaffold` composable in `com.example.wallpaperapp.ui.components` that uses `BoxWithConstraints` to center and scale the preview container symmetrically to fit within available bounds without vertical overflow or bottom cutoff!
+
+2. **Unify Preview & Clean Long-Press Capabilities Across ALL Preview Screens:**
+   - Implement `CleanWallpaperPreviewScaffold` with built-in long-press gesture handling (`detectTapGestures(onLongPress = { isCleanMode = !isCleanMode })`).
+   - Refactor all 4 preview destinations in the app to use `CleanWallpaperPreviewScaffold`:
+     1. **Zone Editor Preview** ([`ZoneEditorScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/ZoneEditorScreen.kt))
+     2. **Font Preview Screen** ([`FontPreviewScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/font/FontPreviewScreen.kt))
+     3. **Color Scheme Preview Screen** ([`ColorSchemePreviewScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/color/ColorSchemePreviewScreen.kt))
+     4. **Pools Full-Screen Image & Quote Preview** ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt))
+
+3. **Step Execution Plan:**
+   - **Step 2:** Remove Zone Editor top header text and build `CleanWallpaperPreviewScaffold`. Refactor `ZoneEditorScreen.kt` for 100% symmetrical full-image rendering with zero bottom clipping.
+   - **Step 3:** Refactor `FontPreviewScreen.kt`, `ColorSchemePreviewScreen.kt`, and `PoolsScreen.kt` using `CleanWallpaperPreviewScaffold` for unified long-press clean view and full-aspect symmetry across ALL previews in the app. Build debug APK (`./gradlew assembleDebug`).
+
+### Verification Status
+- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
