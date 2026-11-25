@@ -413,3 +413,29 @@
 ### Verification Status
 - Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
 - Built Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
+
+---
+
+## Feature Extensions: Codebase Inspection & Integration Plan (Zone Editor Full Viewport & Clean Preview Mode)
+
+### Inspection & Architectural Analysis Summary
+1. **Full Image Visibility & Auto-Hiding Navigation Bar:**
+   - In [`MainActivity.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/MainActivity.kt), when `selectedScreenIndex == 1` (Zone Editor), configure the bottom `NavigationBar` to auto-hide after a short delay (1.5 seconds) using `AnimatedVisibility(visible = isBottomNavVisible, enter = slideInVertically { it }, exit = slideOutVertically { it })`.
+   - Remove bottom scaffold padding when bottom bar is hidden so the `ZoneEditorScreen` occupies the 100% full vertical viewport edge-to-edge.
+   - When navigating to Dashboard or Pools (`selectedScreenIndex != 1`), `isBottomNavVisible` immediately restores to `true`.
+   - On Zone Editor, tapping the background or control buttons toggles the bottom bar back into view.
+
+2. **Long-Press Clean Preview Mode:**
+   - In [`ZoneEditorScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/ZoneEditorScreen.kt), add local state `var isCleanPreviewMode by remember { mutableStateOf(false) }`.
+   - Attach `detectTapGestures(onLongPress = { isCleanPreviewMode = true }, onTap = { if (isCleanPreviewMode) isCleanPreviewMode = false })` to the preview card background (isolated from center box dragging and corner handle resizing).
+   - When `isCleanPreviewMode == true`:
+     - Fade/hide top title, orientation chips, long text chip, bounding box cyan border, corner/edge handles, dimmed outer scrim, and guiding lines.
+     - Only the pure rendered background image and composited quote text remain visible on screen.
+     - Tapping anywhere exits Clean Preview mode and restores all controls and overlays smoothly.
+
+### Concrete Implementation Steps
+- **Step 2 (Fix Bottom Navigation Auto-Hide & Full-Image Viewport Layout):** Update `MainActivity.kt` and `ZoneEditorScreen.kt` for auto-hiding bottom navigation bar and full vertical viewport rendering.
+- **Step 3 (Implement Long-Press Clean Preview Mode & Final Build Verification):** Update `ZoneEditorScreen.kt` with `isCleanPreviewMode` state, long-press gesture detection, and conditional overlay hiding. Build debug APK (`./gradlew assembleDebug`).
+
+### Verification Status
+- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
