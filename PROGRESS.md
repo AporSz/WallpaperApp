@@ -439,3 +439,18 @@
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
+
+---
+
+## Step 2: Fix Bottom Navigation Auto-Hide & Full-Image Viewport Layout
+
+### Implementation Summary
+- **Auto-Hiding Bottom Navigation Bar ([`MainActivity.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/MainActivity.kt)):**
+  - Added `isBottomNavVisible` state variable.
+  - Added `LaunchedEffect(selectedScreenIndex)`: when `selectedScreenIndex == 1` (Zone Editor), delays 1500ms and sets `isBottomNavVisible = false` with smooth `AnimatedVisibility(slideInVertically / slideOutVertically)`. When navigating to Dashboard or Pools (`selectedScreenIndex != 1`), `isBottomNavVisible` is immediately reset to `true`.
+  - Calculated `contentPadding` dynamically: when `selectedScreenIndex == 1` and `!isBottomNavVisible`, sets `bottom = 0.dp` so the Zone Editor occupies 100% of the vertical viewport edge-to-edge with no bottom cutoff.
+- **Zone Editor Navigation Interop ([`ZoneEditorScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/ZoneEditorScreen.kt)):**
+  - Added `onToggleBottomNav: () -> Unit = {}` callback parameter.
+
+### Verification Status
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).

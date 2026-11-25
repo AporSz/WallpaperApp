@@ -62,7 +62,8 @@ import kotlin.math.roundToInt
 
 @Composable
 fun ZoneEditorScreen(
-    viewModel: ZoneEditorViewModel
+    viewModel: ZoneEditorViewModel,
+    onToggleBottomNav: () -> Unit = {}
 ) {
     val context = LocalContext.current
 

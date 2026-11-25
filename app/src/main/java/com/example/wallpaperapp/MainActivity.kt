@@ -5,8 +5,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -23,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -31,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.wallpaperapp.domain.model.AppThemeMode
 import com.example.wallpaperapp.ui.color.ColorSchemePreviewScreen
@@ -42,6 +48,7 @@ import com.example.wallpaperapp.ui.pools.PoolsViewModel
 import com.example.wallpaperapp.ui.settings.SettingsScreen
 import com.example.wallpaperapp.ui.zone.ZoneEditorScreen
 import com.example.wallpaperapp.ui.zone.ZoneEditorViewModel
+import kotlinx.coroutines.delay
 
 sealed class Screen(val title: String, val icon: ImageVector) {
     object Dashboard : Screen("Dashboard", Icons.Default.Home)
@@ -117,6 +124,17 @@ fun MainAppScreen(
     var showColorSchemePreviewScreen by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
+    var isBottomNavVisible by remember { mutableStateOf(true) }
+
+    LaunchedEffect(selectedScreenIndex) {
+        if (selectedScreenIndex == 1) {
+            delay(1500)
+            isBottomNavVisible = false
+        } else {
+            isBottomNavVisible = true
+        }
+    }
+
     val screens = listOf(
         Screen.Dashboard,
         Screen.ZoneEditor,
@@ -153,26 +171,43 @@ fun MainAppScreen(
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             bottomBar = {
-                NavigationBar {
-                    screens.forEachIndexed { index, screen ->
-                        NavigationBarItem(
-                            selected = selectedScreenIndex == index,
-                            onClick = {
-                                if (selectedScreenIndex != index) {
-                                    selectedScreenIndex = index
-                                    if (backStack.lastOrNull() != index) {
-                                        backStack.add(index)
+                AnimatedVisibility(
+                    visible = isBottomNavVisible,
+                    enter = slideInVertically { it },
+                    exit = slideOutVertically { it }
+                ) {
+                    NavigationBar {
+                        screens.forEachIndexed { index, screen ->
+                            NavigationBarItem(
+                                selected = selectedScreenIndex == index,
+                                onClick = {
+                                    if (selectedScreenIndex != index) {
+                                        selectedScreenIndex = index
+                                        if (backStack.lastOrNull() != index) {
+                                            backStack.add(index)
+                                        }
                                     }
-                                }
-                            },
-                            icon = { Icon(imageVector = screen.icon, contentDescription = screen.title) },
-                            label = { Text(screen.title) }
-                        )
+                                },
+                                icon = { Icon(imageVector = screen.icon, contentDescription = screen.title) },
+                                label = { Text(screen.title) }
+                            )
+                        }
                     }
                 }
             }
         ) { innerPadding ->
-            Box(modifier = Modifier.padding(innerPadding)) {
+            val contentPadding = if (selectedScreenIndex == 1 && !isBottomNavVisible) {
+                PaddingValues(
+                    start = innerPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+                    top = innerPadding.calculateTopPadding(),
+                    end = innerPadding.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+                    bottom = 0.dp
+                )
+            } else {
+                innerPadding
+            }
+
+            Box(modifier = Modifier.padding(contentPadding)) {
                 when (selectedScreenIndex) {
                     0 -> DashboardScreen(
                         viewModel = dashboardViewModel,
@@ -182,7 +217,8 @@ fun MainAppScreen(
                         onNavigateToSettings = { showSettingsScreen = true }
                     )
                     1 -> ZoneEditorScreen(
-                        viewModel = zoneEditorViewModel
+                        viewModel = zoneEditorViewModel,
+                        onToggleBottomNav = { isBottomNavVisible = !isBottomNavVisible }
                     )
                     2 -> PoolsScreen(
                         viewModel = poolsViewModel
