@@ -211,7 +211,7 @@
   - Updated `addQuote` to accept `showQuotationMarks: Boolean = true`.
   - Added `updateQuote(id: String, text: String, author: String?, showQuotationMarks: Boolean)` for persisting quote edits.
 - **Pools Screen UI Extensions ([`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)):**
-  - Added an **Edit** icon button (`Icons.Default.Edit`, `contentDescription = "Edit Quote"`) on each quote card next to the Delete button.
+  - Added an **Edit** icon button (`Icons.Default.Edit`) on each quote card next to the Delete button.
   - Upgraded `AddQuoteDialog` into a unified `AddEditQuoteDialog(quoteToEdit: Quote?, onDismiss: () -> Unit, onConfirm: (String, String?, Boolean) -> Unit)`.
   - Added **"Show quotation marks"** toggle switch inside the dialog (defaulting to `true` when adding new quotes, and reflecting the quote's saved state when editing).
   - Configured quote cards to display quotes conditionally (`“${quote.text}”` vs `quote.text`) according to `quote.showQuotationMarks`.
@@ -494,3 +494,17 @@
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
+
+---
+
+## Step 2: Remove Zone Editor Top Header & Build Reusable CleanWallpaperPreviewScaffold
+
+### Implementation Summary
+- **Created Reusable Preview Scaffold ([`CleanWallpaperPreviewScaffold.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/components/CleanWallpaperPreviewScaffold.kt)):**
+  - Encapsulates device aspect-ratio preview container centering, tap/long-press gesture detection (`detectTapGestures`), and animated top/bottom controls overlay (`AnimatedVisibility`).
+- **Zone Editor Refactoring ([`ZoneEditorScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/ZoneEditorScreen.kt)):**
+  - Removed unnecessary `Text("Quote Zone Editor")` header text.
+  - Wrapped preview inside `CleanWallpaperPreviewScaffold`, resolving vertical height calculation overflow and ensuring 100% complete, symmetrical preview rendering with zero bottom clipping.
+
+### Verification Status
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).

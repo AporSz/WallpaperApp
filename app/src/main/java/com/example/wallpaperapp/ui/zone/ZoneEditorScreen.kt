@@ -6,13 +6,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
@@ -20,10 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,6 +46,7 @@ import com.example.wallpaperapp.domain.model.Quote
 import com.example.wallpaperapp.domain.model.TextOrientation
 import com.example.wallpaperapp.graphics.PaletteContrastAnalyzer
 import com.example.wallpaperapp.graphics.QuoteTextCanvasDrawer
+import com.example.wallpaperapp.ui.components.CleanWallpaperPreviewScaffold
 import com.example.wallpaperapp.ui.zone.CropBoxGeometry.resizeOrMove
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -137,26 +131,15 @@ fun ZoneEditorScreen(
 
     val activeQuote = if (useLongQuotePreview) longQuote else sampleQuote
 
-    val displayMetrics = context.resources.displayMetrics
-    val screenAspectRatio = displayMetrics.widthPixels.toFloat() / displayMetrics.heightPixels.toFloat().coerceAtLeast(1f)
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(if (isCleanPreviewMode) 0.dp else 12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        if (!isCleanPreviewMode) {
-            Text(
-                text = "Quote Zone Editor",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.align(Alignment.Start)
-            )
-
-            // Secondary Controls Row (Orientation + Quote Length Preview)
+    CleanWallpaperPreviewScaffold(
+        isCleanMode = isCleanPreviewMode,
+        onCleanModeChange = { isCleanPreviewMode = it },
+        onTap = onToggleBottomNav,
+        topControls = {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -185,206 +168,178 @@ fun ZoneEditorScreen(
                 )
             }
         }
+    ) { isClean ->
+        val containerWidthPx = this.constraints.maxWidth.toFloat()
+        val containerHeightPx = this.constraints.maxHeight.toFloat()
+        val density = LocalDensity.current
 
-        // Live Dynamic Preview Box locked to Device Display Aspect Ratio
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(screenAspectRatio),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            shape = if (isCleanPreviewMode) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp)
-        ) {
-            BoxWithConstraints(
+        val leftPx = localRect.left * containerWidthPx
+        val topPx = localRect.top * containerHeightPx
+        val widthPx = localRect.width * containerWidthPx
+        val heightPx = localRect.height * containerHeightPx
+
+        val widthDp = with(density) { widthPx.toDp() }
+        val heightDp = with(density) { heightPx.toDp() }
+
+        // Magnetic snap thresholds
+        val centerSnapThreshold = 0.015f
+        val isNearVerticalCenter = abs(localRect.left + localRect.width / 2f - 0.5f) < centerSnapThreshold
+        val isNearHorizontalCenter = abs(localRect.top + localRect.height / 2f - 0.5f) < centerSnapThreshold
+
+        // 1. Background Image
+        if (!imageUri.isNullOrEmpty()) {
+            AsyncImage(
+                model = imageUri,
+                contentDescription = "Sample Background",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onLongPress = {
-                                isCleanPreviewMode = !isCleanPreviewMode
-                            },
-                            onTap = {
-                                if (isCleanPreviewMode) {
-                                    isCleanPreviewMode = false
-                                } else {
-                                    onToggleBottomNav()
-                                }
-                            }
-                        )
-                    }
-            ) {
-                val containerWidthPx = this.constraints.maxWidth.toFloat()
-                val containerHeightPx = this.constraints.maxHeight.toFloat()
-                val density = LocalDensity.current
+                    .background(Color(0xFF2C3E50))
+            )
+        }
 
-                val leftPx = localRect.left * containerWidthPx
-                val topPx = localRect.top * containerHeightPx
-                val widthPx = localRect.width * containerWidthPx
-                val heightPx = localRect.height * containerHeightPx
+        // 2. Dimmed Scrim & Canvas Text Render
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            if (!isClean) {
+                val scrimColor = Color.Black.copy(alpha = 0.45f)
+                drawRect(scrimColor, Offset(0f, 0f), Size(containerWidthPx, topPx))
+                drawRect(scrimColor, Offset(0f, topPx + heightPx), Size(containerWidthPx, containerHeightPx - (topPx + heightPx)))
+                drawRect(scrimColor, Offset(0f, topPx), Size(leftPx, heightPx))
+                drawRect(scrimColor, Offset(leftPx + widthPx, topPx), Size(containerWidthPx - (leftPx + widthPx), heightPx))
 
-                val widthDp = with(density) { widthPx.toDp() }
-                val heightDp = with(density) { heightPx.toDp() }
+                // Dynamic Alignment Guiding Lines
+                if (isDragging) {
+                    val strokeW = 1.dp.toPx()
+                    val vertCenterColor = if (isNearVerticalCenter) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.5f)
+                    val vertStrokeW = if (isNearVerticalCenter) 2.dp.toPx() else strokeW
+                    drawLine(vertCenterColor, Offset(containerWidthPx * 0.5f, 0f), Offset(containerWidthPx * 0.5f, containerHeightPx), strokeWidth = vertStrokeW)
 
-                // Magnetic snap thresholds
-                val centerSnapThreshold = 0.015f
-                val isNearVerticalCenter = abs(localRect.left + localRect.width / 2f - 0.5f) < centerSnapThreshold
-                val isNearHorizontalCenter = abs(localRect.top + localRect.height / 2f - 0.5f) < centerSnapThreshold
+                    val horizCenterColor = if (isNearHorizontalCenter) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.5f)
+                    val horizStrokeW = if (isNearHorizontalCenter) 2.dp.toPx() else strokeW
+                    drawLine(horizCenterColor, Offset(0f, containerHeightPx * 0.5f), Offset(containerWidthPx, containerHeightPx * 0.5f), strokeWidth = horizStrokeW)
 
-                // 1. Background Image
-                if (!imageUri.isNullOrEmpty()) {
-                    AsyncImage(
-                        model = imageUri,
-                        contentDescription = "Sample Background",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFF2C3E50))
-                    )
+                    // Rule of Thirds Guides
+                    val thirdColor = Color.White.copy(alpha = 0.3f)
+                    drawLine(thirdColor, Offset(containerWidthPx * 0.333f, 0f), Offset(containerWidthPx * 0.333f, containerHeightPx), strokeWidth = strokeW)
+                    drawLine(thirdColor, Offset(containerWidthPx * 0.666f, 0f), Offset(containerWidthPx * 0.666f, containerHeightPx), strokeWidth = strokeW)
+                    drawLine(thirdColor, Offset(0f, containerHeightPx * 0.333f), Offset(containerWidthPx, containerHeightPx * 0.333f), strokeWidth = strokeW)
+                    drawLine(thirdColor, Offset(0f, containerHeightPx * 0.666f), Offset(containerWidthPx, containerHeightPx * 0.666f), strokeWidth = strokeW)
                 }
+            }
 
-                // 2. Dimmed Scrim & Canvas Text Render
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    if (!isCleanPreviewMode) {
-                        val scrimColor = Color.Black.copy(alpha = 0.45f)
-                        drawRect(scrimColor, Offset(0f, 0f), Size(containerWidthPx, topPx))
-                        drawRect(scrimColor, Offset(0f, topPx + heightPx), Size(containerWidthPx, containerHeightPx - (topPx + heightPx)))
-                        drawRect(scrimColor, Offset(0f, topPx), Size(leftPx, heightPx))
-                        drawRect(scrimColor, Offset(leftPx + widthPx, topPx), Size(containerWidthPx - (leftPx + widthPx), heightPx))
+            // 1:1 Bounding-Box-Filling Native Canvas Render with Dynamic Contrast & Glow
+            drawIntoCanvas { composeCanvas ->
+                val nativeCanvas = composeCanvas.nativeCanvas
+                val activeQuoteObj = activeQuote ?: Quote("preview", "The journey of a thousand miles begins with a single step.", "Lao Tzu")
+                QuoteTextCanvasDrawer.drawQuoteOnCanvas(
+                    canvas = nativeCanvas,
+                    quote = activeQuoteObj,
+                    leftPx = leftPx,
+                    topPx = topPx,
+                    rightPx = leftPx + widthPx,
+                    bottomPx = topPx + heightPx,
+                    orientation = orientation,
+                    fontId = activeFontId,
+                    isBold = isBold,
+                    isItalic = isItalic,
+                    textColorArgb = contrastResult.textColorArgb,
+                    shadowColorArgb = contrastResult.shadowColorArgb,
+                    scaledDensity = density.density,
+                    textGlowEnabled = textGlowEnabled
+                )
+            }
+        }
 
-                        // Dynamic Alignment Guiding Lines
-                        if (isDragging) {
-                            val strokeW = 1.dp.toPx()
-                            val vertCenterColor = if (isNearVerticalCenter) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.5f)
-                            val vertStrokeW = if (isNearVerticalCenter) 2.dp.toPx() else strokeW
-                            drawLine(vertCenterColor, Offset(containerWidthPx * 0.5f, 0f), Offset(containerWidthPx * 0.5f, containerHeightPx), strokeWidth = vertStrokeW)
+        if (!isClean) {
+            // 4. Active Bounding Box Overlay Window + Ephemeral Center Drag with Magnetic Snapping
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(leftPx.roundToInt(), topPx.roundToInt()) }
+                    .size(widthDp, heightDp)
+                    .background(Color(0x2200E5FF))
+                    .border(2.dp, Color(0xFF00E5FF), RoundedCornerShape(4.dp))
+                    .clipToBounds()
+            )
 
-                            val horizCenterColor = if (isNearHorizontalCenter) Color(0xFF00E5FF) else Color.White.copy(alpha = 0.5f)
-                            val horizStrokeW = if (isNearHorizontalCenter) 2.dp.toPx() else strokeW
-                            drawLine(horizCenterColor, Offset(0f, containerHeightPx * 0.5f), Offset(containerWidthPx, containerHeightPx * 0.5f), strokeWidth = horizStrokeW)
-
-                            // Rule of Thirds Guides
-                            val thirdColor = Color.White.copy(alpha = 0.3f)
-                            drawLine(thirdColor, Offset(containerWidthPx * 0.333f, 0f), Offset(containerWidthPx * 0.333f, containerHeightPx), strokeWidth = strokeW)
-                            drawLine(thirdColor, Offset(containerWidthPx * 0.666f, 0f), Offset(containerWidthPx * 0.666f, containerHeightPx), strokeWidth = strokeW)
-                            drawLine(thirdColor, Offset(0f, containerHeightPx * 0.333f), Offset(containerWidthPx, containerHeightPx * 0.333f), strokeWidth = strokeW)
-                            drawLine(thirdColor, Offset(0f, containerHeightPx * 0.666f), Offset(containerWidthPx, containerHeightPx * 0.666f), strokeWidth = strokeW)
+            // 5. Center Ephemeral Drag Gesture Lock
+            val currentLocalRectState = rememberUpdatedState(localRect)
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(leftPx.roundToInt(), topPx.roundToInt()) }
+                    .size(widthDp, heightDp)
+                    .pointerInput(Unit) {
+                        detectDragGestures(
+                            onDragStart = { isDragging = true },
+                            onDragEnd = {
+                                isDragging = false
+                                viewModel.updateRect(currentLocalRectState.value)
+                            },
+                            onDragCancel = {
+                                isDragging = false
+                                viewModel.updateRect(currentLocalRectState.value)
+                            }
+                        ) { change, dragAmount ->
+                            change.consume()
+                            localRect = with(CropBoxGeometry) {
+                                currentLocalRectState.value.resizeOrMove(
+                                    handle = HandleType.CENTER,
+                                    dxNorm = dragAmount.x / containerWidthPx,
+                                    dyNorm = dragAmount.y / containerHeightPx
+                                )
+                            }
                         }
                     }
+            )
 
-                    // 1:1 Bounding-Box-Filling Native Canvas Render with Dynamic Contrast & Glow
-                    drawIntoCanvas { composeCanvas ->
-                        val nativeCanvas = composeCanvas.nativeCanvas
-                        val activeQuoteObj = activeQuote ?: Quote("preview", "The journey of a thousand miles begins with a single step.", "Lao Tzu")
-                        QuoteTextCanvasDrawer.drawQuoteOnCanvas(
-                            canvas = nativeCanvas,
-                            quote = activeQuoteObj,
-                            leftPx = leftPx,
-                            topPx = topPx,
-                            rightPx = leftPx + widthPx,
-                            bottomPx = topPx + heightPx,
-                            orientation = orientation,
-                            fontId = activeFontId,
-                            isBold = isBold,
-                            isItalic = isItalic,
-                            textColorArgb = contrastResult.textColorArgb,
-                            shadowColorArgb = contrastResult.shadowColorArgb,
-                            scaledDensity = density.density,
-                            textGlowEnabled = textGlowEnabled
-                        )
-                    }
-                }
+            // 6. Corner & Edge Handles
+            val handleSizeDp = 24.dp
+            val handleOffsetDp = 12.dp
 
-                if (!isCleanPreviewMode) {
-                    // 4. Active Bounding Box Overlay Window + Ephemeral Center Drag with Magnetic Snapping
-                    Box(
-                        modifier = Modifier
-                            .offset { IntOffset(leftPx.roundToInt(), topPx.roundToInt()) }
-                            .size(widthDp, heightDp)
-                            .background(Color(0x2200E5FF))
-                            .border(2.dp, Color(0xFF00E5FF), RoundedCornerShape(4.dp))
-                            .clipToBounds()
-                    )
+            val handlePositions = listOf(
+                HandleType.TOP_LEFT to IntOffset((leftPx - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx - with(density) { handleOffsetDp.toPx() }).roundToInt()),
+                HandleType.TOP_RIGHT to IntOffset((leftPx + widthPx - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx - with(density) { handleOffsetDp.toPx() }).roundToInt()),
+                HandleType.BOTTOM_LEFT to IntOffset((leftPx - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx + heightPx - with(density) { handleOffsetDp.toPx() }).roundToInt()),
+                HandleType.BOTTOM_RIGHT to IntOffset((leftPx + widthPx - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx + heightPx - with(density) { handleOffsetDp.toPx() }).roundToInt()),
+                HandleType.TOP to IntOffset((leftPx + widthPx / 2f - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx - with(density) { handleOffsetDp.toPx() }).roundToInt()),
+                HandleType.BOTTOM to IntOffset((leftPx + widthPx / 2f - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx + heightPx - with(density) { handleOffsetDp.toPx() }).roundToInt()),
+                HandleType.LEFT to IntOffset((leftPx - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx + heightPx / 2f - with(density) { handleOffsetDp.toPx() }).roundToInt()),
+                HandleType.RIGHT to IntOffset((leftPx + widthPx - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx + heightPx / 2f - with(density) { handleOffsetDp.toPx() }).roundToInt())
+            )
 
-                    // 5. Center Ephemeral Drag Gesture Lock
-                    val currentLocalRectState = rememberUpdatedState(localRect)
-                    Box(
-                        modifier = Modifier
-                            .offset { IntOffset(leftPx.roundToInt(), topPx.roundToInt()) }
-                            .size(widthDp, heightDp)
-                            .pointerInput(Unit) {
-                                detectDragGestures(
-                                    onDragStart = { isDragging = true },
-                                    onDragEnd = {
-                                        isDragging = false
-                                        viewModel.updateRect(currentLocalRectState.value)
-                                    },
-                                    onDragCancel = {
-                                        isDragging = false
-                                        viewModel.updateRect(currentLocalRectState.value)
-                                    }
-                                ) { change, dragAmount ->
-                                    change.consume()
-                                    localRect = with(CropBoxGeometry) {
-                                        currentLocalRectState.value.resizeOrMove(
-                                            handle = HandleType.CENTER,
-                                            dxNorm = dragAmount.x / containerWidthPx,
-                                            dyNorm = dragAmount.y / containerHeightPx
-                                        )
-                                    }
+            handlePositions.forEach { (handle, offset) ->
+                Box(
+                    modifier = Modifier
+                        .offset { offset }
+                        .size(handleSizeDp)
+                        .background(Color(0xFF00E5FF), CircleShape)
+                        .border(2.dp, Color.White, CircleShape)
+                        .pointerInput(handle) {
+                            detectDragGestures(
+                                onDragStart = { isDragging = true },
+                                onDragEnd = {
+                                    isDragging = false
+                                    viewModel.updateRect(currentLocalRectState.value)
+                                },
+                                onDragCancel = {
+                                    isDragging = false
+                                    viewModel.updateRect(currentLocalRectState.value)
+                                }
+                            ) { change, dragAmount ->
+                                change.consume()
+                                localRect = with(CropBoxGeometry) {
+                                    currentLocalRectState.value.resizeOrMove(
+                                        handle = handle,
+                                        dxNorm = dragAmount.x / containerWidthPx,
+                                        dyNorm = dragAmount.y / containerHeightPx
+                                    )
                                 }
                             }
-                    )
-
-                    // 6. Corner & Edge Handles
-                    val handleSizeDp = 24.dp
-                    val handleOffsetDp = 12.dp
-
-                    val handlePositions = listOf(
-                        HandleType.TOP_LEFT to IntOffset((leftPx - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx - with(density) { handleOffsetDp.toPx() }).roundToInt()),
-                        HandleType.TOP_RIGHT to IntOffset((leftPx + widthPx - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx - with(density) { handleOffsetDp.toPx() }).roundToInt()),
-                        HandleType.BOTTOM_LEFT to IntOffset((leftPx - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx + heightPx - with(density) { handleOffsetDp.toPx() }).roundToInt()),
-                        HandleType.BOTTOM_RIGHT to IntOffset((leftPx + widthPx - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx + heightPx - with(density) { handleOffsetDp.toPx() }).roundToInt()),
-                        HandleType.TOP to IntOffset((leftPx + widthPx / 2f - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx - with(density) { handleOffsetDp.toPx() }).roundToInt()),
-                        HandleType.BOTTOM to IntOffset((leftPx + widthPx / 2f - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx + heightPx - with(density) { handleOffsetDp.toPx() }).roundToInt()),
-                        HandleType.LEFT to IntOffset((leftPx - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx + heightPx / 2f - with(density) { handleOffsetDp.toPx() }).roundToInt()),
-                        HandleType.RIGHT to IntOffset((leftPx + widthPx - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx + heightPx / 2f - with(density) { handleOffsetDp.toPx() }).roundToInt())
-                    )
-
-                    handlePositions.forEach { (handle, offset) ->
-                        Box(
-                            modifier = Modifier
-                                .offset { offset }
-                                .size(handleSizeDp)
-                                .background(Color(0xFF00E5FF), CircleShape)
-                                .border(2.dp, Color.White, CircleShape)
-                                .pointerInput(handle) {
-                                    detectDragGestures(
-                                        onDragStart = { isDragging = true },
-                                        onDragEnd = {
-                                            isDragging = false
-                                            viewModel.updateRect(currentLocalRectState.value)
-                                        },
-                                        onDragCancel = {
-                                            isDragging = false
-                                            viewModel.updateRect(currentLocalRectState.value)
-                                        }
-                                    ) { change, dragAmount ->
-                                        change.consume()
-                                        localRect = with(CropBoxGeometry) {
-                                            currentLocalRectState.value.resizeOrMove(
-                                                handle = handle,
-                                                dxNorm = dragAmount.x / containerWidthPx,
-                                                dyNorm = dragAmount.y / containerHeightPx
-                                            )
-                                        }
-                                    }
-                                }
-                        )
-                    }
-                }
+                        }
+                )
             }
         }
     }
