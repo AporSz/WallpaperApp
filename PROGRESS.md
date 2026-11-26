@@ -522,3 +522,27 @@
 ### Verification Status
 - Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
 - Built Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
+
+---
+
+## Feature Extensions: Codebase Inspection & Integration Plan (Hold-to-Peek Preview & Stationary Zone Editor Viewport)
+
+### Inspection & Architectural Analysis Summary
+1. **Hold-to-Peek Long-Press (Hide While Held, Restore on Release):**
+   - Refactor `pointerInput` in [`CleanWallpaperPreviewScaffold.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/components/CleanWallpaperPreviewScaffold.kt) using low-level pointer event handling (`awaitEachGesture`):
+     - Touch down -> if held past `viewConfiguration.longPressTimeoutMillis` (~500ms), set `isPeeking = true` and fade out all controls and scrim overlays.
+     - While pressed down -> loop `awaitPointerEvent()` tracking pointer press state.
+     - On release/up or cancellation -> set `isPeeking = false` instantly, restoring all controls and scrim overlays.
+     - Regular tap (<500ms) -> call `onTap?.invoke()`.
+   - Because all preview screens ([`ZoneEditorScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/ZoneEditorScreen.kt), [`FontPreviewScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/font/FontPreviewScreen.kt), [`ColorSchemePreviewScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/color/ColorSchemePreviewScreen.kt), [`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt)) use `CleanWallpaperPreviewScaffold`, this automatically applies Hold-to-Peek behavior across every preview destination in the app cleanly!
+
+2. **Eliminate Vertical Image Jump in Zone Editor:**
+   - In [`MainActivity.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/MainActivity.kt), `Scaffold` previously dynamically recalculated `contentPadding` when `isBottomNavVisible` toggled, causing vertical container height changes and pushing the centered preview card up and down.
+   - **Resolution:** Keep content padding for `ZoneEditorScreen` constant regardless of whether the bottom navigation bar is visible or hidden. Overlay the animated bottom navigation bar cleanly at the bottom of the screen using `AnimatedVisibility` so available vertical space for the Zone Editor remains 100% stationary in fixed screen coordinates!
+
+3. **Step Execution Plan:**
+   - **Step 2:** Implement shared hold-to-peek gesture in `CleanWallpaperPreviewScaffold.kt` and apply across preview screens.
+   - **Step 3:** Eliminate vertical image jump in `MainActivity.kt` and `ZoneEditorScreen.kt` and perform final test/build verification (`./gradlew testDebugUnitTest assembleDebug`).
+
+### Verification Status
+- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
