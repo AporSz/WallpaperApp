@@ -370,7 +370,7 @@
 ### Implementation Summary
 - **7 Text Color Schemes in `PaletteContrastAnalyzer.kt`:**
   - `SUBTLE_PALETTE_HARMONY`: Muted photo swatches with gentle HSL lightness adjustment.
-  - `VIBRANT_PALETTE_HARMONY`: Richer vibrant photo swatches (`vibrantSwatch`, `lightVibrantSwatch`, `darkVibrantSwatch`) with Noticeable color presence while remaining legible and tasteful.
+  - `VIBRANT_PALETTE_HARMONY`: Richer vibrant swatches (`vibrantSwatch`, `lightVibrantSwatch`, `darkVibrantSwatch`) with Noticeable color presence while remaining legible and tasteful.
   - `BLEND_IN`: Dominant tone behind crop rect with slight ~10-15% tonal shift for soft camouflage effect into background image.
 - **Highlight Glow Rendering in `QuoteTextCanvasDrawer.kt`:**
   - Added `textGlowEnabled: Boolean = false` parameter to `drawQuoteOnCanvas(...)`.
@@ -519,3 +519,27 @@
 ### Verification Status
 - Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
 - Built Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
+
+---
+
+## Feature Extensions: Codebase Inspection & Integration Plan (Zone Editor Bounding Box Hit-Testing & Disambiguation)
+
+### Inspection & Architectural Analysis Summary
+1. **Root Cause Analysis of Bounding Box Unreliability:**
+   - **Gesture Hijacking:** Currently, `CleanWallpaperPreviewScaffold` attaches a `pointerInput(Unit)` that listens for touch down (`awaitFirstDown`) on the outer preview container. Simultaneously, `ZoneEditorScreen` attaches separate `pointerInput` modifiers to each handle and the center drag box. If the user touches a handle or center box and holds still for 500ms before dragging, `CleanWallpaperPreviewScaffold`'s hold-to-peek timer triggers, setting `isClean = true` which removes all handles from composition and cancels the drag gesture!
+   - **Coordinate Space Alignment:** The overlay and rendered canvas must share the exact same `Modifier.matchParentSize()` coordinate box so `leftPx`, `topPx`, `rightPx`, `bottomPx` correspond 1:1 with screen pixels.
+   - **Hit-Testing Priority:** Handles must use generous touch targets (40dp corner radius, 32dp edge band) evaluated in strict priority order: **Corners (4)** -> **Edges (4)** -> **Box Interior (Center Move)** -> **Empty Background (Hold-to-Peek candidate)**.
+
+2. **Unified Bounding Box Hit-Testing & Gesture Engine (`CropBoxHitTester.kt` & `CropBoxGeometry.kt`):**
+   - Create `CropBoxHitTester.kt` in `com.example.wallpaperapp.ui.zone` with pure, unit-testable Kotlin hit-testing math.
+   - Refactor `ZoneEditorScreen.kt` and `CleanWallpaperPreviewScaffold.kt`:
+     - When touch down occurs, run `CropBoxHitTester.hitTest(...)` *first*.
+     - If a handle or center box is hit, **lock touch handling exclusively to bounding box drag/resize** for the entire gesture lifecycle. Never enter hold-to-peek mode!
+     - Only allow hold-to-peek if the touch down lands on the empty background outside the bounding box and handle hit radii.
+
+3. **Step Execution Plan:**
+   - **Step 2:** Implement pure Kotlin `CropBoxHitTester.kt` and refactor `ZoneEditorScreen.kt` and `CleanWallpaperPreviewScaffold.kt` to use the unified gesture engine with generous handle touch targets (40dp corners, 32dp edges) and magnetic center snapping. Write unit tests in `CropBoxHitTesterTest.kt`.
+   - **Step 3:** Perform UI overlay polish and final build/test verification (`./gradlew testDebugUnitTest assembleDebug`).
+
+### Verification Status
+- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
