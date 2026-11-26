@@ -196,7 +196,7 @@ fun MainAppScreen(
                 }
             }
         ) { innerPadding ->
-            val contentPadding = if (selectedScreenIndex == 1 && !isBottomNavVisible) {
+            val contentPadding = if (selectedScreenIndex == 1) {
                 PaddingValues(
                     start = innerPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
                     top = innerPadding.calculateTopPadding(),

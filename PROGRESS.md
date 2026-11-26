@@ -506,3 +506,16 @@
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
+
+---
+
+## Step 3: Eliminate Vertical Image Jump in Zone Editor & Final Verification
+
+### Implementation Summary
+- **Eliminated Vertical Image Jump in Zone Editor ([`MainActivity.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/MainActivity.kt)):**
+  - Standardized content padding for `ZoneEditorScreen` to `bottom = 0.dp` constantly regardless of whether `isBottomNavVisible` is `true` or `false`.
+  - Rendered the bottom `NavigationBar` as an animated overlay layer (`AnimatedVisibility`) so available vertical space for `ZoneEditorScreen` remains 100% constant and stationary in fixed screen coordinates.
+
+### Verification Status
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
+- Built Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
