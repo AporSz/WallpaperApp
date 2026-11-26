@@ -337,7 +337,7 @@
 ### Concrete Implementation Steps
 - **Step 2 (Domain & Data Layer Updates):** Update `TextColorScheme.kt`, `RenderConfig.kt`, `SettingsRepository.kt`, `DataStoreSettingsRepository.kt` (with `"PALETTE_HARMONY"` migration handling). Write unit tests.
 - **Step 3 (Graphics Engine Update):** Implement 7 color schemes in `PaletteContrastAnalyzer.kt` and highlight glow rendering in `QuoteTextCanvasDrawer.kt`. Write unit tests.
-- **Step 4 (Unify Active Color Scheme & Glow Across All Previews + Glow Toggle UI):** Update preview composables to resolve dynamic color contrast and glow. Add Highlight Glow toggle switch to Dashboard and `ColorSchemePreviewScreen.kt`.
+- **Step 4 (Unify Active Color Scheme & Glow Across All Previews + Glow Toggle UI):** Update preview composables to resolve dynamic color contrast and glow. Add Highlight Glow toggle switch to Dashboard's Text Color Scheme card and `ColorSchemePreviewScreen.kt`.
 - **Step 5 (New Settings Screen, Dashboard Refactor & Back Stack Verification):** Build `SettingsScreen.kt`, refactor `DashboardScreen.kt`, register Settings route in `MainActivity.kt`. Build debug APK (`./gradlew assembleDebug`).
 
 ### Verification Status
@@ -508,3 +508,17 @@
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
+
+---
+
+## Step 3: Unify Clean Long-Press Preview & Full-Aspect Symmetry Across ALL Preview Screens
+
+### Implementation Summary
+- **Unified Preview Functionality Across ALL Preview Screens:**
+  - Refactored [`FontPreviewScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/font/FontPreviewScreen.kt), [`ColorSchemePreviewScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/color/ColorSchemePreviewScreen.kt), and [`PoolsScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/pools/PoolsScreen.kt) (`PoolItemFullScreenPreview`) using [`CleanWallpaperPreviewScaffold.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/components/CleanWallpaperPreviewScaffold.kt).
+  - Ensured long-pressing the preview background to toggle clean mode (hiding/fading all controls and overlays) and tapping to restore controls works 100% consistently across every single preview screen in the app.
+  - Ensured 100% symmetrical, unclipped aspect-ratio preview rendering across all preview destinations.
+
+### Verification Status
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
+- Built Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).

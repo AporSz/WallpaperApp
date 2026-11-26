@@ -9,7 +9,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -54,6 +53,7 @@ import com.example.wallpaperapp.domain.model.Quote
 import com.example.wallpaperapp.domain.model.TextColorScheme
 import com.example.wallpaperapp.graphics.PaletteContrastAnalyzer
 import com.example.wallpaperapp.graphics.QuoteTextCanvasDrawer
+import com.example.wallpaperapp.ui.components.CleanWallpaperPreviewScaffold
 import com.example.wallpaperapp.ui.dashboard.DashboardViewModel
 import com.example.wallpaperapp.ui.zone.ZoneEditorViewModel
 import kotlinx.coroutines.Dispatchers
@@ -131,40 +131,128 @@ fun ColorSchemePreviewScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Full-screen Wallpaper Canvas Container
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black)
-        ) {
-            val containerWidthPx = this.constraints.maxWidth.toFloat()
-            val containerHeightPx = this.constraints.maxHeight.toFloat()
-            val density = LocalDensity.current
-
-            // Background Image
-            if (!imageUriString.isNullOrEmpty()) {
-                AsyncImage(
-                    model = imageUriString,
-                    contentDescription = "Color Preview Background",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0xFF1E293B))
-                )
+    CleanWallpaperPreviewScaffold(
+        topControls = {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                horizontalArrangement = Arrangement.Start
+            ) {
+                IconButton(
+                    onClick = onConfirmScheme,
+                    modifier = Modifier.background(Color.Black.copy(alpha = 0.6f), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close Color Scheme Preview",
+                        tint = Color.White
+                    )
+                }
             }
+        },
+        bottomControls = {
+            Card(
+                modifier = Modifier
+                    .padding(20.dp)
+                    .fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.92f)),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Text Color Scheme Preview",
+                            style = MaterialTheme.typography.titleMedium
+                        )
 
-            // Semi-translucent Overlay Canvas + Dynamic Contrast Quote Render
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val leftPx = rect.left * containerWidthPx
-                val topPx = rect.top * containerHeightPx
-                val rightPx = rect.right * containerWidthPx
-                val bottomPx = rect.bottom * containerHeightPx
+                        Row(
+                            modifier = Modifier.clickable { previewTextGlow = !previewTextGlow },
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text("Glow", style = MaterialTheme.typography.labelLarge)
+                            Switch(
+                                checked = previewTextGlow,
+                                onCheckedChange = { previewTextGlow = it }
+                            )
+                        }
+                    }
 
+                    // Horizontal Scheme Selector Chips
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        TextColorScheme.entries.forEach { scheme ->
+                            FilterChip(
+                                selected = previewScheme == scheme,
+                                onClick = { previewScheme = scheme },
+                                label = { Text(scheme.displayName) }
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = previewScheme.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // Use This Color Scheme Button
+                    Button(
+                        onClick = {
+                            dashboardViewModel.setTextColorScheme(previewScheme)
+                            dashboardViewModel.setTextGlowEnabled(previewTextGlow)
+                            onConfirmScheme()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                    ) {
+                        Text("Use This Color Scheme", style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+            }
+        }
+    ) { isClean ->
+        val containerWidthPx = this.constraints.maxWidth.toFloat()
+        val containerHeightPx = this.constraints.maxHeight.toFloat()
+        val density = LocalDensity.current
+
+        // Background Image
+        if (!imageUriString.isNullOrEmpty()) {
+            AsyncImage(
+                model = imageUriString,
+                contentDescription = "Color Preview Background",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF1E293B))
+            )
+        }
+
+        // Semi-translucent Overlay Canvas + Dynamic Contrast Quote Render
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val leftPx = rect.left * containerWidthPx
+            val topPx = rect.top * containerHeightPx
+            val rightPx = rect.right * containerWidthPx
+            val bottomPx = rect.bottom * containerHeightPx
+
+            if (!isClean) {
                 val scrimColor = Color.Black.copy(alpha = 0.40f)
                 drawRect(scrimColor, Offset(0f, 0f), Size(containerWidthPx, topPx))
                 drawRect(scrimColor, Offset(0f, bottomPx), Size(containerWidthPx, containerHeightPx - bottomPx))
@@ -178,118 +266,28 @@ fun ColorSchemePreviewScreen(
                     size = Size(rightPx - leftPx, bottomPx - topPx),
                     style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
                 )
-
-                // 1:1 Native Canvas Render with Dynamic Contrast Color & Highlight Glow
-                drawIntoCanvas { composeCanvas ->
-                    val nativeCanvas = composeCanvas.nativeCanvas
-                    val activeQuoteObj = sampleQuote ?: Quote("preview", "The unexamined life is not worth living.", "Socrates")
-                    QuoteTextCanvasDrawer.drawQuoteOnCanvas(
-                        canvas = nativeCanvas,
-                        quote = activeQuoteObj,
-                        leftPx = leftPx,
-                        topPx = topPx,
-                        rightPx = rightPx,
-                        bottomPx = bottomPx,
-                        orientation = orientation,
-                        fontId = fontId,
-                        isBold = isBold,
-                        isItalic = isItalic,
-                        textColorArgb = contrastResult.textColorArgb,
-                        shadowColorArgb = contrastResult.shadowColorArgb,
-                        scaledDensity = density.density,
-                        textGlowEnabled = previewTextGlow
-                    )
-                }
             }
-        }
 
-        // Top Floating Close Button
-        IconButton(
-            onClick = onConfirmScheme,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(20.dp)
-                .background(Color.Black.copy(alpha = 0.6f), CircleShape)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = "Close Color Scheme Preview",
-                tint = Color.White
-            )
-        }
-
-        // Bottom Floating Color Scheme Selection Control Bar
-        Card(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(20.dp)
-                .fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.92f)),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Text Color Scheme Preview",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-
-                    Row(
-                        modifier = Modifier
-                            .clickable { previewTextGlow = !previewTextGlow },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text("Glow", style = MaterialTheme.typography.labelLarge)
-                        Switch(
-                            checked = previewTextGlow,
-                            onCheckedChange = { previewTextGlow = it }
-                        )
-                    }
-                }
-
-                // Horizontal Scheme Selector Chips
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    TextColorScheme.entries.forEach { scheme ->
-                        FilterChip(
-                            selected = previewScheme == scheme,
-                            onClick = { previewScheme = scheme },
-                            label = { Text(scheme.displayName) }
-                        )
-                    }
-                }
-
-                Text(
-                    text = previewScheme.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            // 1:1 Native Canvas Render with Dynamic Contrast Color & Highlight Glow
+            drawIntoCanvas { composeCanvas ->
+                val nativeCanvas = composeCanvas.nativeCanvas
+                val activeQuoteObj = sampleQuote ?: Quote("preview", "The unexamined life is not worth living.", "Socrates")
+                QuoteTextCanvasDrawer.drawQuoteOnCanvas(
+                    canvas = nativeCanvas,
+                    quote = activeQuoteObj,
+                    leftPx = leftPx,
+                    topPx = topPx,
+                    rightPx = rightPx,
+                    bottomPx = bottomPx,
+                    orientation = orientation,
+                    fontId = fontId,
+                    isBold = isBold,
+                    isItalic = isItalic,
+                    textColorArgb = contrastResult.textColorArgb,
+                    shadowColorArgb = contrastResult.shadowColorArgb,
+                    scaledDensity = density.density,
+                    textGlowEnabled = previewTextGlow
                 )
-
-                // Use This Color Scheme Button
-                Button(
-                    onClick = {
-                        dashboardViewModel.setTextColorScheme(previewScheme)
-                        dashboardViewModel.setTextGlowEnabled(previewTextGlow)
-                        onConfirmScheme()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                ) {
-                    Text("Use This Color Scheme", style = MaterialTheme.typography.titleMedium)
-                }
             }
         }
     }

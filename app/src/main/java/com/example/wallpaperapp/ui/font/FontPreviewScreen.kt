@@ -10,20 +10,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -35,7 +29,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -50,9 +43,9 @@ import coil.compose.AsyncImage
 import com.example.wallpaperapp.domain.engine.ContrastResult
 import com.example.wallpaperapp.domain.model.Quote
 import com.example.wallpaperapp.domain.model.QuoteFont
-import com.example.wallpaperapp.domain.model.TextOrientation
 import com.example.wallpaperapp.graphics.PaletteContrastAnalyzer
 import com.example.wallpaperapp.graphics.QuoteTextCanvasDrawer
+import com.example.wallpaperapp.ui.components.CleanWallpaperPreviewScaffold
 import com.example.wallpaperapp.ui.dashboard.DashboardViewModel
 import com.example.wallpaperapp.ui.zone.ZoneEditorViewModel
 import kotlinx.coroutines.Dispatchers
@@ -148,156 +141,143 @@ fun FontPreviewScreen(
 
     val activeQuote = if (useLongQuotePreview) longQuote else sampleQuote
 
-    val displayMetrics = context.resources.displayMetrics
-    val screenAspectRatio = displayMetrics.widthPixels.toFloat() / displayMetrics.heightPixels.toFloat().coerceAtLeast(1f)
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = "Font Typography Preview",
-            style = MaterialTheme.typography.headlineMedium
-        )
-
-        // Built-in Font Presets Selector
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            QuoteFont.BUILTIN_FONTS.forEach { font ->
-                FilterChip(
-                    selected = previewFontId == font.id,
-                    onClick = { previewFontId = font.id },
-                    label = { Text(font.name) }
-                )
-            }
-            OutlinedButton(
-                onClick = {
-                    fontPickerLauncher.launch(
-                        arrayOf("font/ttf", "font/otf", "application/x-font-ttf", "application/octet-stream")
-                    )
-                }
+    CleanWallpaperPreviewScaffold(
+        topControls = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("+ Import")
-            }
-        }
-
-        // Style Toggles Row (Bold, Italic, Long Text Preview)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            FilterChip(
-                selected = previewIsBold,
-                onClick = { previewIsBold = !previewIsBold },
-                label = { Text("Bold") }
-            )
-            FilterChip(
-                selected = previewIsItalic,
-                onClick = { previewIsItalic = !previewIsItalic },
-                label = { Text("Italic") }
-            )
-            FilterChip(
-                selected = useLongQuotePreview,
-                onClick = { useLongQuotePreview = !useLongQuotePreview },
-                label = { Text("Long Text") }
-            )
-        }
-
-        // Wallpaper Aspect Ratio Live Canvas Card with 1:1 Bounding Box Auto-Fitting
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(screenAspectRatio),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                val containerWidthPx = this.constraints.maxWidth.toFloat()
-                val containerHeightPx = this.constraints.maxHeight.toFloat()
-                val density = LocalDensity.current
-
-                // Background Image
-                if (!imageUri.isNullInEmpty()) {
-                    AsyncImage(
-                        model = imageUri,
-                        contentDescription = "Preview Background",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFF2C3E50))
-                    )
-                }
-
-                // Semi-translucent Overlay Canvas + Quote Render
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val leftPx = rect.left * containerWidthPx
-                    val topPx = rect.top * containerHeightPx
-                    val rightPx = rect.right * containerWidthPx
-                    val bottomPx = rect.bottom * containerHeightPx
-
-                    val scrimColor = Color.Black.copy(alpha = 0.45f)
-                    drawRect(scrimColor, Offset(0f, 0f), Size(containerWidthPx, topPx))
-                    drawRect(scrimColor, Offset(0f, bottomPx), Size(containerWidthPx, containerHeightPx - bottomPx))
-                    drawRect(scrimColor, Offset(0f, topPx), Size(leftPx, bottomPx - topPx))
-                    drawRect(scrimColor, Offset(rightPx, topPx), Size(containerWidthPx - rightPx, bottomPx - topPx))
-
-                    // Border overlay around bounding box
-                    drawRect(
-                        color = Color(0x6600E5FF),
-                        topLeft = Offset(leftPx, topPx),
-                        size = Size(rightPx - leftPx, bottomPx - topPx),
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
-                    )
-
-                    // 1:1 Bounding-Box-Filling Native Canvas Render with Dynamic Contrast & Glow
-                    drawIntoCanvas { composeCanvas ->
-                        val nativeCanvas = composeCanvas.nativeCanvas
-                        val activeQuoteObj = activeQuote ?: Quote("preview", "The unexamined life is not worth living.", "Socrates")
-                        QuoteTextCanvasDrawer.drawQuoteOnCanvas(
-                            canvas = nativeCanvas,
-                            quote = activeQuoteObj,
-                            leftPx = leftPx,
-                            topPx = topPx,
-                            rightPx = rightPx,
-                            bottomPx = bottomPx,
-                            orientation = orientation,
-                            fontId = previewFontId,
-                            isBold = previewIsBold,
-                            isItalic = previewIsItalic,
-                            textColorArgb = contrastResult.textColorArgb,
-                            shadowColorArgb = contrastResult.shadowColorArgb,
-                            scaledDensity = density.density,
-                            textGlowEnabled = textGlowEnabled
+                // Built-in Font Presets Selector
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    QuoteFont.BUILTIN_FONTS.forEach { font ->
+                        FilterChip(
+                            selected = previewFontId == font.id,
+                            onClick = { previewFontId = font.id },
+                            label = { Text(font.name) }
                         )
                     }
+                    OutlinedButton(
+                        onClick = {
+                            fontPickerLauncher.launch(
+                                arrayOf("font/ttf", "font/otf", "application/x-font-ttf", "application/octet-stream")
+                            )
+                        }
+                    ) {
+                        Text("+ Import")
+                    }
+                }
+
+                // Style Toggles Row (Bold, Italic, Long Text Preview)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    FilterChip(
+                        selected = previewIsBold,
+                        onClick = { previewIsBold = !previewIsBold },
+                        label = { Text("Bold") }
+                    )
+                    FilterChip(
+                        selected = previewIsItalic,
+                        onClick = { previewIsItalic = !previewIsItalic },
+                        label = { Text("Italic") }
+                    )
+                    FilterChip(
+                        selected = useLongQuotePreview,
+                        onClick = { useLongQuotePreview = !useLongQuotePreview },
+                        label = { Text("Long Text") }
+                    )
                 }
             }
+        },
+        bottomControls = {
+            Button(
+                onClick = {
+                    dashboardViewModel.setQuoteFontId(previewFontId)
+                    dashboardViewModel.setIsBold(previewIsBold)
+                    dashboardViewModel.setIsItalic(previewIsItalic)
+                    onConfirmFont()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .height(48.dp)
+            ) {
+                Text("Use This Font Style", style = MaterialTheme.typography.titleMedium)
+            }
+        }
+    ) { isClean ->
+        val containerWidthPx = this.constraints.maxWidth.toFloat()
+        val containerHeightPx = this.constraints.maxHeight.toFloat()
+        val density = LocalDensity.current
+
+        // Background Image
+        if (!imageUri.isNullInEmpty()) {
+            AsyncImage(
+                model = imageUri,
+                contentDescription = "Preview Background",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF2C3E50))
+            )
         }
 
-        // Use This Font Action Button
-        Button(
-            onClick = {
-                dashboardViewModel.setQuoteFontId(previewFontId)
-                dashboardViewModel.setIsBold(previewIsBold)
-                dashboardViewModel.setIsItalic(previewIsItalic)
-                onConfirmFont()
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-        ) {
-            Text("Use This Font Style", style = MaterialTheme.typography.titleMedium)
+        // Semi-translucent Overlay Canvas + Quote Render
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val leftPx = rect.left * containerWidthPx
+            val topPx = rect.top * containerHeightPx
+            val rightPx = rect.right * containerWidthPx
+            val bottomPx = rect.bottom * containerHeightPx
+
+            if (!isClean) {
+                val scrimColor = Color.Black.copy(alpha = 0.45f)
+                drawRect(scrimColor, Offset(0f, 0f), Size(containerWidthPx, topPx))
+                drawRect(scrimColor, Offset(0f, bottomPx), Size(containerWidthPx, containerHeightPx - bottomPx))
+                drawRect(scrimColor, Offset(0f, topPx), Size(leftPx, bottomPx - topPx))
+                drawRect(scrimColor, Offset(rightPx, topPx), Size(containerWidthPx - rightPx, bottomPx - topPx))
+
+                // Border overlay around bounding box
+                drawRect(
+                    color = Color(0x6600E5FF),
+                    topLeft = Offset(leftPx, topPx),
+                    size = Size(rightPx - leftPx, bottomPx - topPx),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
+                )
+            }
+
+            // 1:1 Bounding-Box-Filling Native Canvas Render with Dynamic Contrast & Glow
+            drawIntoCanvas { composeCanvas ->
+                val nativeCanvas = composeCanvas.nativeCanvas
+                val activeQuoteObj = activeQuote ?: Quote("preview", "The unexamined life is not worth living.", "Socrates")
+                QuoteTextCanvasDrawer.drawQuoteOnCanvas(
+                    canvas = nativeCanvas,
+                    quote = activeQuoteObj,
+                    leftPx = leftPx,
+                    topPx = topPx,
+                    rightPx = rightPx,
+                    bottomPx = bottomPx,
+                    orientation = orientation,
+                    fontId = previewFontId,
+                    isBold = previewIsBold,
+                    isItalic = previewIsItalic,
+                    textColorArgb = contrastResult.textColorArgb,
+                    shadowColorArgb = contrastResult.shadowColorArgb,
+                    scaledDensity = density.density,
+                    textGlowEnabled = textGlowEnabled
+                )
+            }
         }
     }
 }

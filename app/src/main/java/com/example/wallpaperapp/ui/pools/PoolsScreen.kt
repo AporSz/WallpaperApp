@@ -12,7 +12,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -27,10 +26,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -62,7 +59,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -84,6 +80,7 @@ import com.example.wallpaperapp.domain.model.WallpaperImage
 import com.example.wallpaperapp.graphics.LandscapeOrientationTransformation
 import com.example.wallpaperapp.graphics.PaletteContrastAnalyzer
 import com.example.wallpaperapp.graphics.QuoteTextCanvasDrawer
+import com.example.wallpaperapp.ui.components.CleanWallpaperPreviewScaffold
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -548,59 +545,99 @@ fun PoolItemFullScreenPreview(
         }
     }
 
-    val displayMetrics = context.resources.displayMetrics
-    val screenAspectRatio = displayMetrics.widthPixels.toFloat() / displayMetrics.heightPixels.toFloat().coerceAtLeast(1f)
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
-        // Edge-to-Edge Full-Screen Aspect Ratio Surface
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .align(Alignment.Center)
-                .aspectRatio(screenAspectRatio)
-        ) {
-            val containerWidthPx = this.constraints.maxWidth.toFloat()
-            val containerHeightPx = this.constraints.maxHeight.toFloat()
-
-            val leftPx = rect.left * containerWidthPx
-            val topPx = rect.top * containerHeightPx
-            val rightPx = rect.right * containerWidthPx
-            val bottomPx = rect.bottom * containerHeightPx
-
-            val density = LocalDensity.current
-
-            val imageRequest = remember(activeImageUri, landscapeMode) {
-                if (activeImageUri != null) {
-                    ImageRequest.Builder(context)
-                        .data(activeImageUri)
-                        .transformations(LandscapeOrientationTransformation(landscapeMode))
-                        .crossfade(true)
-                        .build()
-                } else null
+    CleanWallpaperPreviewScaffold(
+        topControls = {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                horizontalArrangement = Arrangement.Start
+            ) {
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.background(Color.Black.copy(alpha = 0.6f), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close Full Screen Preview",
+                        tint = Color.White
+                    )
+                }
             }
+        },
+        bottomControls = {
+            Card(
+                modifier = Modifier.padding(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.75f)),
+                shape = RoundedCornerShape(28.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (initialQuote != null && allImages.size > 1) {
+                        OutlinedButton(
+                            onClick = { selectedImageIndex = (selectedImageIndex + 1) % allImages.size }
+                        ) {
+                            Text("Cycle Image", color = Color.White)
+                        }
+                    }
 
-            // Background Image
-            if (imageRequest != null) {
-                AsyncImage(
-                    model = imageRequest,
-                    contentDescription = "Full Screen Preview Background",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0xFF222222))
-                )
+                    if (initialImage != null && allQuotes.size > 1) {
+                        OutlinedButton(
+                            onClick = { selectedQuoteIndex = (selectedQuoteIndex + 1) % allQuotes.size }
+                        ) {
+                            Text("Cycle Quote", color = Color.White)
+                        }
+                    }
+
+                    Button(onClick = onDismiss) {
+                        Text("Done")
+                    }
+                }
             }
+        }
+    ) { isClean ->
+        val containerWidthPx = this.constraints.maxWidth.toFloat()
+        val containerHeightPx = this.constraints.maxHeight.toFloat()
 
-            // Dimmed Scrim & 1:1 Bounding Box Canvas Text Render
-            Canvas(modifier = Modifier.fillMaxSize()) {
+        val leftPx = rect.left * containerWidthPx
+        val topPx = rect.top * containerHeightPx
+        val rightPx = rect.right * containerWidthPx
+        val bottomPx = rect.bottom * containerHeightPx
+
+        val density = LocalDensity.current
+
+        val imageRequest = remember(activeImageUri, landscapeMode) {
+            if (activeImageUri != null) {
+                ImageRequest.Builder(context)
+                    .data(activeImageUri)
+                    .transformations(LandscapeOrientationTransformation(landscapeMode))
+                    .crossfade(true)
+                    .build()
+            } else null
+        }
+
+        // Background Image
+        if (imageRequest != null) {
+            AsyncImage(
+                model = imageRequest,
+                contentDescription = "Full Screen Preview Background",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF222222))
+            )
+        }
+
+        // Dimmed Scrim & 1:1 Bounding Box Canvas Text Render
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            if (!isClean) {
                 val scrimColor = Color.Black.copy(alpha = 0.45f)
                 drawRect(scrimColor, Offset(0f, 0f), Size(containerWidthPx, topPx))
                 drawRect(scrimColor, Offset(0f, bottomPx), Size(containerWidthPx, containerHeightPx - bottomPx))
@@ -614,77 +651,27 @@ fun PoolItemFullScreenPreview(
                     size = Size(rightPx - leftPx, bottomPx - topPx),
                     style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
                 )
-
-                // 1:1 Bounding-Box-Filling Native Canvas Render with Dynamic Contrast & Glow
-                drawIntoCanvas { composeCanvas ->
-                    val nativeCanvas = composeCanvas.nativeCanvas
-                    QuoteTextCanvasDrawer.drawQuoteOnCanvas(
-                        canvas = nativeCanvas,
-                        quote = activeQuote,
-                        leftPx = leftPx,
-                        topPx = topPx,
-                        rightPx = rightPx,
-                        bottomPx = bottomPx,
-                        orientation = orientation,
-                        fontId = fontId,
-                        isBold = isBold,
-                        isItalic = isItalic,
-                        textColorArgb = contrastResult.textColorArgb,
-                        shadowColorArgb = contrastResult.shadowColorArgb,
-                        scaledDensity = density.density,
-                        textGlowEnabled = textGlowEnabled
-                    )
-                }
             }
-        }
 
-        // Top Floating Close Button
-        IconButton(
-            onClick = onDismiss,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(20.dp)
-                .background(Color.Black.copy(alpha = 0.6f), CircleShape)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = "Close Full Screen Preview",
-                tint = Color.White
-            )
-        }
-
-        // Bottom Floating Action Bar
-        Card(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.75f)),
-            shape = RoundedCornerShape(28.dp)
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (initialQuote != null && allImages.size > 1) {
-                    OutlinedButton(
-                        onClick = { selectedImageIndex = (selectedImageIndex + 1) % allImages.size }
-                    ) {
-                        Text("Cycle Image", color = Color.White)
-                    }
-                }
-
-                if (initialImage != null && allQuotes.size > 1) {
-                    OutlinedButton(
-                        onClick = { selectedQuoteIndex = (selectedQuoteIndex + 1) % allQuotes.size }
-                    ) {
-                        Text("Cycle Quote", color = Color.White)
-                    }
-                }
-
-                Button(onClick = onDismiss) {
-                    Text("Done")
-                }
+            // 1:1 Bounding-Box-Filling Native Canvas Render with Dynamic Contrast & Glow
+            drawIntoCanvas { composeCanvas ->
+                val nativeCanvas = composeCanvas.nativeCanvas
+                QuoteTextCanvasDrawer.drawQuoteOnCanvas(
+                    canvas = nativeCanvas,
+                    quote = activeQuote,
+                    leftPx = leftPx,
+                    topPx = topPx,
+                    rightPx = rightPx,
+                    bottomPx = bottomPx,
+                    orientation = orientation,
+                    fontId = fontId,
+                    isBold = isBold,
+                    isItalic = isItalic,
+                    textColorArgb = contrastResult.textColorArgb,
+                    shadowColorArgb = contrastResult.shadowColorArgb,
+                    scaledDensity = density.density,
+                    textGlowEnabled = textGlowEnabled
+                )
             }
         }
     }
