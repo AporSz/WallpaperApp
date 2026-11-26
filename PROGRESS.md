@@ -361,7 +361,7 @@
   - Updated [`TextColorSchemeTest.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/test/java/com/example/wallpaperapp/domain/model/TextColorSchemeTest.kt) verifying all 7 options.
 
 ### Verification Status
-- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
 
 ---
 
@@ -370,16 +370,16 @@
 ### Implementation Summary
 - **7 Text Color Schemes in `PaletteContrastAnalyzer.kt`:**
   - `SUBTLE_PALETTE_HARMONY`: Muted photo swatches with gentle HSL lightness adjustment.
-  - `VIBRANT_PALETTE_HARMONY`: Richer vibrant swatches (`vibrantSwatch`, `lightVibrantSwatch`, `darkVibrantSwatch`) with Noticeable color presence while remaining legible and tasteful.
+  - `VIBRANT_PALETTE_HARMONY`: Richer vibrant photo swatches (`vibrantSwatch`, `lightVibrantSwatch`, `darkVibrantSwatch`) with Noticeable color presence while remaining legible and tasteful.
   - `BLEND_IN`: Dominant tone behind crop rect with slight ~10-15% tonal shift for soft camouflage effect into background image.
 - **Highlight Glow Rendering in `QuoteTextCanvasDrawer.kt`:**
   - Added `textGlowEnabled: Boolean = false` parameter to `drawQuoteOnCanvas(...)`.
-  - When `textGlowEnabled == true`: applies luminous soft outer glow (`setShadowLayer(22f, 0f, 0f, glowColorArgb)`).
+  - When `textGlowEnabled == true`: applies luminous soft outer glow (`setShadowLayer(22f, 0f, 0f, textColorArgb)`).
 - **Wallpaper Renderer Integration:**
   - Updated [`CanvasWallpaperRenderer.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/graphics/CanvasWallpaperRenderer.kt) to pass `config.textGlowEnabled` to `drawQuoteOnCanvas`.
 
 ### Verification Status
-- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
 
 ---
 
@@ -394,7 +394,7 @@
   - Added real-time **Glow** toggle switch to the control bar in [`ColorSchemePreviewScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/color/ColorSchemePreviewScreen.kt).
 
 ### Verification Status
-- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
 
 ---
 
@@ -411,7 +411,7 @@
   - Handled back navigation with `BackHandler` in `SettingsScreen` and `MainAppScreen` so tapping top-bar Back or performing Android system back gesture pops back to the Dashboard cleanly.
 
 ### Verification Status
-- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
 - Built Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
 
 ---
@@ -561,3 +561,14 @@
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
+
+---
+
+## Step 3: UI Overlay Polish, Edge-Case Verification & Final Build
+
+### Implementation Summary
+- **Magnetic Center Snapping & Geometry Polish ([`CropBoxGeometry.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/CropBoxGeometry.kt)):**
+  - Integrated magnetic center snapping with smooth breakaway directly into `CropBoxGeometry.kt`.
+- **Final Build & Test Verification:**
+  - Verified compilation and executed test suite: **SUCCESS** (28/28 unit tests passed).
+  - Built Debug APK: **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).

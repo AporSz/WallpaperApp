@@ -1,6 +1,7 @@
 package com.example.wallpaperapp.ui.zone
 
 import com.example.wallpaperapp.domain.model.NormalizedRect
+import kotlin.math.abs
 
 enum class HandleType {
     TOP_LEFT,
@@ -30,8 +31,18 @@ object CropBoxGeometry {
             HandleType.CENTER -> {
                 val currentWidth = width
                 val currentHeight = height
-                val newLeft = (left + dxNorm).coerceIn(0.0f, 1.0f - currentWidth)
-                val newTop = (top + dyNorm).coerceIn(0.0f, 1.0f - currentHeight)
+                var newLeft = (left + dxNorm).coerceIn(0.0f, 1.0f - currentWidth)
+                var newTop = (top + dyNorm).coerceIn(0.0f, 1.0f - currentHeight)
+
+                // Magnetic center snapping logic with smooth breakaway threshold
+                val centerSnapThreshold = 0.015f
+                if (abs(newLeft + currentWidth / 2f - 0.5f) < centerSnapThreshold) {
+                    newLeft = 0.5f - currentWidth / 2f
+                }
+                if (abs(newTop + currentHeight / 2f - 0.5f) < centerSnapThreshold) {
+                    newTop = 0.5f - currentHeight / 2f
+                }
+
                 val newRight = (newLeft + currentWidth).coerceIn(newLeft + minWidth, 1.0f)
                 val newBottom = (newTop + currentHeight).coerceIn(newTop + minHeight, 1.0f)
                 NormalizedRect(newLeft, newTop, newRight, newBottom)
