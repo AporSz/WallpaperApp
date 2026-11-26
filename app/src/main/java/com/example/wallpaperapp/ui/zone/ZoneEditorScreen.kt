@@ -5,7 +5,8 @@ import android.net.Uri
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -255,7 +256,7 @@ fun ZoneEditorScreen(
         }
 
         if (!isClean) {
-            // 4. Active Bounding Box Overlay Window + Ephemeral Center Drag with Magnetic Snapping
+            // 4. Visual Active Bounding Box Overlay Window
             Box(
                 modifier = Modifier
                     .offset { IntOffset(leftPx.roundToInt(), topPx.roundToInt()) }
@@ -265,37 +266,7 @@ fun ZoneEditorScreen(
                     .clipToBounds()
             )
 
-            // 5. Center Ephemeral Drag Gesture Lock
-            val currentLocalRectState = rememberUpdatedState(localRect)
-            Box(
-                modifier = Modifier
-                    .offset { IntOffset(leftPx.roundToInt(), topPx.roundToInt()) }
-                    .size(widthDp, heightDp)
-                    .pointerInput(Unit) {
-                        detectDragGestures(
-                            onDragStart = { isDragging = true },
-                            onDragEnd = {
-                                isDragging = false
-                                viewModel.updateRect(currentLocalRectState.value)
-                            },
-                            onDragCancel = {
-                                isDragging = false
-                                viewModel.updateRect(currentLocalRectState.value)
-                            }
-                        ) { change, dragAmount ->
-                            change.consume()
-                            localRect = with(CropBoxGeometry) {
-                                currentLocalRectState.value.resizeOrMove(
-                                    handle = HandleType.CENTER,
-                                    dxNorm = dragAmount.x / containerWidthPx,
-                                    dyNorm = dragAmount.y / containerHeightPx
-                                )
-                            }
-                        }
-                    }
-            )
-
-            // 6. Corner & Edge Handles
+            // 5. Visual Corner & Edge Handles (8 cyan circles)
             val handleSizeDp = 24.dp
             val handleOffsetDp = 12.dp
 
@@ -310,37 +281,68 @@ fun ZoneEditorScreen(
                 HandleType.RIGHT to IntOffset((leftPx + widthPx - with(density) { handleOffsetDp.toPx() }).roundToInt(), (topPx + heightPx / 2f - with(density) { handleOffsetDp.toPx() }).roundToInt())
             )
 
-            handlePositions.forEach { (handle, offset) ->
+            handlePositions.forEach { (_, offset) ->
                 Box(
                     modifier = Modifier
                         .offset { offset }
                         .size(handleSizeDp)
                         .background(Color(0xFF00E5FF), CircleShape)
                         .border(2.dp, Color.White, CircleShape)
-                        .pointerInput(handle) {
-                            detectDragGestures(
-                                onDragStart = { isDragging = true },
-                                onDragEnd = {
-                                    isDragging = false
-                                    viewModel.updateRect(currentLocalRectState.value)
-                                },
-                                onDragCancel = {
-                                    isDragging = false
-                                    viewModel.updateRect(currentLocalRectState.value)
-                                }
-                            ) { change, dragAmount ->
-                                change.consume()
-                                localRect = with(CropBoxGeometry) {
-                                    currentLocalRectState.value.resizeOrMove(
-                                        handle = handle,
-                                        dxNorm = dragAmount.x / containerWidthPx,
-                                        dyNorm = dragAmount.y / containerHeightPx
-                                    )
-                                }
-                            }
-                        }
                 )
             }
+
+            // 6. Unified Touch Hit-Test & Drag/Resize Overlay (1:1 with rendered image container)
+            val currentLocalRectState = rememberUpdatedState(localRect)
+            val cornerHitRadiusPx = with(density) { 40.dp.toPx() }
+            val edgeHitBandPx = with(density) { 32.dp.toPx() }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            val hitHandle = CropBoxHitTester.hitTest(
+                                rect = currentLocalRectState.value,
+                                containerWidthPx = containerWidthPx,
+                                containerHeightPx = containerHeightPx,
+                                touchPx = down.position,
+                                cornerRadiusPx = cornerHitRadiusPx,
+                                edgeBandPx = edgeHitBandPx
+                            )
+
+                            if (hitHandle != null) {
+                                down.consume()
+                                isDragging = true
+                                val pointerId = down.id
+
+                                do {
+                                    val event = awaitPointerEvent()
+                                    val pointerChange = event.changes.firstOrNull { it.id == pointerId } ?: event.changes.firstOrNull()
+                                    if (pointerChange != null && pointerChange.pressed) {
+                                        val dragAmount = pointerChange.position - pointerChange.previousPosition
+                                        if (dragAmount.x != 0f || dragAmount.y != 0f) {
+                                            pointerChange.consume()
+                                            val dxNorm = dragAmount.x / containerWidthPx
+                                            val dyNorm = dragAmount.y / containerHeightPx
+
+                                            localRect = with(CropBoxGeometry) {
+                                                currentLocalRectState.value.resizeOrMove(
+                                                    handle = hitHandle,
+                                                    dxNorm = dxNorm,
+                                                    dyNorm = dyNorm
+                                                )
+                                            }
+                                        }
+                                    }
+                                } while (event.changes.any { it.pressed })
+
+                                isDragging = false
+                                viewModel.updateRect(currentLocalRectState.value)
+                            }
+                        }
+                    }
+            )
         }
     }
 }

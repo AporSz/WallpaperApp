@@ -361,7 +361,7 @@
   - Updated [`TextColorSchemeTest.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/test/java/com/example/wallpaperapp/domain/model/TextColorSchemeTest.kt) verifying all 7 options.
 
 ### Verification Status
-- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
+- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
 
 ---
 
@@ -374,12 +374,12 @@
   - `BLEND_IN`: Dominant tone behind crop rect with slight ~10-15% tonal shift for soft camouflage effect into background image.
 - **Highlight Glow Rendering in `QuoteTextCanvasDrawer.kt`:**
   - Added `textGlowEnabled: Boolean = false` parameter to `drawQuoteOnCanvas(...)`.
-  - When `textGlowEnabled == true`: applies luminous soft outer glow (`setShadowLayer(22f, 0f, 0f, textColorArgb)`).
+  - When `textGlowEnabled == true`: applies luminous soft outer glow (`setShadowLayer(22f, 0f, 0f, glowColorArgb)`).
 - **Wallpaper Renderer Integration:**
   - Updated [`CanvasWallpaperRenderer.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/graphics/CanvasWallpaperRenderer.kt) to pass `config.textGlowEnabled` to `drawQuoteOnCanvas`.
 
 ### Verification Status
-- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
+- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
 
 ---
 
@@ -394,7 +394,7 @@
   - Added real-time **Glow** toggle switch to the control bar in [`ColorSchemePreviewScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/color/ColorSchemePreviewScreen.kt).
 
 ### Verification Status
-- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
+- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
 
 ---
 
@@ -411,7 +411,7 @@
   - Handled back navigation with `BackHandler` in `SettingsScreen` and `MainAppScreen` so tapping top-bar Back or performing Android system back gesture pops back to the Dashboard cleanly.
 
 ### Verification Status
-- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
+- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
 - Built Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
 
 ---
@@ -543,3 +543,21 @@
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
+
+---
+
+## Step 2: Implement CropBoxHitTester, Unified Gesture Engine, and Unit Tests
+
+### Implementation Summary
+- **Created Pure Kotlin Hit-Tester ([`CropBoxHitTester.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/CropBoxHitTester.kt)):**
+  - Evaluates touch down coordinates against normalized crop box rectangle in strict priority: **Corners** (40dp radius) $\rightarrow$ **Edges** (32dp perpendicular band) $\rightarrow$ **Box Interior** $\rightarrow$ **Background**.
+- **Unit Testing ([`CropBoxHitTesterTest.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/test/java/com/example/wallpaperapp/ui/zone/CropBoxHitTesterTest.kt)):**
+  - Verified corner hit priority, edge hit priority, box interior hit, and background null response.
+- **Refactored Zone Editor Overlay ([`ZoneEditorScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/ZoneEditorScreen.kt)):**
+  - Replaced 9 competing `pointerInput` modifiers with a single, unified overlay gesture engine.
+  - On touch down: performs `CropBoxHitTester.hitTest(...)`. If a handle or box interior is hit, consumes touch down and locks exclusively to drag/resize math.
+- **Scaffold Gesture Disambiguation ([`CleanWallpaperPreviewScaffold.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/components/CleanWallpaperPreviewScaffold.kt)):**
+  - Updated `awaitFirstDown` to `requireUnconsumed = true` so hold-to-peek only listens to unconsumed background touches.
+
+### Verification Status
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).

@@ -59,7 +59,7 @@ fun CleanWallpaperPreviewScaffold(
                     .fillMaxSize()
                     .pointerInput(Unit) {
                         awaitEachGesture {
-                            awaitFirstDown(requireUnconsumed = false)
+                            awaitFirstDown(requireUnconsumed = true)
                             val longPressTimeout = viewConfiguration.longPressTimeoutMillis
                             val upOrCancel = withTimeoutOrNull(longPressTimeout) {
                                 waitForUpOrCancellation()
