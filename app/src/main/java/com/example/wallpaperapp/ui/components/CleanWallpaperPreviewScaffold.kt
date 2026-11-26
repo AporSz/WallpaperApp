@@ -3,7 +3,9 @@ package com.example.wallpaperapp.ui.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxWithConstraintsScope
@@ -22,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 @Composable
 fun CleanWallpaperPreviewScaffold(
@@ -35,12 +38,6 @@ fun CleanWallpaperPreviewScaffold(
 ) {
     var internalIsCleanMode by remember { mutableStateOf(false) }
     val effectiveIsClean = isCleanMode ?: internalIsCleanMode
-
-    val toggleClean = {
-        val next = !effectiveIsClean
-        internalIsCleanMode = next
-        onCleanModeChange?.invoke(next)
-    }
 
     val context = LocalContext.current
     val displayMetrics = context.resources.displayMetrics
@@ -61,11 +58,28 @@ fun CleanWallpaperPreviewScaffold(
                 modifier = Modifier
                     .fillMaxSize()
                     .pointerInput(Unit) {
-                        detectTapGestures(
-                            onLongPress = {
-                                toggleClean()
-                            },
-                            onTap = {
+                        awaitEachGesture {
+                            awaitFirstDown(requireUnconsumed = false)
+                            val longPressTimeout = viewConfiguration.longPressTimeoutMillis
+                            val upOrCancel = withTimeoutOrNull(longPressTimeout) {
+                                waitForUpOrCancellation()
+                            }
+
+                            if (upOrCancel == null) {
+                                // Long-press threshold exceeded -> Activate Hold-to-Peek!
+                                internalIsCleanMode = true
+                                onCleanModeChange?.invoke(true)
+
+                                // Keep peeking while finger stays pressed down
+                                do {
+                                    val event = awaitPointerEvent()
+                                } while (event.changes.any { it.pressed })
+
+                                // Release/Up -> Instantly restore UI elements!
+                                internalIsCleanMode = false
+                                onCleanModeChange?.invoke(false)
+                            } else {
+                                // Short Tap (<500ms)
                                 if (effectiveIsClean) {
                                     internalIsCleanMode = false
                                     onCleanModeChange?.invoke(false)
@@ -73,7 +87,7 @@ fun CleanWallpaperPreviewScaffold(
                                     onTap?.invoke()
                                 }
                             }
-                        )
+                        }
                     }
             ) {
                 previewContent(effectiveIsClean)

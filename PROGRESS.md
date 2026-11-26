@@ -416,62 +416,6 @@
 
 ---
 
-## Feature Extensions: Codebase Inspection & Integration Plan (Zone Editor Full Viewport & Clean Preview Mode)
-
-### Inspection & Architectural Analysis Summary
-1. **Full Image Visibility & Auto-Hiding Navigation Bar:**
-   - In [`MainActivity.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/MainActivity.kt), when `selectedScreenIndex == 1` (Zone Editor), configure the bottom `NavigationBar` to auto-hide after a short delay (1.5 seconds) using `AnimatedVisibility(visible = isBottomNavVisible, enter = slideInVertically { it }, exit = slideOutVertically { it })`.
-   - Remove bottom scaffold padding when bottom bar is hidden so the `ZoneEditorScreen` occupies the 100% full vertical viewport edge-to-edge.
-   - When navigating to Dashboard or Pools (`selectedScreenIndex != 1`), `isBottomNavVisible` immediately restores to `true`.
-   - On Zone Editor, tapping the background or control buttons toggles the bottom bar back into view.
-
-2. **Long-Press Clean Preview Mode:**
-   - In [`ZoneEditorScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/ZoneEditorScreen.kt), add local state `var isCleanPreviewMode by remember { mutableStateOf(false) }`.
-   - Attach `detectTapGestures(onLongPress = { isCleanPreviewMode = true }, onTap = { if (isCleanPreviewMode) isCleanPreviewMode = false })` to the preview card background (isolated from center box dragging and corner handle resizing).
-   - When `isCleanPreviewMode == true`:
-     - Fade/hide top title, orientation chips, long text chip, bounding box cyan border, corner/edge handles, dimmed outer scrim, and guiding lines.
-     - Only the pure rendered background image and composited quote text remain visible on screen.
-     - Tapping anywhere exits Clean Preview mode and restores all controls and overlays smoothly.
-
-### Concrete Implementation Steps
-- **Step 2 (Fix Bottom Navigation Auto-Hide & Full-Image Viewport Layout):** Update `MainActivity.kt` and `ZoneEditorScreen.kt` for auto-hiding bottom navigation bar and full vertical viewport rendering.
-- **Step 3 (Implement Long-Press Clean Preview Mode & Final Build Verification):** Update `ZoneEditorScreen.kt` with `isCleanPreviewMode` state, long-press gesture detection, and conditional overlay hiding. Build debug APK (`./gradlew assembleDebug`).
-
-### Verification Status
-- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
-
----
-
-## Step 2: Fix Bottom Navigation Auto-Hide & Full-Image Viewport Layout
-
-### Implementation Summary
-- **Auto-Hiding Bottom Navigation Bar ([`MainActivity.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/MainActivity.kt)):**
-  - Added `isBottomNavVisible` state variable.
-  - Added `LaunchedEffect(selectedScreenIndex)`: when `selectedScreenIndex == 1` (Zone Editor), delays 1500ms and sets `isBottomNavVisible = false` with smooth `AnimatedVisibility(slideInVertically / slideOutVertically)`. When navigating to Dashboard or Pools (`selectedScreenIndex != 1`), `isBottomNavVisible` is immediately reset to `true`.
-  - Calculated `contentPadding` dynamically: when `selectedScreenIndex == 1` and `!isBottomNavVisible`, sets `bottom = 0.dp` so the Zone Editor occupies 100% of the vertical viewport edge-to-edge with no bottom cutoff.
-- **Zone Editor Navigation Interop ([`ZoneEditorScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/ZoneEditorScreen.kt)):**
-  - Added `onToggleBottomNav: () -> Unit = {}` callback parameter.
-
-### Verification Status
-- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
-
----
-
-## Step 3: Implement Long-Press Clean Preview Mode & Final Build Verification
-
-### Implementation Summary
-- **Long-Press Clean Preview Mode ([`ZoneEditorScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/ZoneEditorScreen.kt)):**
-  - Added `isCleanPreviewMode` state variable.
-  - Configured `detectTapGestures` on the preview card background: long-pressing toggles `isCleanPreviewMode = true`, and single-tapping anywhere when clean preview is active exits Clean Preview mode (`isCleanPreviewMode = false`). Single-tapping when clean preview is inactive toggles the bottom navigation bar (`onToggleBottomNav()`).
-  - When `isCleanPreviewMode == true`: hides header title, orientation chips, long text chip, cyan bounding box border, corner/edge handles, dimmed outer scrim, and guiding lines.
-  - Only the pure rendered background image and composited quote text remain visible on screen.
-
-### Verification Status
-- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
-- Built Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
-
----
-
 ## Feature Extensions: Codebase Inspection & Integration Plan (Zone Editor Header Removal, Symmetrical Rendering & Unified Preview Scaffold)
 
 ### Inspection & Architectural Analysis Summary
@@ -546,3 +490,19 @@
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
+
+---
+
+## Step 2: Implement Shared Hold-to-Peek Gesture in CleanWallpaperPreviewScaffold & Preview Screens
+
+### Implementation Summary
+- **Implemented Hold-to-Peek Pointer Input Engine ([`CleanWallpaperPreviewScaffold.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/components/CleanWallpaperPreviewScaffold.kt)):**
+  - Replaced `detectTapGestures` with a low-level gesture recognizer (`awaitEachGesture`).
+  - Touch down -> if held past `viewConfiguration.longPressTimeoutMillis` (~500ms), sets `internalIsCleanMode = true`, hiding all controls and scrim overlays.
+  - While finger remains pressed -> tracks active pointer press events.
+  - Instant release/up or cancellation -> sets `internalIsCleanMode = false` immediately, restoring all controls and overlays.
+  - Short tap (<500ms) -> triggers `onTap?.invoke()`.
+  - Automatically unifies Hold-to-Peek behavior across Zone Editor, Font Preview, Color Scheme Preview, and Pools Image/Quote Previews.
+
+### Verification Status
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
