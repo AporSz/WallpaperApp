@@ -370,11 +370,11 @@
 ### Implementation Summary
 - **7 Text Color Schemes in `PaletteContrastAnalyzer.kt`:**
   - `SUBTLE_PALETTE_HARMONY`: Muted photo swatches with gentle HSL lightness adjustment.
-  - `VIBRANT_PALETTE_HARMONY`: Richer vibrant photo swatches (`vibrantSwatch`, `lightVibrantSwatch`, `darkVibrantSwatch`) with Noticeable color presence while remaining legible and tasteful.
+  - `VIBRANT_PALETTE_HARMONY`: Richer vibrant swatches (`vibrantSwatch`, `lightVibrantSwatch`, `darkVibrantSwatch`) with Noticeable color presence while remaining legible and tasteful.
   - `BLEND_IN`: Dominant tone behind crop rect with slight ~10-15% tonal shift for soft camouflage effect into background image.
 - **Highlight Glow Rendering in `QuoteTextCanvasDrawer.kt`:**
   - Added `textGlowEnabled: Boolean = false` parameter to `drawQuoteOnCanvas(...)`.
-  - When `textGlowEnabled == true`: applies luminous soft outer glow (`setShadowLayer(22f, 0f, 0f, textColorArgb)`).
+  - When `textGlowEnabled == true`: applies luminous soft outer glow (`setShadowLayer(22f, 0f, 0f, glowColorArgb)`).
 - **Wallpaper Renderer Integration:**
   - Updated [`CanvasWallpaperRenderer.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/graphics/CanvasWallpaperRenderer.kt) to pass `config.textGlowEnabled` to `drawQuoteOnCanvas`.
 
@@ -572,3 +572,28 @@
 - **Final Build & Test Verification:**
   - Verified compilation and executed test suite: **SUCCESS** (28/28 unit tests passed).
   - Built Debug APK: **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
+
+---
+
+## Feature Extensions: Codebase Inspection & Integration Plan (Zone Editor Bounding Box Sticking Fix)
+
+### Inspection & Architectural Analysis Summary
+1. **Root Cause Analysis of In-Place Magnetic Snapping Trap:**
+   - **The Trap:** In [`CropBoxGeometry.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/CropBoxGeometry.kt), `resizeOrMove` previously added frame deltas (`dxNorm`, `dyNorm`) directly onto an *already-snapped* rectangle. When the box snapped to the center line (`0.5f`), subsequent small frame deltas (e.g. `0.003f`) were added to `0.5f`, resulting in a new position whose distance from center was `0.003f`—well within the `0.015f` snap threshold!
+   - On every frame during slow drag movements, the snapping logic re-evaluated and forcibly pulled the rectangle back to `0.5f`, freezing the box on snap lines.
+   - **The Solution (`CropBoxDragEngine`):** Keep an anchor `initialRectOnDown` when the gesture starts, and accumulate total drag offset `(accumulatedDxNorm, accumulatedDyNorm)` across frames.
+   - Compute an **unsnapped `rawRect`**:
+     `rawRect = initialRectOnDown.applyOffset(accumulatedDxNorm, accumulatedDyNorm)`
+   - Apply magnetic snapping as a **pure projection** on top of `rawRect`:
+     `displayedRect = projectWithSnapping(rawRect)`
+   - As the finger moves past `centerSnapThreshold` relative to `initialRectOnDown`, `rawRect` moves past the threshold, and `displayedRect` breaks away instantly with **zero sticking**!
+
+2. **Pointer Cleanup on Interruption:**
+   - Enclose the gesture loop in `ZoneEditorScreen.kt` inside `try { ... } finally { isDragging = false; viewModel.updateRect(...) }` to guarantee complete state cleanup on pointer up, multi-touch intervention, or gesture cancellation.
+
+3. **Step Execution Plan:**
+   - **Step 2:** Implement pure Kotlin `CropBoxDragEngine.kt` and write comprehensive unit tests in `CropBoxDragEngineTest.kt` verifying smooth breakaway, snapped projections, and drag math.
+   - **Step 3:** Refactor `ZoneEditorScreen.kt` to use `CropBoxDragEngine.kt` with `try { ... } finally { ... }` cleanup. Build debug APK (`./gradlew assembleDebug`).
+
+### Verification Status
+- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
