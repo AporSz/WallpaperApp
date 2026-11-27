@@ -361,7 +361,7 @@
   - Updated [`TextColorSchemeTest.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/test/java/com/example/wallpaperapp/domain/model/TextColorSchemeTest.kt) verifying all 7 options.
 
 ### Verification Status
-- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
 
 ---
 
@@ -589,7 +589,7 @@
    - As the finger moves past `centerSnapThreshold` relative to `initialRectOnDown`, `rawRect` moves past the threshold, and `displayedRect` breaks away instantly with **zero sticking**!
 
 2. **Pointer Cleanup on Interruption:**
-   - Enclose the gesture loop in `ZoneEditorScreen.kt` inside `try { ... } finally { isDragging = false; viewModel.updateRect(...) }` to guarantee complete state cleanup on pointer up, multi-touch intervention, or gesture cancellation.
+   - Enclose the gesture loop in `ZoneEditorScreen.kt` inside a `try { ... } finally { isDragging = false; viewModel.updateRect(...) }` block to guarantee complete state cleanup on touch up, cancellation, or multi-touch interference.
 
 3. **Step Execution Plan:**
    - **Step 2:** Implement pure Kotlin `CropBoxDragEngine.kt` and write comprehensive unit tests in `CropBoxDragEngineTest.kt` verifying smooth breakaway, snapped projections, and drag math.
@@ -611,3 +611,15 @@
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (32/32 unit tests passed).
+
+---
+
+## Step 3: Refactor Zone Editor Screen, Pointer Cleanup & Final Build Verification
+
+### Implementation Summary
+- **Integrated Anchor-Based Drag Engine in Zone Editor ([`ZoneEditorScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/ZoneEditorScreen.kt)):**
+  - Integrated `CropBoxDragEngine.computeDrag(...)` on initial touch down anchor `initialRectOnDown`.
+  - Enclosed the entire gesture loop in a `try { ... } finally { isDragging = false; viewModel.updateRect(...) }` block guaranteeing complete state cleanup on touch up, cancellation, or multi-touch intervention.
+- **Final Build & Test Verification:**
+  - Verified compilation and executed unit test suite: **SUCCESS** (32/32 unit tests passed).
+  - Built Debug APK: **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).

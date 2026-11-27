@@ -48,7 +48,6 @@ import com.example.wallpaperapp.domain.model.TextOrientation
 import com.example.wallpaperapp.graphics.PaletteContrastAnalyzer
 import com.example.wallpaperapp.graphics.QuoteTextCanvasDrawer
 import com.example.wallpaperapp.ui.components.CleanWallpaperPreviewScaffold
-import com.example.wallpaperapp.ui.zone.CropBoxGeometry.resizeOrMove
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
@@ -291,7 +290,7 @@ fun ZoneEditorScreen(
                 )
             }
 
-            // 6. Unified Touch Hit-Test & Drag/Resize Overlay (1:1 with rendered image container)
+            // 6. Unified Anchor-Based Touch Hit-Test & Drag/Resize Overlay
             val currentLocalRectState = rememberUpdatedState(localRect)
             val cornerHitRadiusPx = with(density) { 40.dp.toPx() }
             val edgeHitBandPx = with(density) { 32.dp.toPx() }
@@ -314,31 +313,37 @@ fun ZoneEditorScreen(
                             if (hitHandle != null) {
                                 down.consume()
                                 isDragging = true
+                                val initialRectOnDown = currentLocalRectState.value
+                                var accumulatedDxNorm = 0f
+                                var accumulatedDyNorm = 0f
                                 val pointerId = down.id
 
-                                do {
-                                    val event = awaitPointerEvent()
-                                    val pointerChange = event.changes.firstOrNull { it.id == pointerId } ?: event.changes.firstOrNull()
-                                    if (pointerChange != null && pointerChange.pressed) {
-                                        val dragAmount = pointerChange.position - pointerChange.previousPosition
-                                        if (dragAmount.x != 0f || dragAmount.y != 0f) {
-                                            pointerChange.consume()
-                                            val dxNorm = dragAmount.x / containerWidthPx
-                                            val dyNorm = dragAmount.y / containerHeightPx
+                                try {
+                                    do {
+                                        val event = awaitPointerEvent()
+                                        val pointerChange = event.changes.firstOrNull { it.id == pointerId } ?: event.changes.firstOrNull()
+                                        if (pointerChange != null && pointerChange.pressed) {
+                                            val dragAmount = pointerChange.position - pointerChange.previousPosition
+                                            if (dragAmount.x != 0f || dragAmount.y != 0f) {
+                                                pointerChange.consume()
+                                                accumulatedDxNorm += dragAmount.x / containerWidthPx
+                                                accumulatedDyNorm += dragAmount.y / containerHeightPx
 
-                                            localRect = with(CropBoxGeometry) {
-                                                currentLocalRectState.value.resizeOrMove(
+                                                val dragResult = CropBoxDragEngine.computeDrag(
+                                                    initialRect = initialRectOnDown,
                                                     handle = hitHandle,
-                                                    dxNorm = dxNorm,
-                                                    dyNorm = dyNorm
+                                                    accumulatedDxNorm = accumulatedDxNorm,
+                                                    accumulatedDyNorm = accumulatedDyNorm
                                                 )
+
+                                                localRect = dragResult.displayedRect
                                             }
                                         }
-                                    }
-                                } while (event.changes.any { it.pressed })
-
-                                isDragging = false
-                                viewModel.updateRect(currentLocalRectState.value)
+                                    } while (event.changes.any { it.pressed })
+                                } finally {
+                                    isDragging = false
+                                    viewModel.updateRect(currentLocalRectState.value)
+                                }
                             }
                         }
                     }
