@@ -361,7 +361,7 @@
   - Updated [`TextColorSchemeTest.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/test/java/com/example/wallpaperapp/domain/model/TextColorSchemeTest.kt) verifying all 7 options.
 
 ### Verification Status
-- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
+- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
 
 ---
 
@@ -379,7 +379,7 @@
   - Updated [`CanvasWallpaperRenderer.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/graphics/CanvasWallpaperRenderer.kt) to pass `config.textGlowEnabled` to `drawQuoteOnCanvas`.
 
 ### Verification Status
-- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
+- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (27/27 unit tests passed).
 
 ---
 
@@ -394,7 +394,7 @@
   - Added real-time **Glow** toggle switch to the control bar in [`ColorSchemePreviewScreen.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/color/ColorSchemePreviewScreen.kt).
 
 ### Verification Status
-- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
+- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
 
 ---
 
@@ -411,7 +411,7 @@
   - Handled back navigation with `BackHandler` in `SettingsScreen` and `MainAppScreen` so tapping top-bar Back or performing Android system back gesture pops back to the Dashboard cleanly.
 
 ### Verification Status
-- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
+- Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
 - Built Debug APK (`./gradlew assembleDebug`): **SUCCESS** ([`app/build/outputs/apk/debug/app-debug.apk`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/build/outputs/apk/debug/app-debug.apk)).
 
 ---
@@ -597,3 +597,17 @@
 
 ### Verification Status
 - Built and ran unit tests (`./gradlew testDebugUnitTest`): **SUCCESS** (28/28 unit tests passed).
+
+---
+
+## Step 2: Implement Pure Kotlin CropBoxDragEngine & Comprehensive Unit Tests
+
+### Implementation Summary
+- **Created Pure Kotlin Drag Engine ([`CropBoxDragEngine.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/main/java/com/example/wallpaperapp/ui/zone/CropBoxDragEngine.kt)):**
+  - Uses anchor-based gesture projection: computes unsnapped `rawRect` from `initialRectOnDown` + `accumulatedOffsets`, and projects `displayedRect` with magnetic center snapping on top of `rawRect`.
+  - Guarantees clean breakaway when cumulative drag offset moves `rawRect` past the snap threshold, completely eliminating the in-place snapping freeze trap.
+- **Comprehensive Unit Tests ([`CropBoxDragEngineTest.kt`](file:///home/apor/Documents/My_Things/projects/WallpaperApp/app/src/test/java/com/example/wallpaperapp/ui/zone/CropBoxDragEngineTest.kt)):**
+  - Verified snapped center projections, smooth breakaway past threshold during incremental drag steps, minWidth/minHeight clamping, and corner handle resizing math.
+
+### Verification Status
+- Built and ran unit tests (`./gradlew compileDebugKotlin testDebugUnitTest`): **SUCCESS** (32/32 unit tests passed).
